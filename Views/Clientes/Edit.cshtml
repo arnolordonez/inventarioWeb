@@ -2,84 +2,95 @@
 
 @{
     ViewData["Title"] = "Editar Cliente";
-    // ViewBag.TiposItems debe ser IEnumerable<SelectListItem>
-    var tipos = ViewBag.TiposItems as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>
-                ?? new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>
-                        {
-                    new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Text = "Minorista", Value = "Minorista" },
-                    new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Text = "Mayorista", Value = "Mayorista" }
-                        };
 }
 
 <h4>Editar Cliente</h4>
 
 <form asp-action="Edit" method="post">
+    @Html.AntiForgeryToken()
     <input type="hidden" asp-for="ID_Cliente" />
 
     <div class="row g-3">
+
+        <!-- Nombre -->
         <div class="col-md-6">
-            <label asp-for="Nombre" class="form-label">Nombre</label>
+            <label asp-for="Nombre" class="form-label"></label>
             <input asp-for="Nombre" class="form-control" />
             <span asp-validation-for="Nombre" class="text-danger"></span>
         </div>
 
+        <!-- Apellido -->
         <div class="col-md-6">
-            <label asp-for="Apellido" class="form-label">Apellido</label>
+            <label asp-for="Apellido" class="form-label"></label>
             <input asp-for="Apellido" class="form-control" />
             <span asp-validation-for="Apellido" class="text-danger"></span>
         </div>
 
+        <!-- Correo -->
         <div class="col-md-6">
-            <label asp-for="Correo" class="form-label">Correo</label>
+            <label asp-for="Correo" class="form-label"></label>
             <input asp-for="Correo" class="form-control" />
             <span asp-validation-for="Correo" class="text-danger"></span>
         </div>
 
+        <!-- Teléfono -->
         <div class="col-md-6">
-            <label asp-for="Telefono" class="form-label">Teléfono</label>
+            <label asp-for="Telefono" class="form-label"></label>
             <input asp-for="Telefono" class="form-control" />
             <span asp-validation-for="Telefono" class="text-danger"></span>
         </div>
 
+        <!-- Dirección -->
         <div class="col-md-6">
-            <label asp-for="Direccion" class="form-label">Dirección</label>
+            <label asp-for="Direccion" class="form-label"></label>
             <input asp-for="Direccion" class="form-control" />
             <span asp-validation-for="Direccion" class="text-danger"></span>
         </div>
 
+        <!-- Ciudad / Municipio -->
         <div class="col-md-6">
-            <label asp-for="CiudadMunicipio" class="form-label">Ciudad / Municipio</label>
+            <label asp-for="CiudadMunicipio" class="form-label"></label>
             <input asp-for="CiudadMunicipio" class="form-control" />
             <span asp-validation-for="CiudadMunicipio" class="text-danger"></span>
         </div>
 
+        <!-- Tipo Cliente -->
         <div class="col-md-6">
-            <label asp-for="TipoCliente" class="form-label">Tipo de Cliente</label>
-            <select asp-for="TipoCliente" class="form-select" id="tipoClienteSelect"
-                    asp-items="tipos">
+            <label asp-for="TipoCliente" class="form-label"></label>
+            <select asp-for="TipoCliente"
+                    asp-items="ViewBag.Tipos"
+                    class="form-select"
+                    id="tipoClienteSelect">
             </select>
             <span asp-validation-for="TipoCliente" class="text-danger"></span>
         </div>
 
+        <!-- VIP (solo informativo) -->
         <div class="col-md-6">
             <label class="form-label">VIP</label>
-            <input type="text" id="vipText" class="form-control" value="@(Model.VIP ? "SI" : "NO")" readonly />
-            <input type="hidden" id="VIP" asp-for="VIP" />
+            <input type="text"
+                   id="vipText"
+                   class="form-control"
+                   readonly />
         </div>
 
+        <!-- Observaciones -->
         <div class="col-12">
-            <label asp-for="Observaciones" class="form-label">Observaciones</label>
+            <label asp-for="Observaciones" class="form-label"></label>
             <textarea asp-for="Observaciones" class="form-control" rows="3"></textarea>
             <span asp-validation-for="Observaciones" class="text-danger"></span>
         </div>
 
+        <!-- Activo -->
         <div class="col-md-6">
-            <label asp-for="Activo" class="form-label">Activo</label>
+            <label asp-for="Activo" class="form-label"></label>
             <select asp-for="Activo" class="form-select">
-                <option value="true" selected="@(Model.Activo)">SI</option>
-                <option value="false" selected="@(Model.Activo == false)">NO</option>
+                <option value="true">SI</option>
+                <option value="false">NO</option>
             </select>
+            <span asp-validation-for="Activo" class="text-danger"></span>
         </div>
+
     </div>
 
     <div class="mt-3 d-flex justify-content-end">
@@ -89,28 +100,20 @@
 </form>
 
 @section Scripts {
-        <partial name="_ValidationScriptsPartial" />
-        <script>
-            (function () {
-                const tipo = document.getElementById('tipoClienteSelect');
-                const vipText = document.getElementById('vipText');
-                const vipHidden = document.getElementById('VIP');
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const tipo = document.getElementById('tipoClienteSelect');
+            const vipText = document.getElementById('vipText');
 
-                function actualizarVIP() {
-                    const val = tipo.value;
-                    if (val === 'Mayorista') {
-                        vipText.value = 'SI';
-                        vipHidden.value = true;
-                    } else {
-                        vipText.value = 'NO';
-                        vipHidden.value = false;
-                    }
-                }
+            function actualizarVIP() {
+                vipText.value = tipo.value === 'Mayorista' ? 'SI' : 'NO';
+            }
 
-                if (tipo) {
-                    tipo.addEventListener('change', actualizarVIP);
-                    actualizarVIP();
-                }
-            })();
-        </script>
+            if (tipo) {
+                tipo.addEventListener('change', actualizarVIP);
+                actualizarVIP();
+            }
+        })();
+    </script>
 }

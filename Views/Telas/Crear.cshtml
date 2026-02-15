@@ -1,0 +1,32 @@
+﻿@model InventarioWEB.ViewModels.Catalogos.Telas.TelaCreateVM
+
+@{
+    ViewData["Title"] = "Nueva Tela";
+}
+
+<h3 class="mb-3">Nueva Tela</h3>
+
+<form asp-action="Crear" method="post">
+
+    @Html.AntiForgeryToken()
+
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+    <div class="mb-3">
+        <label asp-for="DescripTela" class="form-label"></label>
+        <input asp-for="DescripTela" class="form-control" />
+        <span asp-validation-for="DescripTela" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-success">
+        <i class="bi bi-check-circle"></i> Guardar
+    </button>
+
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Cancelar
+    </a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

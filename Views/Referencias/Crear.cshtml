@@ -1,0 +1,46 @@
+﻿@model InventarioWEB.ViewModels.Catalogos.Referencias.ReferenciaCreateVM
+
+@{
+    ViewData["Title"] = "Crear Nueva Referencia";
+}
+
+<div class="container mt-4">
+
+    <h2 class="text-primary fw-bold mb-4">@ViewData["Title"]</h2>
+
+    <form asp-action="Crear" method="post">
+        @Html.AntiForgeryToken()
+
+        <div class="mb-3">
+            <label asp-for="DescripReferencia" class="form-label"></label>
+            <input asp-for="DescripReferencia" class="form-control" />
+            <span asp-validation-for="DescripReferencia" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="ID_Genero" class="form-label"></label>
+            <select asp-for="ID_Genero"
+                    class="form-select"
+                    asp-items="Model.Generos">
+                <option value="0">-- Seleccione un género --</option>
+            </select>
+            <span asp-validation-for="ID_Genero" class="text-danger"></span>
+        </div>
+
+        <div class="mt-3">
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-circle"></i> Crear
+            </button>
+
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left-circle"></i> Volver
+            </a>
+        </div>
+
+    </form>
+
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

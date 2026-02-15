@@ -7,402 +7,395 @@ using InventarioWEB.ViewModels;
 
 namespace InventarioWEB.Controllers
 {
+    /// <summary>
+    /// Controlador principal del módulo Productos.
+    /// </summary>
+    /// <remarks>
+    /// Responsable de la gestión integral de productos:
+    /// - Consulta paginada con filtros optimizados
+    /// - Creación de productos
+    /// - Edición
+    /// - Cambio de estado (Activo/Inactivo)
+    /// - Visualización de detalles
+    ///
+    /// Implementa:
+    /// ✔ Consultas AsNoTracking para optimización de lectura
+    /// ✔ Proyección liviana hacia ViewModels
+    /// ✔ Paginación server-side
+    /// ✔ Carga controlada de tablas pequeñas
+    ///
+    /// Este controlador constituye el núcleo funcional del módulo Productos.
+    /// </remarks>
     public class ProductosController : Controller
     {
         private readonly MovimientoVentasDbContext _context;
 
+        /// <summary>
+        /// Inicializa una nueva instancia del controlador Productos.
+        /// </summary>
+        /// <param name="context">
+        /// Contexto de base de datos correspondiente al módulo de movimiento y ventas.
+        /// </param>
         public ProductosController(MovimientoVentasDbContext context)
         {
             _context = context;
         }
 
         // ============================================================
-        // GET: /Productos/Index
+        // INDEX
         // ============================================================
-        public async Task<IActionResult> Index(string estado)
+
+        /// <summary>
+        /// Muestra la vista principal de productos con filtros y paginación.
+        /// </summary>
+        /// <param name="model">
+        /// Modelo de filtros y configuración de paginación.
+        /// </param>
+        /// <returns>
+        /// Vista Index con lista paginada de productos.
+        /// </returns>
+        /// <remarks>
+        /// Estrategia de rendimiento:
+        /// - No carga datos al ingresar (salida temprana).
+        /// - Solo ejecuta consulta si existen filtros.
+        /// - Proyecta a ViewModel para evitar exponer entidades.
+        /// - Implementa paginación server-side.
+        /// </remarks>
+        [HttpGet]
+        public async Task<IActionResult> Index(ProductosIndexViewModel model)
         {
-            ViewBag.EstadosFiltro = new SelectList(new[]
-            {
-                new { Value = "", Text = "Todos" },
-                new { Value = "A", Text = "Activos" },
-                new { Value = "I", Text = "Inactivos" }
-            }, "Value", "Text", estado);
+            await CargarFiltros(model);
+
+            model.Productos = new List<ProductosIndexItemViewModel>();
+
+            bool hayFiltros =
+                model.ID_Producto.HasValue ||
+                model.ID_Genero.HasValue ||
+                model.ID_Referencia.HasValue ||
+                model.ID_Talla.HasValue ||
+                model.ID_Tela.HasValue ||
+                !string.IsNullOrEmpty(model.EstadoFiltro);
+
+            if (!hayFiltros)
+                return View(model);
 
             var query = _context.Productos
+                .AsNoTracking()
                 .Include(p => p.Referencia).ThenInclude(r => r.Genero)
                 .Include(p => p.Talla)
                 .Include(p => p.Tela)
-                .Include(p => p.Color)
+                .Include(p => p.ColorNav)
                 .AsQueryable();
 
-            if (!string.IsNullOrEmpty(estado))
+            if (model.ID_Producto.HasValue)
             {
-                if (estado == "A") query = query.Where(p => p.Activo == true);
-                if (estado == "I") query = query.Where(p => p.Activo == false);
+                query = query.Where(p => p.ID_Producto == model.ID_Producto.Value);
+            }
+            else
+            {
+                if (model.ID_Referencia.HasValue)
+                    query = query.Where(p => p.ID_Referencias == model.ID_Referencia.Value);
+
+                if (model.ID_Talla.HasValue)
+                    query = query.Where(p => p.ID_Tallas == model.ID_Talla.Value);
+
+                if (model.ID_Tela.HasValue)
+                    query = query.Where(p => p.ID_Telas == model.ID_Tela.Value);
+
+                if (model.ID_Genero.HasValue)
+                {
+                    query = query.Where(p =>
+                        p.Referencia != null &&
+                        p.Talla != null &&
+                        p.Referencia.ID_Genero == model.ID_Genero.Value &&
+                        p.Talla.ID_Genero == model.ID_Genero.Value
+                    );
+                }
             }
 
-            var productos = await query.ToListAsync();
-            return View(productos);
-        }
-
-        // ============================================================
-        // GET: /Productos/Crear
-        // ============================================================
-        public async Task<IActionResult> Crear()
-        {
-            var model = new ProductoCreateViewModel
+            if (!string.IsNullOrEmpty(model.EstadoFiltro))
             {
-                GenerosLista = await _context.Generos
-                    .Select(x => new SelectListItem { Value = x.ID_Genero.ToString(), Text = x.DescripGenero })
-                    .ToListAsync(),
+                query = model.EstadoFiltro == "A"
+                    ? query.Where(p => p.Activo)
+                    : query.Where(p => !p.Activo);
+            }
 
-                TelasLista = await _context.Telas
-                    .Select(x => new SelectListItem { Value = x.ID_Telas.ToString(), Text = x.DescripTela })
-                    .ToListAsync(),
+            model.Page = model.Page < 1 ? 1 : model.Page;
+            model.PageSize = model.PageSize <= 0 ? 20 : model.PageSize;
 
-                ColoresLista = await _context.Colores
-                    .Select(x => new SelectListItem { Value = x.ID_Color.ToString(), Text = x.Nombre })
-                    .ToListAsync(),
+            model.TotalItems = await query.CountAsync();
 
-                ReferenciasLista = new List<SelectListItem>(),
-                TallasLista = new List<SelectListItem>()
-            };
+            model.Productos = await query
+                .OrderBy(p => p.ID_Producto)
+                .Skip((model.Page - 1) * model.PageSize)
+                .Take(model.PageSize)
+                .Select(p => new ProductosIndexItemViewModel
+                {
+                    ID_Producto = p.ID_Producto,
+                    Nombre = p.Nombre ?? "—",
+                    Referencia = p.Referencia != null ? p.Referencia.DescripReferencia : "—",
+                    Talla = p.Talla != null ? p.Talla.DescripTalla : "—",
+                    Tela = p.Tela != null ? p.Tela.DescripTela : "—",
+                    Color = p.ColorNav != null ? p.ColorNav.Nombre : "—",
+                    PrecioVTA = p.PrecioVTA,
+                    IVA_Porcentaje = p.IVA_Porcentaje,
+                    Activo = p.Activo
+                })
+                .ToListAsync();
 
             return View(model);
         }
 
         // ============================================================
-        // POST: /Productos/Crear
+        // DETALLES
         // ============================================================
+
+        /// <summary>
+        /// Muestra el detalle completo de un producto.
+        /// </summary>
+        /// <param name="id">Identificador primario del producto.</param>
+        /// <returns>Vista Detalles o 404 si no existe.</returns>
+        /// <remarks>
+        /// Se utiliza AsNoTracking ya que es una consulta de solo lectura.
+        /// </remarks>
+        public async Task<IActionResult> Detalles(int id)
+        {
+            var producto = await _context.Productos
+                .AsNoTracking()
+                .Include(p => p.Referencia).ThenInclude(r => r.Genero)
+                .Include(p => p.Talla)
+                .Include(p => p.Tela)
+                .Include(p => p.ColorNav)
+                .FirstOrDefaultAsync(p => p.ID_Producto == id);
+
+            if (producto == null)
+                return NotFound();
+
+            return View(producto);
+        }
+
+        // ============================================================
+        // CREAR
+        // ============================================================
+
+        /// <summary>
+        /// Muestra el formulario de creación de productos.
+        /// </summary>
+        public async Task<IActionResult> Crear()
+        {
+            var model = new ProductoCreateViewModel();
+            await CargarListasCrear(model);
+            return View(model);
+        }
+
+        /// <summary>
+        /// Registra un nuevo producto en el sistema.
+        /// </summary>
+        /// <param name="model">Modelo de creación.</param>
+        /// <remarks>
+        /// Regla de negocio:
+        /// El precio de venta debe ser mayor que el precio de costo.
+        /// </remarks>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Crear(ProductoCreateViewModel model)
         {
             if (!ModelState.IsValid)
             {
-                await CargarListas(model);
+                await CargarListasCrear(model);
                 return View(model);
             }
 
-            if (model.PrecioCosto <= 0)
-                ModelState.AddModelError("PrecioCosto", "El precio de costo no puede ser 0.");
-
-            if (model.Precio <= 0)
-                ModelState.AddModelError("Precio", "El precio de venta no puede ser 0.");
-
-            if (model.Precio <= model.PrecioCosto)
-                ModelState.AddModelError("Precio", "El precio de venta no puede ser menor o igual al costo.");
-
-            if (!ModelState.IsValid)
+            if (model.PrecioVTA <= model.PrecioCosto)
             {
-                await CargarListas(model);
+                ModelState.AddModelError(nameof(model.PrecioVTA),
+                    "El precio de venta debe ser mayor al costo.");
+                await CargarListasCrear(model);
                 return View(model);
             }
 
-            // =====================================================================
-            // GENERAR LISTAS SEGÚN FILTROS
-            // =====================================================================
-            var referencias = model.ID_Referencias.HasValue
-                ? new List<int> { model.ID_Referencias.Value }
-                : await _context.Referencias
-                    .Where(r => r.ID_Genero == model.ID_Genero)
-                    .Select(r => r.ID_Referencias)
-                    .ToListAsync();
-
-            var tallas = model.ID_Tallas.HasValue
-                ? new List<int> { model.ID_Tallas.Value }
-                : await _context.Tallas
-                    .Where(t => t.ID_Genero == model.ID_Genero)
-                    .Select(t => t.ID_Tallas)
-                    .ToListAsync();
-
-            var colores = model.ID_Color.HasValue
-                ? new List<int> { model.ID_Color.Value }
-                : await _context.Colores
-                    .Select(c => c.ID_Color)
-                    .ToListAsync();
-
-            if (model.ID_Telas == null)
+            _context.Productos.Add(new Producto
             {
-                ModelState.AddModelError("ID_Telas", "Debe seleccionar una tela.");
-                await CargarListas(model);
-                return View(model);
-            }
-            // =====================================================================
-            // CREACIÓN / ACTUALIZACIÓN DE PRODUCTOS
-            // =====================================================================
-            foreach (var idRef in referencias)
-            {
-                foreach (var idTalla in tallas)
-                {
-                    foreach (var idColor in colores)
-                    {
-                        var existente = await _context.Productos.FirstOrDefaultAsync(p =>
-                            p.ID_Referencias == idRef &&
-                            p.ID_Tallas == idTalla &&
-                            p.ID_Color == idColor &&
-                            p.ID_Telas == model.ID_Telas
-                        );
-
-                        // ============================================
-                        // Obtener nombres para generar Nombre del producto
-                        // ============================================
-                        var genero = await _context.Generos.FirstAsync(g => g.ID_Genero == model.ID_Genero);
-                        var referencia = await _context.Referencias.FirstAsync(r => r.ID_Referencias == idRef);
-                        var talla = await _context.Tallas.FirstAsync(t => t.ID_Tallas == idTalla);
-                        var tela = await _context.Telas.FirstAsync(t => t.ID_Telas == model.ID_Telas);
-                        var color = await _context.Colores.FirstAsync(c => c.ID_Color == idColor);
-
-                        var nombreAuto = $"{referencia.DescripReferencia} {tela.DescripTela} {talla.DescripTalla} {genero.DescripGenero} {color.Nombre}";
-
-
-                        // ==================================================
-                        // SI YA EXISTE → ACTUALIZA
-                        // ==================================================
-                        if (existente != null)
-                        {
-                            existente.PrecioCosto = model.PrecioCosto;
-                            existente.Precio = model.Precio;
-                            existente.IVA_Porcentaje = model.IVA_Porcentaje;
-                            existente.Stock = model.Stock;
-                            existente.Nombre = nombreAuto;
-
-                            _context.Productos.Update(existente);
-                            await _context.SaveChangesAsync();
-                            continue;
-                        }
-
-
-                        // ==================================================
-                        // GENERAR NUEVA SECUENCIA PARA ID_Producto
-                        // ==================================================
-                        var ultimo = await _context.Productos
-                            .OrderByDescending(p => p.ID_Producto)
-                            .Select(p => p.ID_Producto)
-                            .FirstOrDefaultAsync();
-
-                        int numero = 0;
-
-                        if (!string.IsNullOrEmpty(ultimo) && ultimo.Contains("_"))
-                        {
-                            int.TryParse(ultimo.Split('_')[0], out numero);
-                        }
-
-                        numero++;
-                        var secuencia = numero.ToString("D6");
-
-                        var nuevoId = $"{secuencia}_{nombreAuto}";
-
-
-                        // ==================================================
-                        // CREAR NUEVO PRODUCTO
-                        // ==================================================
-                        var producto = new Producto
-                        {
-                            ID_Producto = nuevoId,
-                            Nombre = nombreAuto,
-                            PrecioCosto = model.PrecioCosto,
-                            Precio = model.Precio,
-                            IVA_Porcentaje = model.IVA_Porcentaje,
-                            Stock = model.Stock,
-                            ID_Referencias = idRef,
-                            ID_Tallas = idTalla,
-                            ID_Telas = model.ID_Telas.Value,
-                            ID_Color = idColor
-                        };
-
-                        _context.Productos.Add(producto);
-                    }
-                }
-            }
-
+                Nombre = model.Nombre!,
+                PrecioCosto = model.PrecioCosto,
+                PrecioVTA = model.PrecioVTA,
+                IVA_Porcentaje = model.IVA_Porcentaje,
+                Stock = model.Stock,
+                ID_Referencias = model.ID_Referencias,
+                ID_Tallas = model.ID_Tallas,
+                ID_Telas = model.ID_Telas,
+                ID_Color = model.ID_Color,
+                Activo = true
+            });
 
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = "Productos creados o actualizados correctamente.";
-            return RedirectToAction(nameof(Crear));
+            TempData["Success"] = "Producto creado correctamente.";
+            return RedirectToAction(nameof(Index));
         }
 
         // ============================================================
-        // MÉTODOS AJAX
+        // EDITAR
         // ============================================================
-        [HttpGet]
-        public async Task<IActionResult> ObtenerReferenciasPorGenero(int idGenero)
-        {
-            var refs = await _context.Referencias
-                .Where(r => r.ID_Genero == idGenero)
-                .Select(r => new { r.ID_Referencias, Nombre = r.DescripReferencia })
-                .ToListAsync();
 
-            return Json(refs);
+        /// <summary>
+        /// Muestra la vista de edición de un producto.
+        /// </summary>
+        public async Task<IActionResult> Editar(int id)
+        {
+            var producto = await _context.Productos.FindAsync(id);
+            if (producto == null)
+                return NotFound();
+
+            await CargarListasEditar();
+            return View(producto);
         }
 
-        [HttpGet]
-        public async Task<IActionResult> ObtenerTallasPorGenero(int idGenero)
+        /// <summary>
+        /// Actualiza la información de un producto existente.
+        /// </summary>
+        /// <remarks>
+        /// Se reutiliza la validación de regla de negocio del precio.
+        /// </remarks>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Editar(int id, Producto model)
         {
-            var tallas = await _context.Tallas
-                .Where(t => t.ID_Genero == idGenero)
-                .Select(t => new { t.ID_Tallas, Nombre = t.DescripTalla })
-                .ToListAsync();
+            if (!ModelState.IsValid)
+            {
+                await CargarListasEditar();
+                return View(model);
+            }
 
-            return Json(tallas);
+            var producto = await _context.Productos.FindAsync(id);
+            if (producto == null)
+                return NotFound();
+
+            if (model.PrecioVTA <= model.PrecioCosto)
+            {
+                ModelState.AddModelError("", "El precio de venta debe ser mayor al costo.");
+                await CargarListasEditar();
+                return View(model);
+            }
+
+            _context.Entry(producto).CurrentValues.SetValues(model);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Producto actualizado correctamente.";
+            return RedirectToAction(nameof(Index));
         }
 
-        [HttpGet]
-        public async Task<IActionResult> ReferenciasPorGenero(int id)
+        // ============================================================
+        // CAMBIO DE ESTADO
+        // ============================================================
+
+        /// <summary>
+        /// Alterna el estado Activo/Inactivo de un producto.
+        /// </summary>
+        /// <param name="id">Identificador del producto.</param>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CambiarEstado(int id)
         {
-            var refs = await _context.Referencias
-                .Where(r => r.ID_Genero == id)
-                .Select(r => new SelectListItem
+            var producto = await _context.Productos.FindAsync(id);
+            if (producto == null)
+                return NotFound();
+
+            producto.Activo = !producto.Activo;
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Estado del producto actualizado.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // ============================================================
+        // MÉTODOS PRIVADOS DE APOYO
+        // ============================================================
+
+        /// <summary>
+        /// Carga los filtros del Index (tablas pequeñas).
+        /// </summary>
+        private async Task CargarFiltros(ProductosIndexViewModel model)
+        {
+            model.Generos = await _context.Generos
+                .Select(g => new SelectListItem
+                {
+                    Value = g.ID_Genero.ToString(),
+                    Text = g.DescripGenero
+                })
+                .ToListAsync();
+
+            model.Referencias = await _context.Referencias
+                .Select(r => new ReferenciaSelectListItem
                 {
                     Value = r.ID_Referencias.ToString(),
-                    Text = r.DescripReferencia
+                    Text = r.DescripReferencia,
+                    ID_Genero = r.ID_Genero
                 })
                 .ToListAsync();
 
-            return Json(refs);
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> TallasPorReferencia(int id)
-        {
-            var idGenero = await _context.Referencias
-                .Where(r => r.ID_Referencias == id)
-                .Select(r => r.ID_Genero)
-                .FirstOrDefaultAsync();
-
-            var tallas = await _context.Tallas
-                .Where(t => t.ID_Genero == idGenero)
-                .Select(t => new SelectListItem
+            model.Tallas = await _context.Tallas
+                .Select(t => new TallaSelectListItem
                 {
                     Value = t.ID_Tallas.ToString(),
-                    Text = t.DescripTalla
+                    Text = t.DescripTalla,
+                    ID_Genero = t.ID_Genero
                 })
                 .ToListAsync();
 
-            return Json(tallas);
-        }
-
-        // ============================================================
-        // CargarListas
-        // ============================================================
-        private async Task CargarListas(ProductoCreateViewModel model)
-        {
-            model.GenerosLista = await _context.Generos
-                .Select(x => new SelectListItem { Value = x.ID_Genero.ToString(), Text = x.DescripGenero })
+            model.Telas = await _context.Telas
+                .Select(t => new SelectListItem
+                {
+                    Value = t.ID_Telas.ToString(),
+                    Text = t.DescripTela
+                })
                 .ToListAsync();
 
+            model.EstadosLista = new List<SelectListItem>
+            {
+                new() { Value = "A", Text = "Activos" },
+                new() { Value = "I", Text = "Inactivos" }
+            };
+        }
+
+        /// <summary>
+        /// Carga las listas necesarias para la vista Crear.
+        /// </summary>
+        private async Task CargarListasCrear(ProductoCreateViewModel model)
+        {
             model.TelasLista = await _context.Telas
-                .Select(x => new SelectListItem { Value = x.ID_Telas.ToString(), Text = x.DescripTela })
+                .Select(t => new SelectListItem { Value = t.ID_Telas.ToString(), Text = t.DescripTela })
                 .ToListAsync();
 
             model.ColoresLista = await _context.Colores
-                .Select(x => new SelectListItem { Value = x.ID_Color.ToString(), Text = x.Nombre })
+                .Select(c => new SelectListItem { Value = c.ID_Color.ToString(), Text = c.Nombre })
+                .ToListAsync();
+
+            model.GenerosLista = await _context.Generos
+                .Select(g => new SelectListItem { Value = g.ID_Genero.ToString(), Text = g.DescripGenero })
                 .ToListAsync();
 
             model.ReferenciasLista = await _context.Referencias
-                .Where(r => r.ID_Genero == model.ID_Genero)
                 .Select(r => new SelectListItem { Value = r.ID_Referencias.ToString(), Text = r.DescripReferencia })
                 .ToListAsync();
 
             model.TallasLista = await _context.Tallas
-                .Where(t => t.ID_Genero == model.ID_Genero)
                 .Select(t => new SelectListItem { Value = t.ID_Tallas.ToString(), Text = t.DescripTalla })
                 .ToListAsync();
         }
-        // ============================================================
-        // ELIMINACIÓN LÓGICA
-        // ============================================================
-        [HttpPost]
-        public async Task<IActionResult> Eliminar(string id)
+
+        /// <summary>
+        /// Carga listas necesarias para la vista Editar.
+        /// </summary>
+        private async Task CargarListasEditar()
         {
-            if (id == null)
-                return NotFound();
+            ViewBag.Telas = await _context.Telas
+                .Select(t => new SelectListItem { Value = t.ID_Telas.ToString(), Text = t.DescripTela })
+                .ToListAsync();
 
-            var producto = await _context.Productos
-                .FirstOrDefaultAsync(p => p.ID_Producto == id);
-
-            if (producto == null)
-                return NotFound();
-
-            // 🔥 Eliminación lógica
-            producto.Activo = false;
-
-            _context.Productos.Update(producto);
-            await _context.SaveChangesAsync();
-
-            TempData["Success"] = "Producto eliminado correctamente.";
-            return RedirectToAction(nameof(Index));
+            ViewBag.Colores = await _context.Colores
+                .Select(c => new SelectListItem { Value = c.ID_Color.ToString(), Text = c.Nombre })
+                .ToListAsync();
         }
-
-        
-        public IActionResult Editar(string id)
-        {
-            var producto = _context.Productos
-                .Include(p => p.Referencia).ThenInclude(r => r.Genero)
-                .Include(p => p.Talla)
-                .Include(p => p.Tela)
-                .Include(p => p.Color)             // ← NUEVO
-                .FirstOrDefault(p => p.ID_Producto == id);
-
-            if (producto == null)
-                return NotFound();
-
-            // listas para los dropdowns
-            ViewBag.Referencias = new SelectList(_context.Referencias, "ID_Referencia", "DescripReferencia");
-            ViewBag.Tallas = new SelectList(_context.Tallas, "ID_Talla", "DescripTalla");
-            ViewBag.Telas = new SelectList(_context.Telas, "ID_Tela", "DescripTela");
-            ViewBag.Colores = new SelectList(_context.Colores, "ID_Color", "Nombre");  // ← NUEVO
-
-            return View(producto);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Editar(Producto producto)
-        {
-            if (!ModelState.IsValid)
-            {
-                // recargar listas
-                ViewBag.Referencias = new SelectList(_context.Referencias, "ID_Referencia", "DescripReferencia");
-                ViewBag.Tallas = new SelectList(_context.Tallas, "ID_Talla", "DescripTalla");
-                ViewBag.Telas = new SelectList(_context.Telas, "ID_Tela", "DescripTela");
-                ViewBag.Colores = new SelectList(_context.Colores, "ID_Color", "Nombre");  // ← NUEVO
-                return View(producto);
-            }
-
-            _context.Update(producto);
-            _context.SaveChanges();
-
-            return RedirectToAction(nameof(Index));
-        }
-
-
-
-        // ============================================================
-        // RECUPERAR PRODUCTO (RESTAURAR)
-        // ============================================================
-        [HttpPost]
-        public async Task<IActionResult> Restaurar(string id)
-        {
-            if (id == null)
-                return NotFound();
-
-            var producto = await _context.Productos
-                .FirstOrDefaultAsync(p => p.ID_Producto == id);
-
-            if (producto == null)
-                return NotFound();
-
-            // 🔥 Restauración lógica
-            producto.Activo = true;
-
-            _context.Productos.Update(producto);
-            await _context.SaveChangesAsync();
-
-            TempData["Success"] = "Producto restaurado correctamente.";
-            return RedirectToAction(nameof(Index));
-        }
-
     }
 }

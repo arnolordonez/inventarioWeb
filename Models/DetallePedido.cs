@@ -1,7 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-using InventarioWEB;
 namespace InventarioWEB.Models
 {
     [Table("detalle_pedido")]
@@ -14,8 +13,8 @@ namespace InventarioWEB.Models
         [Required]
         public int ID_Pedido { get; set; }
 
-        [Required, StringLength(50)]
-        public string ID_Producto { get; set; } = string.Empty;
+        [Required]
+        public int ID_Producto { get; set; }  // ✅ corregido
 
         [Required]
         public int Cantidad { get; set; }

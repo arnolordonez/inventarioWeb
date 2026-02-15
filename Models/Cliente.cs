@@ -2,29 +2,24 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace InventarioWEB.Models
 {
-    // =========================================================
-    // Developer Notes:
-    // Clase Cliente: Representa la tabla "cliente" en la BD.
-    // Este modelo se usa en CRUD en ClientesController.
-    //
-    // Reglas importantes:
-    // - ID_Cliente es nullable para evitar mostrar 0 en formularios nuevos.
-    // - VIP se determina según TipoCliente (Minorista/Mayorista) en la lógica del controller.
-    // - Activo indica si el cliente está activo o ha sido "eliminado" (soft delete).
-    // - HashContrasena y Salt se generan automáticamente al crear un cliente.
-    // - Pedidos es la relación 1:N con la entidad Pedido (si aplica).
-    // =========================================================
     [Table("cliente")]
     public class Cliente
     {
+        // ===============================
+        // CLAVE PRIMARIA (CÉDULA)
+        // ===============================
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         [Display(Name = "Cédula")]
-        public int? ID_Cliente { get; set; }  // nullable para no mostrar 0 en formularios
+        public int ID_Cliente { get; set; }
 
+        // ===============================
+        // DATOS PERSONALES
+        // ===============================
         [Required, StringLength(100)]
         public string Nombre { get; set; } = string.Empty;
 
@@ -48,28 +43,48 @@ namespace InventarioWEB.Models
 
         [DataType(DataType.Date)]
         [Display(Name = "Fecha de registro")]
-        public DateTime FechaRegistro { get; set; } = DateTime.Now;
+        public DateTime FechaRegistro { get; set; }
 
+        // ===============================
+        // TIPO CLIENTE
+        // ===============================
         [Required, StringLength(50)]
         [Display(Name = "Tipo de cliente")]
         public string TipoCliente { get; set; } = "Minorista";
 
+        [ForeignKey(nameof(TipoCliente))]
+        public virtual TipoCliente? TipoClienteNav { get; set; }
+
+        // ===============================
+        // OTROS CAMPOS
+        // ===============================
         [Column(TypeName = "text")]
         public string? Observaciones { get; set; }
 
+        // VIP por lógica de negocio
         [Column(TypeName = "tinyint(1)")]
-        public bool VIP { get; set; } = true;
+        public bool VIP { get; set; } = false;
 
+        // Soft delete
         [Column(TypeName = "tinyint(1)")]
         public bool Activo { get; set; } = true;
 
-        [Required, StringLength(255)]
+        // ===============================
+        // SEGURIDAD (NO VIENEN DEL FORM)
+        // ===============================
+        [BindNever]
+        [ScaffoldColumn(false)]
+        [StringLength(255)]
         public string HashContrasena { get; set; } = string.Empty;
 
-        [Required, StringLength(255)]
+        [BindNever]
+        [ScaffoldColumn(false)]
+        [StringLength(255)]
         public string Salt { get; set; } = string.Empty;
 
-        // Relación 1:N con Pedidos
+        // ===============================
+        // RELACIONES
+        // ===============================
         public ICollection<Pedido>? Pedidos { get; set; }
     }
 }

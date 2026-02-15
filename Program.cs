@@ -68,5 +68,4 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Auto}/{action=Login}/{id?}"
 );
-
 app.Run();

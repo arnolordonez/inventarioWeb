@@ -1,0 +1,57 @@
+﻿@model InventarioWEB.ViewModels.Catalogos.Colores.ColorDeleteVM
+
+@{
+    ViewData["Title"] = "Eliminar Color";
+    Layout = "_Layout";
+}
+
+<div class="mt-4">
+
+    <h3 class="fw-bold text-danger">
+        <i class="bi bi-trash me-2"></i> Eliminar Color
+    </h3>
+    <p class="text-muted">
+        Confirmación de eliminación lógica del color.
+    </p>
+
+    <hr />
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+
+            <div class="alert alert-warning">
+                <strong>Atención:</strong>
+                Esta acción desactivará el color.
+                Podrá restaurarlo posteriormente desde el listado.
+            </div>
+
+            <dl class="row mb-4">
+                <dt class="col-sm-3">ID</dt>
+                <dd class="col-sm-9">@Model.ID_Color</dd>
+
+                <dt class="col-sm-3">Nombre</dt>
+                <dd class="col-sm-9 fw-semibold">@Model.Nombre</dd>
+            </dl>
+
+            <form asp-action="Eliminar" method="post">
+                @Html.AntiForgeryToken()
+
+                <input type="hidden" asp-for="ID_Color" />
+
+                <div class="d-flex justify-content-between">
+
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Cancelar
+                    </a>
+
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i> Confirmar eliminación
+                    </button>
+
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+</div>

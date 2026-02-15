@@ -6,6 +6,7 @@
     ViewData["Title"] = "Clientes - Indomable";
     var nombreUsuario = ViewBag.NombreUsuario ?? "Usuario";
     bool soloEliminados = ViewBag.SoloEliminados ?? false;
+    string search = ViewBag.Search as string ?? "";
 }
 
 <style>
@@ -28,17 +29,19 @@
         font-size: 0.9rem;
     }
 
-    .btn-agregar:hover {
-        background-color: #0d214c;
-    }
+        .btn-agregar:hover {
+            background-color: #0d214c;
+        }
 
-    .vip-label {
-        color: #b30000;
+    .badge-vip {
+        background-color: #b30000;
+        color: white;
         font-weight: bold;
     }
 
-    .cliente-normal {
-        color: #008000;
+    .badge-normal {
+        background-color: #008000;
+        color: white;
         font-weight: bold;
     }
 
@@ -46,130 +49,198 @@
         pointer-events: none;
         opacity: 0.6;
     }
+
+    .btn-filtro {
+        margin-left: 5px;
+    }
+
+    .fila-eliminado {
+        background-color: #f8f9fa !important; /* fondo más claro para clientes eliminados */
+    }
+
+    .btn-filtro-activo {
+        border: 2px solid #0d214c;
+    }
 </style>
 
 <div class="container mt-4">
 
     <h5 class="fw-bold text-primary text-center mb-3">Gestión de Clientes</h5>
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <p class="text-muted mb-0">Bienvenido, <strong>@nombreUsuario</strong></p>
+    @* Mensaje de éxito *@
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
 
-        <a class="btn btn-agregar" asp-controller="Clientes" asp-action="Create">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <p class="text-muted mb-0">
+            Bienvenido, <strong>@nombreUsuario</strong>
+        </p>
+
+        <a class="btn btn-agregar" asp-action="Create">
             <i class="bi bi-person-plus me-1"></i> Nuevo Cliente
         </a>
     </div>
 
+    <!-- BOTONES DE FILTRO: ACTIVOS / ELIMINADOS -->
+    <div class="mb-3 d-flex align-items-center gap-2">
+        <form method="get" asp-action="Index">
+            <input type="hidden" name="soloEliminados" value="false" />
+            <button type="submit" class="btn @(soloEliminados ? "btn-outline-primary" : "btn-primary btn-filtro-activo")">
+                Ver clientes activos
+            </button>
+        </form>
+        <form method="get" asp-action="Index">
+            <input type="hidden" name="soloEliminados" value="true" />
+            <button type="submit" class="btn @(soloEliminados ? "btn-warning text-dark btn-filtro-activo" : "btn-outline-warning text-dark")">
+                Ver clientes eliminados
+            </button>
+        </form>
+    </div>
+
+    <!-- BUSCADOR -->
+    <form method="get" asp-action="Index" class="row g-2 mb-3">
+        <input type="hidden" name="soloEliminados" value="@soloEliminados" />
+
+        <div class="col-md-4">
+            <input type="text"
+                   name="search"
+                   class="form-control"
+                   placeholder="Buscar por cédula o nombre"
+                   value="@search" />
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-search"></i> Buscar
+            </button>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(search))
+        {
+            <div class="col-md-2">
+                <a asp-action="Index"
+                   asp-route-soloEliminados="@soloEliminados"
+                   class="btn btn-outline-secondary w-100">
+                    Limpiar
+                </a>
+            </div>
+        }
+    </form>
+
     @if (!Model.Any())
     {
-            <div class="alert alert-warning text-center">
-                <i class="bi bi-exclamation-triangle me-1"></i>
-                No hay clientes registrados.
-            </div>
+        <div class="alert alert-warning text-center">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            No hay clientes registrados.
+        </div>
     }
     else
     {
-            <div class="table-responsive">
-                <table class="table table-bordered table-striped table-hover text-center">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Nombre Completo</th>
-                            <th>Correo</th>
-                            <th>Teléfono</th>
-                            <th>Tipo Cliente</th>
-                            <th>VIP</th>
-                            <th>Activo</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover text-center">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre Completo</th>
+                        <th>Correo</th>
+                        <th>Teléfono</th>
+                        <th>Tipo Cliente</th>
+                        <th>VIP</th>
+                        <th>Activo</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
                     @foreach (var cliente in Model)
                     {
-                                <tr>
-                                    <td>@cliente.ID_Cliente</td>
-                                    <td>@cliente.Nombre @cliente.Apellido</td>
-                                    <td>@cliente.Correo</td>
-                                    <td>@cliente.Telefono</td>
-                                    <td>@cliente.TipoCliente</td>
-                                    <td>
-                                @if (cliente.VIP)
-                                {
-                                                <span class="vip-label">SI</span>
-                                }
-                                else
-                                {
-                                                <span class="cliente-normal">NO</span>
-                                }
-                                    </td>
-                                    <td>@(cliente.Activo ? "SI" : "NO")</td>
-                                    <td>
-                                        <div class="d-flex justify-content-center gap-2">
+                        <tr class="@(cliente.Activo ? "" : "fila-eliminado")">
+                            <td>@cliente.ID_Cliente</td>
+                            <td>@cliente.Nombre @cliente.Apellido</td>
+                            <td>@cliente.Correo</td>
+                            <td>@cliente.Telefono</td>
+                            <td>@cliente.TipoCliente</td>
+                            <td>
+                                <span class="badge @(cliente.VIP ? "badge-vip" : "badge-normal")">
+                                    @(cliente.VIP ? "SI" : "NO")
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge @(cliente.Activo ? "bg-success" : "bg-danger")">
+                                    @(cliente.Activo ? "SI" : "NO")
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex justify-content-center gap-2">
 
-                                            <a asp-action="Details"
-                                               asp-route-id="@cliente.ID_Cliente"
-                                               class="btn btn-sm btn-outline-secondary"
-                                               title="Detalles">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
+                                    <a asp-action="Details"
+                                       asp-route-id="@cliente.ID_Cliente"
+                                       class="btn btn-sm btn-outline-secondary"
+                                       title="Detalles">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
 
-                                            <a asp-action="Edit"
-                                               asp-route-id="@cliente.ID_Cliente"
-                                               class="btn btn-sm btn-outline-primary @(cliente.Activo ? "" : "disabled-button")"
-                                               title="Editar">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
+                                    <a asp-action="Edit"
+                                       asp-route-id="@cliente.ID_Cliente"
+                                       class="btn btn-sm btn-outline-primary @(cliente.Activo ? "" : "disabled-button")"
+                                       title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
 
                                     @if (cliente.Activo)
                                     {
-                                                    <form asp-action="Delete"
-                                                          asp-route-id="@cliente.ID_Cliente"
-                                                          method="post"
-                                                          onsubmit="return confirm('¿Está seguro de eliminar este cliente?')">
-                                                        <button type="submit"
-                                                                class="btn btn-sm btn-outline-danger"
-                                                                title="Eliminar">
-                                                            <i class="bi bi-trash"></i>
-                                                        </button>
-                                                    </form>
+                                        <form asp-action="Delete"
+                                              asp-route-id="@cliente.ID_Cliente"
+                                              method="post"
+                                              onsubmit="return confirm('¿Está seguro de eliminar este cliente?')">
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
                                     }
                                     else
                                     {
-                                                    <form asp-action="Restore"
-                                                          asp-route-id="@cliente.ID_Cliente"
-                                                          method="post"
-                                                          onsubmit="return confirm('¿Está seguro de restaurar este cliente?')">
-                                                        <button type="submit"
-                                                                class="btn btn-sm btn-outline-success"
-                                                                title="Restaurar">
-                                                            <i class="bi bi-arrow-counterclockwise"></i>
-                                                        </button>
-                                                    </form>
+                                        <form asp-action="Restore"
+                                              asp-route-id="@cliente.ID_Cliente"
+                                              method="post"
+                                              onsubmit="return confirm('¿Está seguro de restaurar este cliente?')">
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-success"
+                                                    title="Restaurar">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                            </button>
+                                        </form>
                                     }
-
-                                        </div>
-                                    </td>
-                                </tr>
+                                </div>
+                            </td>
+                        </tr>
                     }
-                    </tbody>
-                </table>
-            </div>
+                </tbody>
+            </table>
+        </div>
 
-          
-            <!-- Paginación -->
-            <div class="d-flex justify-content-center mt-3">
-                    @Html.PagedListPager(
-                                Model,
-                                page => Url.Action("Index", new { page, soloEliminados })
-                            )
-            </div>
-
+        <!-- PAGINACIÓN -->
+        <div class="d-flex justify-content-center mt-3">
+            @Html.PagedListPager(
+                     Model,
+                     page => Url.Action("Index", new
+                     {
+                         page,
+                         soloEliminados,
+                         search
+                     })
+                     )
+        </div>
     }
 
     <div class="alert alert-info mt-4">
         <i class="bi bi-info-circle me-1"></i>
-        En este módulo podrás registrar nuevos clientes, editar información o eliminar/restaurar registros existentes.
+        En este módulo podrás registrar, buscar, editar o eliminar/restaurar clientes.
     </div>
 
 </div>

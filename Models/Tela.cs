@@ -2,20 +2,38 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-using InventarioWEB;
 namespace InventarioWEB.Models
 {
+    /// <summary>
+    /// Catálogo de telas.
+    /// Relación N:M con Referencias.
+    /// Eliminación lógica mediante campo Activo.
+    /// </summary>
     [Table("telas")]
     public class Tela
     {
+        // ============================
+        // CLAVE PRIMARIA
+        // ============================
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int ID_Telas { get; set; }
 
-        [Required, StringLength(150)]
+        // ============================
+        // DESCRIPCIÓN
+        // ============================
+        [Required]
+        [StringLength(150)]
         public string DescripTela { get; set; } = string.Empty;
 
-        // 🔗 Relación N:M con Referencias y Tallas (a través de ReferenciaTela)
-        public ICollection<ReferenciaTela> ReferenciasTelas { get; set; } = new List<ReferenciaTela>();
+        // ============================
+        // ELIMINACIÓN LÓGICA
+        // ============================
+        public bool Activo { get; set; } = true;
+
+        // ============================
+        // NAVEGACIÓN N:M
+        // ============================
+        public ICollection<ReferenciaTela> ReferenciasTelas { get; set; }
+            = new List<ReferenciaTela>();
     }
 }

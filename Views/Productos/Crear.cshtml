@@ -8,121 +8,128 @@
 
 <div class="card shadow-sm border-0 p-4">
 
-<form asp-action="Crear" method="post" novalidate>
+    <form asp-action="Crear" method="post" novalidate>
         @Html.AntiForgeryToken()
 
-    <div class="row g-3">
+        <div class="row g-3">
 
-        <!-- GÉNERO -->
-        <div class="col-md-4">
-            <label asp-for="ID_Genero" class="form-label fw-semibold"></label>
-            <select asp-for="ID_Genero" class="form-select" asp-items="Model.GenerosLista" id="GeneroSelect" tabindex="1">
-                <option value="">Seleccione un género</option>
-            </select>
-            <span asp-validation-for="ID_Genero" class="text-danger small"></span>
+            <!-- GÉNERO (SOLO FILTRO UI) -->
+            <div class="col-md-4">
+                <label asp-for="ID_Genero" class="form-label fw-semibold">Género</label>
+                <select asp-for="ID_Genero"
+                        class="form-select"
+                        asp-items="Model.GenerosLista"
+                        id="GeneroSelect"
+                        tabindex="1">
+                    <option value="">Seleccione un género</option>
+                </select>
+            </div>
+
+            <!-- REFERENCIA -->
+            <div class="col-md-4">
+                <label asp-for="ID_Referencias" class="form-label fw-semibold">Referencia</label>
+                <select asp-for="ID_Referencias"
+                        class="form-select"
+                        id="ReferenciaSelect"
+                        tabindex="2">
+                    <option value="">Seleccione género primero</option>
+                </select>
+                <span asp-validation-for="ID_Referencias" class="text-danger small"></span>
+            </div>
+
+            <!-- TALLA -->
+            <div class="col-md-4">
+                <label asp-for="ID_Tallas" class="form-label fw-semibold">Talla</label>
+                <select asp-for="ID_Tallas"
+                        class="form-select"
+                        id="TallaSelect"
+                        tabindex="3">
+                    <option value="">Seleccione referencia primero</option>
+                </select>
+                <span asp-validation-for="ID_Tallas" class="text-danger small"></span>
+            </div>
+
+            <!-- TELA -->
+            <div class="col-md-4">
+                <label asp-for="ID_Telas" class="form-label fw-semibold">Tela</label>
+                <select asp-for="ID_Telas"
+                        class="form-select"
+                        asp-items="Model.TelasLista"
+                        tabindex="4">
+                    <option value="">Seleccione</option>
+                </select>
+                <span asp-validation-for="ID_Telas" class="text-danger small"></span>
+            </div>
+
+            <!-- COLOR -->
+            <div class="col-md-4">
+                <label asp-for="ID_Color" class="form-label fw-semibold">Color</label>
+                <select asp-for="ID_Color"
+                        class="form-select"
+                        asp-items="Model.ColoresLista"
+                        tabindex="5">
+                    <option value="">Seleccione</option>
+                </select>
+                <span asp-validation-for="ID_Color" class="text-danger small"></span>
+            </div>
+
+            <!-- PRECIO COSTO -->
+            <div class="col-md-4">
+                <label asp-for="PrecioCosto" class="form-label fw-semibold">Precio Costo</label>
+                <input asp-for="PrecioCosto" type="number" min="0.01" step="0.01" class="form-control" tabindex="6" />
+                <span asp-validation-for="PrecioCosto" class="text-danger small"></span>
+            </div>
+
+            <!-- PRECIO VENTA -->
+            <div class="col-md-4">
+                <label asp-for="PrecioVTA" class="form-label fw-semibold">Precio Venta</label>
+                <input asp-for="PrecioVTA" type="number" min="0.01" step="0.01" class="form-control" tabindex="7" />
+                <span asp-validation-for="PrecioVTA" class="text-danger small"></span>
+            </div>
+
+            <!-- STOCK -->
+            <div class="col-md-4">
+                <label asp-for="Stock" class="form-label fw-semibold">Stock</label>
+                <input asp-for="Stock" type="number" min="0" step="1" class="form-control" tabindex="8" />
+                <span asp-validation-for="Stock" class="text-danger small"></span>
+            </div>
+
+            <!-- IVA -->
+            <div class="col-md-4">
+                <label asp-for="IVA_Porcentaje" class="form-label fw-semibold">IVA (%)</label>
+                <input asp-for="IVA_Porcentaje" type="number" min="0" step="0.01" class="form-control" tabindex="9" />
+                <span asp-validation-for="IVA_Porcentaje" class="text-danger small"></span>
+            </div>
+
         </div>
 
-        <!-- REFERENCIA -->
-        <div class="col-md-4">
-            <label asp-for="ID_Referencias" class="form-label fw-semibold"></label>
-            <select asp-for="ID_Referencias" class="form-select" id="ReferenciaSelect" tabindex="2">
-                <option value="">Seleccione género primero</option>
-            </select>
-            <span asp-validation-for="ID_Referencias" class="text-danger small"></span>
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary px-4">Guardar</button>
+            <a asp-action="Index" class="btn btn-secondary px-4 ms-2">Cancelar</a>
         </div>
 
-        <!-- TALLA -->
-        <div class="col-md-4">
-            <label asp-for="ID_Tallas" class="form-label fw-semibold"></label>
-            <select asp-for="ID_Tallas" class="form-select" id="TallaSelect" tabindex="3">
-                <option value="">Seleccione referencia primero</option>
-            </select>
-            <span asp-validation-for="ID_Tallas" class="text-danger small"></span>
-        </div>
-
-        <!-- TELA -->
-        <div class="col-md-4">
-            <label asp-for="ID_Telas" class="form-label fw-semibold"></label>
-            <select asp-for="ID_Telas" class="form-select" asp-items="Model.TelasLista" tabindex="4">
-                <option value="">Seleccione</option>
-            </select>
-            <span asp-validation-for="ID_Telas" class="text-danger small"></span>
-        </div>
-
-        <!-- COLOR -->
-        <div class="col-md-4">
-            <label asp-for="ID_Color" class="form-label fw-semibold"></label>
-            <select asp-for="ID_Color" class="form-select" asp-items="Model.ColoresLista" tabindex="5">
-                <option value="">Seleccione</option>
-            </select>
-            <span asp-validation-for="ID_Color" class="text-danger small"></span>
-        </div>
-
-        <!-- PRECIO COSTO -->
-        <div class="col-md-4">
-            <label asp-for="PrecioCosto" class="form-label fw-semibold"></label>
-            <input asp-for="PrecioCosto" class="form-control" tabindex="6" />
-            <span asp-validation-for="PrecioCosto" class="text-danger small"></span>
-        </div>
-
-        <!-- PRECIO -->
-        <div class="col-md-4">
-            <label asp-for="Precio" class="form-label fw-semibold"></label>
-            <input asp-for="Precio" class="form-control" tabindex="7" />
-            <span asp-validation-for="Precio" class="text-danger small"></span>
-        </div>
-
-        <!-- STOCK -->
-        <div class="col-md-4">
-            <label asp-for="Stock" class="form-label fw-semibold"></label>
-            <input asp-for="Stock" class="form-control" tabindex="8" />
-            <span asp-validation-for="Stock" class="text-danger small"></span>
-        </div>
-
-        <!-- IVA -->
-        <div class="col-md-4">
-            <label asp-for="IVA_Porcentaje" class="form-label fw-semibold"></label>
-            <input asp-for="IVA_Porcentaje" class="form-control" tabindex="9" />
-            <span asp-validation-for="IVA_Porcentaje" class="text-danger small"></span>
-        </div>
-
-        <!-- 🚫 CAMPO NOMBRE ELIMINADO → SE GENERA AUTOMÁTICO EN EL CONTROLADOR -->
-
-    </div>
-
-    <div class="mt-4">
-        <button type="submit" class="btn btn-primary px-4">Guardar</button>
-        <a asp-action="Index" class="btn btn-secondary px-4 ms-2">Cancelar</a>
-    </div>
-
-</form>
-
+    </form>
 </div>
 
 @section Scripts {
-         <partial name="_ValidationScriptsPartial" />
+    <partial name="_ValidationScriptsPartial" />
 
     <script>
-        // --- Asegura jQuery si no está cargado en _Layout
         (function ensureJQuery(cb) {
-            if (window.jQuery) { return cb(); }
+            if (window.jQuery) return cb();
             var s = document.createElement('script');
             s.src = 'https://code.jquery.com/jquery-3.6.0.min.js';
             s.onload = cb;
             document.head.appendChild(s);
         })(function () {
 
-            function makeOption(v, t) {
-                return `<option value="${v}">${t}</option>`;
+            function option(value, text) {
+                return `<option value="${value}">${text}</option>`;
             }
 
-            function trace(msg, val) {
-                if (console.log) console.log("[CrearProducto] " + msg, val || "");
-            }
-
-            // --- Cargar REFERENCIAS al cambiar GENERO ---
-            $(document).on("change", "#GeneroSelect", function () {
-                var generoId = $(this).val();
+            // REFERENCIAS POR GÉNERO
+            $("#GeneroSelect").on("change", function () {
+                const generoId = $(this).val();
 
                 $("#ReferenciaSelect").empty();
                 $("#TallaSelect").empty().append('<option value="">Seleccione referencia primero</option>');
@@ -132,22 +139,17 @@
                     return;
                 }
 
-                $.getJSON(`/Productos/ReferenciasPorGenero/${generoId}`)
-                    .done(function (data) {
-                        $("#ReferenciaSelect").append('<option value="">Seleccione</option>');
-                        $.each(data, function (i, item) {
-                            $("#ReferenciaSelect").append(
-                                makeOption(item.value || item.id || item.ID_Referencias, item.text || item.Nombre || item.DescripReferencia)
-                            );
-                        });
-                        setTimeout(() => $("#ReferenciaSelect").focus(), 80);
+                $.getJSON(`/Productos/ReferenciasPorGenero/${generoId}`, function (data) {
+                    $("#ReferenciaSelect").append('<option value="">Seleccione</option>');
+                    $.each(data, function (_, item) {
+                        $("#ReferenciaSelect").append(option(item.ID_Referencias, item.DescripReferencia));
                     });
+                });
             });
 
-            // --- Cargar TALLAS al cambiar REFERENCIA ---
-            $(document).on("change", "#ReferenciaSelect", function () {
-                var refId = $(this).val();
-
+            // TALLAS POR REFERENCIA
+            $("#ReferenciaSelect").on("change", function () {
+                const refId = $(this).val();
                 $("#TallaSelect").empty();
 
                 if (!refId) {
@@ -155,321 +157,14 @@
                     return;
                 }
 
-                $.getJSON(`/Productos/TallasPorReferencia/${refId}`)
-                    .done(function (data) {
-                        $("#TallaSelect").append('<option value="">Seleccione</option>');
-                        $.each(data, function (i, item) {
-                            $("#TallaSelect").append(
-                                makeOption(item.value || item.id || item.ID_Tallas, item.text || item.Nombre || item.DescripTalla)
-                            );
-                        });
-                        setTimeout(() => $("#TallaSelect").focus(), 80);
+                $.getJSON(`/Productos/TallasPorReferencia/${refId}`, function (data) {
+                    $("#TallaSelect").append('<option value="">Seleccione</option>');
+                    $.each(data, function (_, item) {
+                        $("#TallaSelect").append(option(item.ID_Tallas, item.DescripTalla));
                     });
-            });
-
-            // --- Reconstrucción del estado en postback ---
-            $(document).ready(function () {
-                var selGenero = $("#GeneroSelect").val();
-                var selReferencia = "@(Model.ID_Referencias?.ToString() ?? "")";
-                var selTalla = "@(Model.ID_Tallas?.ToString() ?? "")";
-
-                if (selGenero) {
-                    $.getJSON(`/Productos/ReferenciasPorGenero/${selGenero}`)
-                        .done(function (data) {
-                            $("#ReferenciaSelect").empty().append('<option value="">Seleccione</option>');
-                            $.each(data, function (i, item) {
-                                $("#ReferenciaSelect").append(
-                                    makeOption(item.value || item.id || item.ID_Referencias, item.text || item.Nombre || item.DescripReferencia)
-                                );
-                            });
-
-                            if (selReferencia) {
-                                $("#ReferenciaSelect").val(selReferencia);
-
-                                $.getJSON(`/Productos/TallasPorReferencia/${selReferencia}`)
-                                    .done(function (tallas) {
-                                        $("#TallaSelect").empty().append('<option value="">Seleccione</option>');
-                                        $.each(tallas, function (i, it) {
-                                            $("#TallaSelect").append(
-                                                makeOption(it.value || it.id || it.ID_Tallas, it.text || it.Nombre || it.DescripTalla)
-                                            );
-                                        });
-
-                                        if (selTalla) {
-                                            $("#TallaSelect").val(selTalla);
-                                        }
-                                    });
-                            }
-                        });
-                }
+                });
             });
 
         });
     </script>
-
 }
-
-
-
-
-@*
-@model InventarioWEB.ViewModels.ProductoCreateViewModel
-
-@{
-    ViewData["Title"] = "Crear Producto";
-}
-
-<h2 class="mb-4 fw-bold">Crear Nuevo Producto</h2>
-
-<div class="card shadow-sm border-0 p-4">
-
-```
-<form asp-action="Crear" method="post" novalidate>
-        @Html.AntiForgeryToken()
-
-    <div class="row g-3">
-
-        <!-- GÉNERO -->
-        <div class="col-md-4">
-            <label asp-for="ID_Genero" class="form-label fw-semibold"></label>
-            <select asp-for="ID_Genero" class="form-select" asp-items="Model.GenerosLista" id="GeneroSelect" tabindex="1">
-                <option value="">Seleccione un género</option>
-            </select>
-            <span asp-validation-for="ID_Genero" class="text-danger small"></span>
-        </div>
-
-        <!-- REFERENCIA -->
-        <div class="col-md-4">
-            <label asp-for="ID_Referencias" class="form-label fw-semibold"></label>
-            <select asp-for="ID_Referencias" class="form-select" id="ReferenciaSelect" tabindex="2">
-                <option value="">Seleccione género primero</option>
-            </select>
-            <span asp-validation-for="ID_Referencias" class="text-danger small"></span>
-        </div>
-
-        <!-- TALLA -->
-        <div class="col-md-4">
-            <label asp-for="ID_Tallas" class="form-label fw-semibold"></label>
-            <select asp-for="ID_Tallas" class="form-select" id="TallaSelect" tabindex="3">
-                <option value="">Seleccione referencia primero</option>
-            </select>
-            <span asp-validation-for="ID_Tallas" class="text-danger small"></span>
-        </div>
-
-        <!-- TELA -->
-        <div class="col-md-4">
-            <label asp-for="ID_Telas" class="form-label fw-semibold"></label>
-            <select asp-for="ID_Telas" class="form-select" asp-items="Model.TelasLista" tabindex="4">
-                <option value="">Seleccione</option>
-            </select>
-            <span asp-validation-for="ID_Telas" class="text-danger small"></span>
-        </div>
-
-        <!-- COLOR -->
-        <div class="col-md-4">
-            <label asp-for="ID_Color" class="form-label fw-semibold"></label>
-            <select asp-for="ID_Color" class="form-select" asp-items="Model.ColoresLista" tabindex="5">
-                <option value="">Seleccione</option>
-            </select>
-            <span asp-validation-for="ID_Color" class="text-danger small"></span>
-        </div>
-
-        <!-- PRECIO COSTO -->
-        <div class="col-md-4">
-            <label asp-for="PrecioCosto" class="form-label fw-semibold"></label>
-            <input asp-for="PrecioCosto" class="form-control" tabindex="6" />
-            <span asp-validation-for="PrecioCosto" class="text-danger small"></span>
-        </div>
-
-        <!-- PRECIO -->
-        <div class="col-md-4">
-            <label asp-for="Precio" class="form-label fw-semibold"></label>
-            <input asp-for="Precio" class="form-control" tabindex="7" />
-            <span asp-validation-for="Precio" class="text-danger small"></span>
-        </div>
-
-        <!-- STOCK -->
-        <div class="col-md-4">
-            <label asp-for="Stock" class="form-label fw-semibold"></label>
-            <input asp-for="Stock" class="form-control" tabindex="8" />
-            <span asp-validation-for="Stock" class="text-danger small"></span>
-        </div>
-
-        <!-- IVA -->
-        <div class="col-md-4">
-            <label asp-for="IVA_Porcentaje" class="form-label fw-semibold"></label>
-            <input asp-for="IVA_Porcentaje" class="form-control" tabindex="9" />
-            <span asp-validation-for="IVA_Porcentaje" class="text-danger small"></span>
-        </div>
-
-        <!-- NOMBRE -->
-        <div class="col-md-12">
-            <label asp-for="Nombre" class="form-label fw-semibold"></label>
-            <input asp-for="Nombre" class="form-control" tabindex="10" />
-            <span asp-validation-for="Nombre" class="text-danger small"></span>
-        </div>
-
-    </div>
-
-    <div class="mt-4">
-        <button type="submit" class="btn btn-primary px-4">Guardar</button>
-        <a asp-action="Index" class="btn btn-secondary px-4 ms-2">Cancelar</a>
-    </div>
-
-</form>
-```
-
-</div>
-
-@section Scripts {
-     <partial name="_ValidationScriptsPartial" />
-
-    ```
-    <script>
-        // --- Asegura jQuery si no está cargado en _Layout
-        (function ensureJQuery(cb) {
-            if (window.jQuery) { return cb(); }
-            var s = document.createElement('script');
-            s.src = 'https://code.jquery.com/jquery-3.6.0.min.js';
-            s.onload = cb;
-            document.head.appendChild(s);
-        })(function () {
-
-            // Helper: reset referencia + talla
-            function resetReferenciaYTalla() {
-                $("#ReferenciaSelect").empty().append('<option value="">Seleccione género primero</option>');
-                $("#TallaSelect").empty().append('<option value="">Seleccione referencia primero</option>');
-            }
-
-            // Helper: build option safely
-            function makeOption(v, t) {
-                return `<option value="${v}">${t}</option>`;
-            }
-
-            // DEBUG: visualizar IDs en consola (trazas)
-            function trace(msg, val) {
-                if (window.console && console.log) {
-                    console.log("[CrearProducto] " + msg, val || "");
-                }
-            }
-
-            // Cuando cambia GÉNERO -> cargar REFERENCIAS y enfocar en REFERENCIA
-            $(document).on("change", "#GeneroSelect", function () {
-                var generoId = $(this).val();
-                trace("GeneroSelect change. generoId =", generoId);
-
-                $("#ReferenciaSelect").prop("disabled", true);
-                $("#TallaSelect").prop("disabled", true);
-
-                $("#ReferenciaSelect").empty();
-                $("#TallaSelect").empty().append('<option value="">Seleccione referencia primero</option>');
-
-                if (!generoId) {
-                    $("#ReferenciaSelect").append('<option value="">Seleccione género primero</option>');
-                    $("#ReferenciaSelect").prop("disabled", true);
-                    return;
-                }
-
-                // Llamada AJAX: Referencias por genero
-                $.getJSON(`/Productos/ReferenciasPorGenero/${generoId}`)
-                    .done(function (data) {
-                        trace("Referencias recibidas:", data);
-                        $("#ReferenciaSelect").empty().append('<option value="">Seleccione</option>');
-                        $.each(data, function (i, item) {
-                            // item puede venir { ID_Referencias, Nombre } o { value, text } según tu endpoint
-                            var val = item.value || item.ID_Referencias || item.id || item.ID_Referencias;
-                            var txt = item.text || item.Nombre || item.DescripReferencia || item.DescripReferencia;
-                            $("#ReferenciaSelect").append(makeOption(val, txt));
-                        });
-
-                        // reactiva y enfoca en referencia con pequeño timeout para asegurar render
-                        $("#ReferenciaSelect").prop("disabled", false);
-                        setTimeout(function () {
-                            $("#ReferenciaSelect").focus();
-                        }, 80);
-                    })
-                    .fail(function (jqxhr, status, err) {
-                        trace("Error cargando referencias:", err);
-                        $("#ReferenciaSelect").empty().append('<option value="">Error cargando referencias</option>');
-                    });
-            });
-
-            // Cuando cambia REFERENCIA -> cargar TALLAS y enfocar en TALLA
-            $(document).on("change", "#ReferenciaSelect", function () {
-                var referenciaId = $(this).val();
-                trace("ReferenciaSelect change. referenciaId =", referenciaId);
-
-                $("#TallaSelect").prop("disabled", true);
-                $("#TallaSelect").empty();
-
-                if (!referenciaId) {
-                    $("#TallaSelect").append('<option value="">Seleccione referencia primero</option>');
-                    return;
-                }
-
-                // Llamada AJAX: Tallas por referencia (el endpoint devuelve tallas segun genero de la referencia)
-                $.getJSON(`/Productos/TallasPorReferencia/${referenciaId}`)
-                    .done(function (data) {
-                        trace("Tallas recibidas:", data);
-                        $("#TallaSelect").empty().append('<option value="">Seleccione</option>');
-                        $.each(data, function (i, item) {
-                            var val = item.value || item.ID_Tallas || item.id || item.ID_Tallas;
-                            var txt = item.text || item.Nombre || item.DescripTalla || item.DescripTalla;
-                            $("#TallaSelect").append(makeOption(val, txt));
-                        });
-                        $("#TallaSelect").prop("disabled", false);
-                        setTimeout(function () {
-                            $("#TallaSelect").focus();
-                        }, 80);
-                    })
-                    .fail(function (jqxhr, status, err) {
-                        trace("Error cargando tallas:", err);
-                        $("#TallaSelect").empty().append('<option value="">Error cargando tallas</option>');
-                    });
-            });
-
-            // --- Si la vista se renderiza con valores seleccionados (postback/edición),
-            // cargamos referencias y tallas para mantener el estado.
-            $(document).ready(function () {
-                var selGenero = $("#GeneroSelect").val();
-                var selReferencia = "@(Model.ID_Referencias?.ToString() ?? "")";
-                var selTalla = "@(Model.ID_Tallas?.ToString() ?? "")";
-
-                trace("onReady - selGenero:", selGenero, " selReferencia:", selReferencia, " selTalla:", selTalla);
-
-                if (selGenero) {
-                    // cargar referencias y seleccionar la actual si existe
-                    $.getJSON(`/Productos/ReferenciasPorGenero/${selGenero}`)
-                        .done(function (data) {
-                            $("#ReferenciaSelect").empty().append('<option value="">Seleccione</option>');
-                            $.each(data, function (i, item) {
-                                var val = item.value || item.ID_Referencias || item.id || item.ID_Referencias;
-                                var txt = item.text || item.Nombre || item.DescripReferencia || item.DescripReferencia;
-                                $("#ReferenciaSelect").append(makeOption(val, txt));
-                            });
-
-                            if (selReferencia) {
-                                $("#ReferenciaSelect").val(selReferencia);
-                                // cargar tallas para la referencia seleccionada
-                                $.getJSON(`/Productos/TallasPorReferencia/${selReferencia}`)
-                                    .done(function (tallas) {
-                                        $("#TallaSelect").empty().append('<option value="">Seleccione</option>');
-                                        $.each(tallas, function (i, it) {
-                                            var val = it.value || it.ID_Tallas || it.id || it.ID_Tallas;
-                                            var txt = it.text || it.Nombre || it.DescripTalla || it.DescripTalla;
-                                            $("#TallaSelect").append(makeOption(val, txt));
-                                        });
-                                        if (selTalla) {
-                                            $("#TallaSelect").val(selTalla);
-                                        }
-                                    });
-                            }
-                        });
-                }
-            });
-
-        });
-    </script>
-```
-}
-*@

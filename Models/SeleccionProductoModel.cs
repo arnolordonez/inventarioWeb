@@ -1,41 +1,40 @@
 ﻿using System.Collections.Generic;
-using InventarioWEB.Models;
 
 namespace InventarioWEB.Models
 {
     /// <summary>
-    /// Modelo para la selección de producto en la página SeleccionProducto.cshtml.
-    /// Contiene listas de Géneros, Tallas, Telas y Colores para desplegar en los dropdowns.
-    /// También almacena la selección del usuario.
+    /// ViewModel para la selección de atributos de un producto.
+    /// Basado estrictamente en la estructura real de la base de datos.
     /// </summary>
-    public class SeleccionProductoModel
+    public class SeleccionProductoViewModel
     {
-        // Listas para mostrar en los dropdowns
-        public List<Genero> Generos { get; set; } = new List<Genero>();
-        public List<Talla> Tallas { get; set; } = new List<Talla>();
-        public List<Tela> Telas { get; set; } = new List<Tela>();
-        public List<Color> Colores { get; set; } = new List<Color>();
+        // =========================
+        // Listas para dropdowns
+        // =========================
 
-        // Selección actual del usuario
-        public int? ID_GeneroSeleccionado { get; set; }
-        public int? ID_TallaSeleccionada { get; set; }
-        public int? ID_TelaSeleccionada { get; set; }
-        public int? ID_ColorSeleccionado { get; set; }
+        public List<Genero> Generos { get; set; } = new();
+        public List<Talla> Tallas { get; set; } = new();
+        public List<Tela> Telas { get; set; } = new();
+        public List<Color> Colores { get; set; } = new();
+        public List<Referencia> Referencias { get; set; } = new();
 
-        /// <summary>
-        /// Constructor vacío
-        /// </summary>
-        public SeleccionProductoModel() { }
+        // =========================
+        // Valores seleccionados
+        // (alineados EXACTO a BD)
+        // =========================
 
-        /// <summary>
-        /// Constructor con inicialización de listas
-        /// </summary>
-        public SeleccionProductoModel(List<Genero> generos, List<Talla> tallas, List<Tela> telas, List<Color> colores)
+        public int? ID_Genero { get; set; }
+        public int? ID_Tallas { get; set; }
+        public int? ID_Telas { get; set; }
+        public int? ID_Color { get; set; }
+        public int? ID_Referencias { get; set; }
+
+        // =========================
+        // Constructor
+        // =========================
+
+        public SeleccionProductoViewModel()
         {
-            Generos = generos;
-            Tallas = tallas;
-            Telas = telas;
-            Colores = colores;
         }
     }
 }

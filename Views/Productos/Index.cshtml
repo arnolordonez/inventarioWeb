@@ -1,157 +1,151 @@
-﻿@model IEnumerable<InventarioWEB.Models.Producto>
+﻿@model InventarioWEB.ViewModels.ProductosIndexViewModel
 
 @{
     ViewData["Title"] = "Productos - InventarioWEB";
-    Layout = "_Layout";
 }
 
 <div class="container mt-4">
-    <h2 class="text-center mb-4 text-primary fw-bold">
-        📋 Lista General de Productos
+
+    <h2 class="text-center mb-4 fw-bold text-primary">
+        📋 Gestión de Productos
     </h2>
 
-    <!-- ==================================================
-         Filtro de estado + botón crear
-         * Ajustado ligeramente y documentado
-    =================================================== -->
-    <div class="mb-4 d-flex justify-content-end align-items-center gap-2">
+    <!-- FORMULARIO DE FILTROS -->
+    <form id="form-filtros" asp-action="Index" method="get"
+          class="row g-3 mb-4 shadow-sm p-3 rounded bg-light">
 
-        <!-- Filtro por estado (Activo / Inactivo / Todos) -->
-        <form asp-action="Index" method="get" class="d-inline-flex">
+        <!-- CÓDIGO -->
+        <div class="col-md-2">
+            <label class="form-label fw-semibold">Código</label>
+            <input asp-for="ID_Producto"
+                   type="number"
+                   class="form-control"
+                   placeholder="Ej: 12345" />
+        </div>
 
-            @Html.DropDownList(
-                         "estado",
-                         (SelectList)ViewBag.EstadosFiltro,
-                         new { @class = "form-select me-2", onchange = "this.form.submit()" }
-                     )
+        <!-- GÉNERO -->
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Género</label>
+            <select id="ID_Genero" name="ID_Genero" class="form-select">
+                <option value="">Seleccione...</option>
+                @foreach (var g in Model.Generos)
+                {
+                    <option value="@g.Value"
+                            selected="@(Model.ID_Genero?.ToString() == g.Value)">
+                        @g.Text
+                    </option>
+                }
+            </select>
+        </div>
 
-            <button class="btn btn-primary">
-                <i class="bi bi-funnel"></i> Filtrar
+        <!-- REFERENCIA -->
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Referencia</label>
+            <select id="ID_Referencia" name="ID_Referencia" class="form-select">
+                <option value="">Todas</option>
+                @foreach (var r in Model.Referencias)
+                {
+                    <option value="@r.Value"
+                            data-id-genero="@r.ID_Genero"
+                            selected="@(Model.ID_Referencia?.ToString() == r.Value)">
+                        @r.Text
+                    </option>
+                }
+            </select>
+        </div>
+
+        <!-- TALLA -->
+        <div class="col-md-2">
+            <label class="form-label fw-semibold">Talla</label>
+            <select id="ID_Talla" name="ID_Talla" class="form-select">
+                <option value="">Todas</option>
+                @foreach (var t in Model.Tallas)
+                {
+                    <option value="@t.Value"
+                            data-id-genero="@t.ID_Genero"
+                            selected="@(Model.ID_Talla?.ToString() == t.Value)">
+                        @t.Text
+                    </option>
+                }
+            </select>
+        </div>
+
+        <!-- TELA -->
+        <div class="col-md-2">
+            <label class="form-label fw-semibold">Tela</label>
+            <select asp-for="ID_Tela"
+                    asp-items="Model.Telas"
+                    class="form-select">
+                <option value="">Todas</option>
+            </select>
+        </div>
+
+        <!-- ESTADO -->
+        <div class="col-md-2">
+            <label class="form-label fw-semibold">Estado</label>
+            <select asp-for="EstadoFiltro"
+                    asp-items="Model.EstadosLista"
+                    class="form-select">
+                <option value="">Todos</option>
+            </select>
+        </div>
+
+        <!-- BOTONES -->
+        <div class="col-12 d-flex justify-content-end gap-2 mt-2">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i> Buscar
             </button>
-        </form>
 
-        <!-- Botón para crear nuevo producto -->
-        <a asp-controller="Productos" asp-action="Crear" class="btn btn-success ms-2 shadow-sm">
-            <i class="bi bi-plus-circle"></i> Crear Nuevo Producto
-        </a>
+            <a asp-action="Crear" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Nuevo Producto
+            </a>
+        </div>
+    </form>
 
+    <!-- RESULTADOS -->
+    <div id="productos-resultados">
+        @await Html.PartialAsync("_ProductosTabla", Model)
     </div>
 
-
-    <!-- ==================================================
-         Tabla de productos
-    =================================================== -->
-    @if (Model != null && Model.Any())
-    {
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover align-middle text-center shadow-sm">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Código</th>
-                            <th>Nombre</th>
-                            <th>Referencia</th>
-                            <th>Talla</th>
-                            <th>Género</th>
-                            <th>Tela</th>
-                            <th>Color</th>
-                            <th>Precio</th>
-                            <th>IVA</th>
-                            <th>Stock</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    @foreach (var p in Model)
-                    {
-                        // ==================================================
-                        // Colores visuales según estado y stock
-                        // ==================================================
-                        string claseFila = !p.Activo ? "table-secondary" :
-                                          (p.Stock == 0 ? "table-danger" :
-                                          (p.Stock > 0 && p.Stock < 5 ? "table-warning" : ""));
-
-                            <tr class="@claseFila">
-                                <td>@p.ID_Producto</td>
-                                <td>@p.Nombre</td>
-                                <td>@p.Referencia?.DescripReferencia ?? "—"</td>
-                                <td>@p.Talla?.DescripTalla ?? "—"</td>
-                                <td>@(p.Referencia?.Genero?.DescripGenero ?? "—")</td>
-                                <td>@p.Tela?.DescripTela ?? "—"</td>
-                                <td>@(p.Color?.Nombre ?? "Sin color")</td>
-                                <td>@p.Precio.ToString("C")</td>
-                                <td>@($"{p.IVA_Porcentaje}%")</td>
-                                <td>@p.Stock</td>
-
-                                <td>
-                                @if (p.Activo)
-                                {
-                                            <span class="badge bg-success">Activo</span>
-                                }
-                                else
-                                {
-                                            <span class="badge bg-secondary">Inactivo</span>
-                                }
-                                </td>
-
-                                <td>
-
-                                    <!-- Botón de edición (siempre visible) -->
-                                    <a asp-controller="Productos"
-                                       asp-action="Editar"
-                                       asp-route-id="@p.ID_Producto"
-                                       class="btn btn-sm btn-warning me-1">
-                                        <i class="bi bi-pencil-square"></i> Editar
-                                    </a>
-
-                                    <!-- ==================================================
-                                         ACCIONES SEGÚN ESTADO
-                                         * Si está activo → Mostrar "Desactivar"
-                                         * Si está inactivo → Mostrar "Restaurar"
-                                    =================================================== -->
-                                @if (p.Activo)
-                                {
-                                            <!-- Eliminación lógica -->
-                                            <form asp-controller="Productos"
-                                                  asp-action="EliminarLogico"
-                                                  method="post"
-                                                  asp-route-id="@p.ID_Producto"
-                                                  style="display:inline;"
-                                                  onsubmit="return confirm('¿Seguro que deseas desactivar este producto?');">
-
-                                                <button type="submit" class="btn btn-sm btn-danger">
-                                                    <i class="bi bi-eye-slash"></i> Desactivar
-                                                </button>
-                                            </form>
-                                }
-                                else
-                                {
-                                            <!-- Restaurar producto -->
-                                            <form asp-controller="Productos"
-                                                  asp-action="Restaurar"
-                                                  method="post"
-                                                  asp-route-id="@p.ID_Producto"
-                                                  style="display:inline;"
-                                                  onsubmit="return confirm('¿Deseas restaurar este producto?');">
-
-                                                <button type="submit" class="btn btn-sm btn-success">
-                                                    <i class="bi bi-check-circle"></i> Restaurar
-                                                </button>
-                                            </form>
-                                }
-
-                                </td>
-                            </tr>
-                    }
-                    </tbody>
-                </table>
-            </div>
-    }
-    else
-    {
-            <!-- Cuando no hay registros -->
-            <div class="alert alert-info text-center mt-4 shadow-sm">
-                <i class="bi bi-info-circle"></i> No hay productos registrados actualmente.
-            </div>
-    }
 </div>
+
+<!-- =========================
+     SCRIPT AJAX PARA FILTROS Y PAGINACIÓN
+     ========================= -->
+@section Scripts {
+    <script>
+        $(function () {
+
+            function actualizarResultados(data) {
+                var $html = $('<div>').html(data);
+                var contenido = $html.find('#productos-resultados').html();
+
+                // Si viene vista completa
+                if (contenido !== undefined) {
+                    $('#productos-resultados').html(contenido);
+                }
+                // Si viene directamente el partial
+                else {
+                    $('#productos-resultados').html(data);
+                }
+            }
+
+            // Submit filtros
+            $('#form-filtros').on('submit', function (e) {
+                e.preventDefault();
+
+                var url = $(this).attr('action') + '?' + $(this).serialize();
+
+                $.get(url, actualizarResultados);
+            });
+
+            // Paginación
+            $('#productos-resultados').on('click', '.pagination a', function (e) {
+                e.preventDefault();
+
+                $.get($(this).attr('href'), actualizarResultados);
+            });
+        });
+    </script>
+}
+}

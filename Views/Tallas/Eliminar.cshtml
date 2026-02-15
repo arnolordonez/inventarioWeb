@@ -1,0 +1,31 @@
+﻿@model InventarioWEB.ViewModels.Catalogos.Tallas.TallaDeleteVM
+
+@{
+    ViewData["Title"] = "Eliminar Talla";
+}
+
+<h2 class="mb-3 text-danger">Eliminar Talla</h2>
+
+<div class="alert alert-warning">
+    ¿Está seguro que desea eliminar esta talla?
+</div>
+
+<dl class="row">
+    <dt class="col-sm-3">Descripción</dt>
+    <dd class="col-sm-9">@Model.DescripTalla</dd>
+
+    <dt class="col-sm-3">Género</dt>
+    <dd class="col-sm-9">@Model.Genero</dd>
+</dl>
+
+<form asp-action="Eliminar" method="post">
+    <input type="hidden" asp-for="ID_Tallas" />
+
+    <button type="submit" class="btn btn-danger">
+        Confirmar Eliminación
+    </button>
+
+    <a asp-action="Index" class="btn btn-secondary">
+        Cancelar
+    </a>
+</form>

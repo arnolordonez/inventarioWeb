@@ -1,0 +1,236 @@
+﻿@model InventarioWEB.ViewModels.ProduccionViewModel
+
+@{
+    ViewData["Title"] = "Producción / Inventario";
+}
+
+<form id="formAntiForgery">
+    @Html.AntiForgeryToken()
+</form>
+
+<div class="container-fluid">
+
+    <!-- TÍTULO -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <h3 class="fw-bold text-primary">🏭 Producción / Actualización de Inventario</h3>
+            <p class="text-muted mb-0">
+                Registro de producción diaria, ajustes de stock y generación de reportes.
+            </p>
+        </div>
+    </div>
+
+    <!-- BÚSQUEDA -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header fw-bold bg-light">🔍 Búsqueda de productos</div>
+                <div class="card-body">
+
+                    <form id="formBusquedaProduccion">
+                        <div class="row g-2">
+
+                            <!-- Código -->
+                            <div class="col-md-2">
+                                <label class="form-label">Código</label>
+                                <input type="number" class="form-control" name="ID_Producto" />
+                            </div>
+
+                            <!-- Género -->
+                            <div class="col-md-2">
+                                <label class="form-label">Género</label>
+                                <select class="form-select" id="filtroGenero" name="ID_Genero">
+                                    <option value="">-- Todos --</option>
+                                </select>
+                            </div>
+
+                            <!-- Referencia -->
+                            <div class="col-md-2">
+                                <label class="form-label">Referencia</label>
+                                <select class="form-select" id="filtroReferencia" name="ID_Referencias">
+                                    <option value="">-- Todas --</option>
+                                </select>
+                            </div>
+
+                            <!-- Tela -->
+                            <div class="col-md-2">
+                                <label class="form-label">Tela</label>
+                                <select class="form-select" id="filtroTela" name="ID_Telas">
+                                    <option value="">-- Todas --</option>
+                                </select>
+                            </div>
+
+                            <!-- Talla -->
+                            <div class="col-md-2">
+                                <label class="form-label">Talla</label>
+                                <select class="form-select" id="filtroTalla" name="ID_Tallas">
+                                    <option value="">-- Todas --</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="button"
+                                        id="btnBuscarProduccion"
+                                        class="btn btn-primary w-100">
+                                    🔎 Buscar
+                                </button>
+                            </div>
+
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ============================================================
+   🧾 REPORTE DE PRODUCCIÓN PDF
+   Genera PDF consolidado de la producción actual
+   con fecha y hora de impresión.
+   Empresa: Confesiones Indomable
+   ============================================================ *@
+       
+    <div class="row mb-3">
+        <div class="col-12 text-end">
+            <a asp-action="GenerarReporteProduccion"
+               class="btn btn-outline-danger"
+               target="_blank">
+                🧾 Generar reporte de producción (PDF)
+            </a>
+        </div>
+    </div>
+
+
+    <!-- RESULTADOS -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header fw-bold bg-light">
+                    📦 Resultados / Actualización de Stock
+                </div>
+                <div class="card-body">
+                    <div id="contenedorResultadosProduccion">
+                        <p class="text-muted mb-0">
+                            Realiza una búsqueda para mostrar los productos.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            cargarGeneros();
+            cargarTelas();
+        });
+
+        // ===============================
+        // CARGA DE COMBOS MAESTROS
+        // ===============================
+        function cargarGeneros() {
+            fetch("/Catalogos/Generos")
+                .then(r => r.json())
+                .then(data => {
+                    const select = document.getElementById("filtroGenero");
+                    data.forEach(g => {
+                        select.insertAdjacentHTML(
+                            "beforeend",
+                            `<option value="${g.id_Genero}">${g.descripGenero}</option>`
+                        );
+                    });
+                });
+        }
+
+        function cargarTelas() {
+            fetch("/Catalogos/Telas")
+                .then(r => r.json())
+                .then(data => {
+                    const select = document.getElementById("filtroTela");
+                    data.forEach(t => {
+                        select.insertAdjacentHTML(
+                            "beforeend",
+                            `<option value="${t.id_Telas}">${t.descripTela}</option>`
+                        );
+                    });
+                });
+        }
+
+        // ===============================
+        // DEPENDENCIA POR GÉNERO
+        // ===============================
+        document.getElementById("filtroGenero").addEventListener("change", function () {
+
+            const idGenero = this.value;
+
+            const filtroReferencia = document.getElementById("filtroReferencia");
+            const filtroTalla = document.getElementById("filtroTalla");
+
+            filtroReferencia.innerHTML = '<option value="">-- Todas --</option>';
+            filtroTalla.innerHTML = '<option value="">-- Todas --</option>';
+
+            if (!idGenero) return;
+
+            fetch(`/Produccion/ReferenciasPorGenero?idGenero=${idGenero}`)
+                .then(r => r.json())
+                .then(data => {
+                    data.forEach(rf => {
+                        filtroReferencia.insertAdjacentHTML(
+                            "beforeend",
+                            `<option value="${rf.id_Referencias}">${rf.nombre}</option>`
+                        );
+                    });
+                });
+
+            fetch(`/Produccion/TallasPorGenero?idGenero=${idGenero}`)
+                .then(r => r.json())
+                .then(data => {
+                    data.forEach(t => {
+                        filtroTalla.insertAdjacentHTML(
+                            "beforeend",
+                            `<option value="${t.id_Tallas}">${t.descripTalla}</option>`
+                        );
+                    });
+                });
+        });
+
+        // ===============================
+        // BÚSQUEDA
+        // ===============================
+        document.getElementById("btnBuscarProduccion").addEventListener("click", () => {
+
+            const form = document.getElementById("formBusquedaProduccion");
+            const formData = new FormData(form);
+            const params = new URLSearchParams(formData).toString();
+
+            fetch(`/Produccion/Buscar?${params}`)
+                .then(r => r.text())
+                .then(html => {
+                    document.getElementById("contenedorResultadosProduccion").innerHTML = html;
+                });
+        });
+    </script>
+
+
+    <script>
+        document.getElementById("btnReporteProduccion")
+            .addEventListener("click", () => {
+
+                const formData = new FormData(
+                    document.getElementById("formBusquedaProduccion")
+                );
+
+                const params = new URLSearchParams(formData).toString();
+
+                window.open(
+                    `/Produccion/ReportePdf?${params}`,
+                    "_blank"
+                );
+            });
+    </script>
+
+}

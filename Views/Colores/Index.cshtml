@@ -1,0 +1,159 @@
+﻿@model InventarioWEB.ViewModels.Catalogos.Colores.ColoresIndexVM
+
+@{
+    ViewData["Title"] = "Colores";
+    Layout = "_Layout";
+}
+
+<div class="mt-4">
+
+    <h3 class="fw-bold text-danger">
+        <i class="bi bi-palette me-2"></i> Catálogo de Colores
+    </h3>
+    <p class="text-muted">
+        Gestión de colores del sistema. Eliminación lógica aplicada.
+    </p>
+
+    <hr />
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="mb-3">
+        <a asp-action="Crear" class="btn btn-outline-danger">
+            <i class="bi bi-plus-circle me-1"></i> Nuevo Color
+        </a>
+    </div>
+
+    <!-- ACTIVOS -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-danger text-white">
+            Colores Activos
+        </div>
+        <div class="card-body table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th class="text-center text-nowrap" style="width:180px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Colores.Any())
+                    {
+                        foreach (var color in Model.Colores)
+                        {
+                            <tr>
+                                <td>@color.ID_Color</td>
+                                <td>@color.Nombre</td>
+                                <td class="text-center text-nowrap">
+
+                                    <a asp-action="Editar"
+                                       asp-route-id="@color.ID_Color"
+                                       class="btn btn-sm btn-outline-primary me-1">
+                                        <i class="bi bi-pencil-square me-1"></i> Editar
+                                    </a>
+
+                                    <form asp-action="Eliminar"
+                                          method="post"
+                                          class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden"
+                                               name="id"
+                                               value="@color.ID_Color" />
+
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('¿Desea eliminar este color?');">
+                                            <i class="bi bi-trash me-1"></i> Eliminar
+                                        </button>
+                                    </form>
+
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="3" class="text-center text-muted">
+                                No hay colores activos.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- INACTIVOS -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-secondary text-white">
+            Colores Inactivos
+        </div>
+        <div class="card-body table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th class="text-center text-nowrap" style="width:180px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.ColoresInactivos.Any())
+                    {
+                        foreach (var color in Model.ColoresInactivos)
+                        {
+                            <tr class="table-secondary">
+                                <td>@color.ID_Color</td>
+                                <td>@color.Nombre</td>
+                                <td class="text-center text-nowrap">
+
+                                    <form asp-action="Restaurar"
+                                          method="post"
+                                          class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden"
+                                               name="id"
+                                               value="@color.ID_Color" />
+
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-success"
+                                                onclick="return confirm('¿Desea restaurar este color?');">
+                                            <i class="bi bi-arrow-counterclockwise me-1"></i> Restaurar
+                                        </button>
+                                    </form>
+
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="3" class="text-center text-muted">
+                                No hay colores inactivos.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>

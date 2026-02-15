@@ -1,220 +1,124 @@
 ﻿@{
-    ViewData["Title"] = "Catálogos - Móvil";
-    var nombreUsuario = ViewBag.NombreUsuario ?? "Usuario";
+    ViewData["Title"] = "Catálogos";
+    Layout = "_Layout";
 }
 
-<!-- Menú lateral -->
-<div id="sidebar" class="sidebar">
-    <div class="sidebar-header">
-        <h2>Indomable</h2>
-        <span class="close-btn" onclick="toggleSidebar()">×</span>
-    </div>
-    <ul class="sidebar-menu">
-        <li><a href="/Auto/Dashboard">🏠 Inicio</a></li>
-        <li><a href="/Productos/Index">📦 Productos</a></li>
-        <li><a href="/Clientes/Index">👥 Clientes</a></li>
-        <li><a href="/Ventas/Index">🛒 Ventas</a></li>
-        <li><a href="/Abonos/Index">💰 Abonos</a></li>
-        <li><a href="/Reportes/Index">📊 Reportes</a></li>
-        <li class="active"><a href="/Catalogos/Index">📂 Catálogos</a></li>
-        <li><a href="/Home/Index">🚪 Cerrar Sesión</a></li>
-    </ul>
-</div>
+<div class="mt-4">
 
-<!-- Contenedor principal -->
-<div class="main-container">
-    <!-- Encabezado -->
-    <header class="header">
-        <span class="menu-btn" onclick="toggleSidebar()">☰</span>
-        <h1>Catálogos</h1>
-    </header>
+    <!-- ============================
+         TÍTULO
+    ============================ -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <h3 class="fw-bold text-primary">
+                <i class="bi bi-collection me-2"></i>
+                Gestión de Catálogos
+            </h3>
 
-    <!-- Contenido principal -->
-    <div class="content">
-        <div class="card">
-            <div class="card-body text-center">
-                <h2>📂 Gestión de Catálogos</h2>
-                <p>Administra la información de referencia del sistema.</p>
-
-                <!-- Submenú de acciones -->
-                <div class="submenu">
-                    <button class="submenu-btn crear" onclick="alert('Crear nuevo catálogo')">➕ Crear</button>
-                    <button class="submenu-btn editar" onclick="alert('Editar un catálogo existente')">✏️ Editar</button>
-                    <button class="submenu-btn eliminar" onclick="alert('Eliminar catálogo seleccionado')">🗑️ Eliminar</button>
-                </div>
-
-                <!-- Sección de información -->
-                <div class="info-section mt-4">
-                    <p>En esta sección podrás crear, editar o eliminar los catálogos que definen las categorías de productos, tipos de clientes y más elementos base del sistema.</p>
-                </div>
-            </div>
+            <p class="text-muted">
+                Administra las tablas base que definen los productos del sistema
+                (géneros, referencias, tallas, telas y colores).
+            </p>
         </div>
     </div>
 
-    <!-- Pie de página -->
-    <footer class="footer">
-        <p>© 2025 Indomable - Sistema de Inventario Móvil</p>
-    </footer>
+    <hr />
+
+    <!-- ============================
+         TARJETAS
+    ============================ -->
+    <div class="row g-4">
+
+        <!-- GÉNEROS -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body text-center">
+                    <i class="bi bi-gender-ambiguous fs-1 text-primary"></i>
+                    <h5 class="mt-3 fw-semibold">Géneros</h5>
+                    <p class="text-muted small">
+                        Hombre, Mujer, Niño, etc.
+                    </p>
+                    <a asp-controller="Generos"
+                       asp-action="Index"
+                       class="btn btn-outline-primary btn-sm">
+                        Administrar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- REFERENCIAS -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body text-center">
+                    <i class="bi bi-tag fs-1 text-success"></i>
+                    <h5 class="mt-3 fw-semibold">Referencias</h5>
+                    <p class="text-muted small">
+                        Boxer, Camiseta, Pantalón, etc.
+                    </p>
+                    <a asp-controller="Referencias"
+                       asp-action="Index"
+                       class="btn btn-outline-success btn-sm">
+                        Administrar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- TALLAS -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body text-center">
+                    <i class="bi bi-arrows-angle-expand fs-1 text-warning"></i>
+                    <h5 class="mt-3 fw-semibold">Tallas</h5>
+                    <p class="text-muted small">
+                        S, M, L, XL, 3XL, etc.
+                    </p>
+                    <a asp-controller="Tallas"
+                       asp-action="Index"
+                       class="btn btn-outline-warning btn-sm">
+                        Administrar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- TELAS -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body text-center">
+                    <i class="bi bi-layers fs-1 text-info"></i>
+                    <h5 class="mt-3 fw-semibold">Telas</h5>
+                    <p class="text-muted small">
+                        Algodón, Lycra, Poliéster, etc.
+                    </p>
+                    <a asp-controller="Telas"
+                       asp-action="Index"
+                       class="btn btn-outline-info btn-sm">
+                        Administrar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLORES -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body text-center">
+                    <i class="bi bi-palette fs-1 text-danger"></i>
+                    <h5 class="mt-3 fw-semibold">Colores</h5>
+                    <p class="text-muted small">
+                        Negro, Blanco, Azul, etc.
+                    </p>
+                    <a asp-controller="Colores"
+                       asp-action="Index"
+                       class="btn btn-outline-danger btn-sm">
+                        Administrar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
 </div>
-
-<!-- Estilos -->
-<style>
-    body {
-        margin: 0;
-        font-family: 'Poppins', sans-serif;
-        background-color: #f8fafc;
-        color: #333;
-    }
-
-    .header {
-        background-color: #1E3A8A;
-        color: white;
-        padding: 15px;
-        text-align: center;
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-    }
-
-    .menu-btn {
-        position: absolute;
-        left: 20px;
-        font-size: 24px;
-        cursor: pointer;
-    }
-
-    .sidebar {
-        height: 100%;
-        width: 0;
-        position: fixed;
-        top: 0;
-        left: 0;
-        background-color: #1E3A8A;
-        overflow-x: hidden;
-        transition: 0.3s;
-        z-index: 1200;
-        padding-top: 60px;
-    }
-
-    .sidebar.open {
-        width: 250px;
-    }
-
-    .sidebar-header {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        background-color: #1E3A8A;
-        color: white;
-        text-align: center;
-        padding: 15px 0;
-    }
-
-    .close-btn {
-        position: absolute;
-        top: 10px;
-        right: 20px;
-        font-size: 24px;
-        cursor: pointer;
-    }
-
-    .sidebar-menu {
-        list-style: none;
-        padding: 0;
-        margin-top: 80px;
-    }
-
-    .sidebar-menu li {
-        padding: 12px 20px;
-    }
-
-    .sidebar-menu a {
-        color: white;
-        text-decoration: none;
-        display: block;
-        font-size: 18px;
-        transition: background 0.2s;
-    }
-
-    .sidebar-menu a:hover,
-    .sidebar-menu .active a {
-        background-color: #2563EB;
-        border-radius: 8px;
-    }
-
-    .main-container {
-        transition: margin-left 0.3s ease;
-    }
-
-    .content {
-        padding: 20px;
-        margin-top: 10px;
-    }
-
-    .card {
-        background-color: white;
-        border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        padding: 20px;
-    }
-
-    .submenu {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-top: 20px;
-    }
-
-    .submenu-btn {
-        border: none;
-        color: white;
-        padding: 10px 20px;
-        border-radius: 10px;
-        cursor: pointer;
-        font-size: 16px;
-        transition: background 0.2s;
-        width: 120px;
-    }
-
-    .submenu-btn.crear { background-color: #16A34A; }
-    .submenu-btn.crear:hover { background-color: #22C55E; }
-
-    .submenu-btn.editar { background-color: #2563EB; }
-    .submenu-btn.editar:hover { background-color: #3B82F6; }
-
-    .submenu-btn.eliminar { background-color: #DC2626; }
-    .submenu-btn.eliminar:hover { background-color: #EF4444; }
-
-    .info-section {
-        background-color: #EEF2FF;
-        padding: 15px;
-        border-radius: 10px;
-        text-align: center;
-    }
-
-    .footer {
-        background-color: #1E3A8A;
-        color: white;
-        text-align: center;
-        padding: 10px;
-        margin-top: 30px;
-    }
-
-    /* 📱 Estilos responsive */
-    @@media (max-width: 768px) {
-        .sidebar.open { width: 200px; }
-        .submenu { flex-direction: column; align-items: center; }
-        .submenu-btn { width: 80%; }
-    }
-</style>
-
-<!-- Script -->
-<script>
-    function toggleSidebar() {
-        const sidebar = document.getElementById("sidebar");
-        sidebar.classList.toggle("open");
-    }
-</script>
-

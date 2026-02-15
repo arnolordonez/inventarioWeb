@@ -1,0 +1,86 @@
+﻿@model InventarioWEB.ViewModels.Catalogos.Generos.GeneroIndexVM
+
+@{
+    ViewData["Title"] = "Géneros";
+    Layout = "_Layout";
+}
+
+<div class="mt-4">
+
+    <!-- ============================
+         TÍTULO
+    ============================ -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <h3 class="fw-bold text-primary">
+                <i class="bi bi-gender-ambiguous me-2"></i>
+                Catálogo de Géneros
+            </h3>
+
+            <p class="text-muted">
+                Valores estructurales del sistema.
+                Solo es posible editar la descripción.
+            </p>
+        </div>
+    </div>
+
+    <hr />
+
+    <!-- ============================
+         MENSAJES
+    ============================ -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- ============================
+         TABLA
+    ============================ -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:120px;">ID</th>
+                            <th>Descripción</th>
+                            <th class="text-center" style="width:150px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var genero in Model.Generos)
+                        {
+                            <tr>
+                                <td>@genero.ID_Genero</td>
+                                <td>@genero.DescripGenero</td>
+                                <td class="text-center">
+                                    <a asp-action="Editar"
+                                       asp-route-id="@genero.ID_Genero"
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil-square me-1"></i>
+                                        Editar
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+</div>

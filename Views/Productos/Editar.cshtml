@@ -4,122 +4,160 @@
     ViewData["Title"] = "Editar Producto";
 }
 
-<h2 class="text-center text-primary fw-bold mb-4">✏️ Editar Producto</h2>
+<h2 class="text-center text-primary fw-bold mb-4">
+    ✏️ Editar Producto
+</h2>
 
-<div class="card shadow-lg p-4 rounded-3" style="max-width: 650px; margin: auto;">
-    <form asp-action="Editar" method="post" asp-antiforgery="true">
+<div class="card shadow-lg p-4 rounded-3" style="max-width: 700px; margin:auto;">
+    <form asp-action="Editar" method="post">
+        @Html.AntiForgeryToken()
 
-        <!-- ID oculto -->
+        <!-- ID -->
         <input type="hidden" asp-for="ID_Producto" />
 
         <!-- REFERENCIA (NO EDITABLE) -->
         <div class="mb-3">
             <label class="form-label fw-bold">Referencia</label>
-            <input class="form-control bg-light" value="@ViewBag.NombreReferencia" readonly />
+            <input type="text"
+                   class="form-control bg-light"
+                   value="@Model.Referencia?.DescripReferencia"
+                   readonly />
             <input type="hidden" asp-for="ID_Referencias" />
         </div>
 
         <!-- TALLA (NO EDITABLE) -->
         <div class="mb-3">
             <label class="form-label fw-bold">Talla</label>
-            <input class="form-control bg-light" value="@ViewBag.NombreTalla" readonly />
+            <input type="text"
+                   class="form-control bg-light"
+                   value="@Model.Talla?.DescripTalla"
+                   readonly />
             <input type="hidden" asp-for="ID_Tallas" />
         </div>
 
-        <!-- TELAS -->
+        <!-- TELA -->
         <div class="mb-3">
-            <label asp-for="ID_Telas" class="form-label fw-bold"></label>
-            <select asp-for="ID_Telas" class="form-select" asp-items="ViewBag.TelasLista">
-                <option value="">Seleccione una tela...</option>
+            <label asp-for="ID_Telas" class="form-label fw-bold">Tela</label>
+            <select asp-for="ID_Telas"
+                    class="form-select"
+                    asp-items="ViewBag.Telas ?? new List<SelectListItem>()">
+                <option value="">Seleccione una tela</option>
             </select>
             <span asp-validation-for="ID_Telas" class="text-danger"></span>
         </div>
 
-        <!-- COLORES -->
+        <!-- COLOR -->
         <div class="mb-3">
-            <label asp-for="ID_Color" class="form-label fw-bold"></label>
-            <select asp-for="ID_Color" class="form-select" asp-items="ViewBag.ColoresLista">
-                <option value="">Seleccione un color...</option>
+            <label asp-for="ID_Color" class="form-label fw-bold">Color</label>
+            <select asp-for="ID_Color"
+                    class="form-select"
+                    asp-items="ViewBag.Colores ?? new List<SelectListItem>()">
+                <option value="">Seleccione un color</option>
             </select>
             <span asp-validation-for="ID_Color" class="text-danger"></span>
         </div>
 
         <!-- STOCK -->
         <div class="mb-3">
-            <label asp-for="Stock" class="form-label fw-bold"></label>
-            <input asp-for="Stock" type="number" class="form-control" min="0" />
+            <label asp-for="Stock" class="form-label fw-bold">Stock</label>
+            <input asp-for="Stock"
+                   type="number"
+                   min="0"
+                   step="1"
+                   class="form-control" />
             <span asp-validation-for="Stock" class="text-danger"></span>
         </div>
 
-        <!-- PRECIO -->
+        <!-- PRECIO COSTO -->
         <div class="mb-3">
-            <label asp-for="Precio" class="form-label fw-bold"></label>
-            <input asp-for="Precio" type="number" step="0.01" class="form-control" min="0" />
-            <span asp-validation-for="Precio" class="text-danger"></span>
+            <label asp-for="PrecioCosto" class="form-label fw-bold">Precio Costo</label>
+            <input asp-for="PrecioCosto"
+                   type="number"
+                   step="0.01"
+                   min="0"
+                   class="form-control" />
+            <span asp-validation-for="PrecioCosto" class="text-danger"></span>
+        </div>
+
+        <!-- PRECIO VENTA -->
+        <div class="mb-3">
+            <label asp-for="PrecioVTA" class="form-label fw-bold">Precio Venta</label>
+            <input asp-for="PrecioVTA"
+                   type="number"
+                   step="0.01"
+                   min="0"
+                   class="form-control" />
+            <span asp-validation-for="PrecioVTA" class="text-danger"></span>
         </div>
 
         <!-- IVA -->
         <div class="mb-3">
-            <label asp-for="IVA_Porcentaje" class="form-label fw-bold"></label>
-            <input asp-for="IVA_Porcentaje" type="number" step="0.01" class="form-control" min="0" />
+            <label asp-for="IVA_Porcentaje" class="form-label fw-bold">IVA (%)</label>
+            <input asp-for="IVA_Porcentaje"
+                   type="number"
+                   step="0.01"
+                   min="0"
+                   class="form-control" />
             <span asp-validation-for="IVA_Porcentaje" class="text-danger"></span>
         </div>
 
-        <!-- NOMBRE (Auto-generado) -->
+        <!-- NOMBRE AUTO-GENERADO -->
         <div class="mb-3">
-            <label asp-for="Nombre" class="form-label fw-bold">Nombre (auto-generado)</label>
-            <input asp-for="Nombre" class="form-control bg-light" readonly />
+            <label asp-for="Nombre" class="form-label fw-bold">Nombre</label>
+            <input asp-for="Nombre"
+                   class="form-control bg-light"
+                   readonly />
         </div>
 
-        <!-- ESTADO -->
-        <div class="form-check mb-3">
-            <input asp-for="Activo" class="form-check-input" type="checkbox" />
-            <label asp-for="Activo" class="form-check-label fw-bold">Activo</label>
+        <!-- ACTIVO -->
+        <div class="form-check mb-4">
+            <input asp-for="Activo" class="form-check-input" />
+            <label asp-for="Activo" class="form-check-label fw-bold">
+                Activo
+            </label>
         </div>
 
         <!-- BOTONES -->
         <div class="text-center">
-            <button type="submit" class="btn btn-success px-4">💾 Guardar Cambios</button>
-            <a asp-action="Index" class="btn btn-secondary px-4 ms-2">⬅ Volver</a>
+            <button type="submit" class="btn btn-success px-4">
+                💾 Guardar
+            </button>
+            <a asp-action="Index" class="btn btn-secondary px-4 ms-2">
+                ⬅ Volver
+            </a>
         </div>
     </form>
 </div>
 
 @section Scripts {
-        <partial name="_ValidationScriptsPartial" />
+    <partial name="_ValidationScriptsPartial" />
 
-        <script>
-            document.addEventListener("DOMContentLoaded", function () {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
 
-                // ===================================================
-                // Auto–generación del nombre del producto
-                // Depende de: Referencia + Talla + Tela + Color
-                // ===================================================
+            function generarNombre() {
+                // Uso de JSON.stringify para escapar cualquier carácter especial
+                const referencia = @Html.Raw(Json.Serialize(Model.Referencia?.DescripReferencia ?? ""));
+                const talla = @Html.Raw(Json.Serialize(Model.Talla?.DescripTalla ?? ""));
 
-                function generarNombre() {
+                const telaSelect = document.querySelector("[name='ID_Telas']");
+                const colorSelect = document.querySelector("[name='ID_Color']");
 
-                    const referencia = "@ViewBag.NombreReferencia";
-                    const talla = "@ViewBag.NombreTalla";
+                if (!telaSelect || !colorSelect) return;
 
-                    const tela = document.querySelector("[name='ID_Telas'] option:checked")?.text.trim();
-                    const color = document.querySelector("[name='ID_Color'] option:checked")?.text.trim();
+                const tela = telaSelect.selectedOptions[0]?.text || '';
+                const color = colorSelect.selectedOptions[0]?.text || '';
 
-                    const partes = [
-                        referencia,
-                        talla,
-                        tela,
-                        color
-                    ].filter(x => x && !x.includes("Seleccione"));
+                const partes = [referencia, talla, tela, color]
+                    .filter(x => x && !x.includes("Seleccione"));
 
-                    document.querySelector("[name='Nombre']").value = partes.join(" - ");
-                }
+                document.querySelector("[name='Nombre']").value = partes.join(" - ");
+            }
 
-                // Detectar cambios
-                document.querySelector("[name='ID_Telas']").addEventListener("change", generarNombre);
-                document.querySelector("[name='ID_Color']").addEventListener("change", generarNombre);
+            document.querySelector("[name='ID_Telas']")?.addEventListener("change", generarNombre);
+            document.querySelector("[name='ID_Color']")?.addEventListener("change", generarNombre);
 
-                // Generar nombre inicial
-                generarNombre();
-            });
-        </script>
+            generarNombre();
+        });
+    </script>
 }

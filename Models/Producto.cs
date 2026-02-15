@@ -3,57 +3,37 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace InventarioWEB.Models
 {
-    [Table("producto")]  // Nombre real de la tabla en la base de datos
+    [Table("productos")]
     public class Producto
     {
-        // ----------------------------------------------------------
-        // PRIMARY KEY → Generado como GUID (string)
-        // ----------------------------------------------------------
+        // ============================
+        // CLAVE PRIMARIA
+        // ============================
         [Key]
         [Column("ID_Producto")]
-        public string ID_Producto { get; set; } = string.Empty;
-        // Se asigna en el controlador mediante: Guid.NewGuid().ToString()
+        public int ID_Producto { get; set; }
 
-        // ----------------------------------------------------------
-        // CAMPOS BÁSICOS
-        // ----------------------------------------------------------
-
+        // ============================
+        // IDENTIDAD DEL PRODUCTO
+        // ============================
         [Required]
         [StringLength(150)]
         public string Nombre { get; set; } = string.Empty;
-        // Nombre auto-generado basado en: REFERENCIA + TELA + TALLA + GÉNERO + COLOR
 
+        // SNAPSHOT HISTÓRICO (NO FK)
+        // ⚠️ RENOMBRADO para evitar colisión con entidad Color
+        [Column("Color")]
+        [StringLength(150)]
+        public string? ColorSnapshot { get; set; }
+
+        // ============================
+        // RELACIONES (FK)
+        // ============================
         [Required]
-        [Column(TypeName = "decimal(10,2)")]
-        public decimal Precio { get; set; }
-
-        [Required]
-        [Column(TypeName = "decimal(10,2)")]
-        public decimal PrecioCosto { get; set; }
-
-        [Required]
-        public int Stock { get; set; }
-
-        [Required]
-        [Column(TypeName = "decimal(5,2)")]
-        public decimal IVA_Porcentaje { get; set; }
-
-        // ----------------------------------------------------------
-        // ELIMINACIÓN LÓGICA
-        // ----------------------------------------------------------
-        public bool Activo { get; set; } = true;
-        // true  → producto visible  
-        // false → producto eliminado lógicamente (NO se borra de BD)
-
-        // ----------------------------------------------------------
-        // CLAVES FORÁNEAS
-        // ----------------------------------------------------------
+        public int ID_Referencias { get; set; }
 
         [Required]
         public int ID_Tallas { get; set; }
-
-        [Required]
-        public int ID_Referencias { get; set; }
 
         [Required]
         public int ID_Telas { get; set; }
@@ -61,9 +41,25 @@ namespace InventarioWEB.Models
         [Required]
         public int ID_Color { get; set; }
 
-        // ----------------------------------------------------------
-        // NAVEGACIÓN (JOIN EF CORE)
-        // ----------------------------------------------------------
+        // ============================
+        // INVENTARIO Y PRECIOS
+        // ============================
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal PrecioCosto { get; set; }
+
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal PrecioVTA { get; set; }
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal IVA_Porcentaje { get; set; }
+
+        public int Stock { get; set; }
+
+        public bool Activo { get; set; }
+
+        // ============================
+        // NAVEGACIÓN
+        // ============================
         [ForeignKey(nameof(ID_Tallas))]
         public Talla? Talla { get; set; }
 
@@ -74,6 +70,6 @@ namespace InventarioWEB.Models
         public Tela? Tela { get; set; }
 
         [ForeignKey(nameof(ID_Color))]
-        public Color? Color { get; set; }
+        public Color? ColorNav { get; set; }
     }
 }

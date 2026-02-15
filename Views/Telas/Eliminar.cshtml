@@ -1,0 +1,28 @@
+﻿@model InventarioWEB.ViewModels.Catalogos.Telas.TelaDeleteVM
+
+@{
+    ViewData["Title"] = "Eliminar Tela";
+}
+
+<h3 class="mb-3 text-danger">Eliminar Tela</h3>
+
+<div class="alert alert-danger">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    ¿Está seguro que desea eliminar la tela:
+    <strong>@Model.DescripTela</strong>?
+</div>
+
+<form asp-action="Eliminar" method="post">
+
+    @Html.AntiForgeryToken()
+
+    <input type="hidden" asp-for="ID_Telas" />
+
+    <button type="submit" class="btn btn-danger">
+        <i class="bi bi-trash"></i> Confirmar Eliminación
+    </button>
+
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Cancelar
+    </a>
+</form>

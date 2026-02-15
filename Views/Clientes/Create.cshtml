@@ -6,6 +6,7 @@
 <h4>Crear Cliente</h4>
 
 <form asp-action="Create" method="post">
+    @Html.AntiForgeryToken()
     <div class="row g-3">
 
         <!-- Cédula -->
@@ -60,15 +61,18 @@
         <!-- Tipo de Cliente -->
         <div class="col-md-4">
             <label asp-for="TipoCliente" class="form-label"></label>
-            <select asp-for="TipoCliente" asp-items="ViewBag.TiposItems" class="form-select" id="tipoClienteSelect"></select>
+            <select asp-for="TipoCliente"
+                    asp-items="ViewBag.Tipos"
+                    class="form-select"
+                    id="tipoClienteSelect">
+            </select>
             <span asp-validation-for="TipoCliente" class="text-danger"></span>
         </div>
 
-        <!-- VIP -->
+        <!-- VIP (solo informativo) -->
         <div class="col-md-2">
             <label class="form-label">VIP</label>
             <input type="text" id="vipText" class="form-control" readonly />
-            <input asp-for="VIP" type="hidden" id="VIP" />
         </div>
 
         <!-- Observaciones -->
@@ -87,23 +91,20 @@
 </form>
 
 @section Scripts {
-        <partial name="_ValidationScriptsPartial" />
-        <script>
-            (function () {
-                const tipo = document.getElementById('tipoClienteSelect');
-                const vipText = document.getElementById('vipText');
-                const vipHidden = document.getElementById('VIP');
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const tipo = document.getElementById('tipoClienteSelect');
+            const vipText = document.getElementById('vipText');
 
-                function actualizarVIP() {
-                    const isVIP = tipo.value === 'Mayorista';
-                    vipText.value = isVIP ? 'SI' : 'NO';
-                    vipHidden.value = isVIP;
-                }
+            function actualizarVIP() {
+                vipText.value = tipo.value === 'Mayorista' ? 'SI' : 'NO';
+            }
 
-                if (tipo) {
-                    tipo.addEventListener('change', actualizarVIP);
-                    actualizarVIP();
-                }
-            })();
-        </script>
+            if (tipo) {
+                tipo.addEventListener('change', actualizarVIP);
+                actualizarVIP();
+            }
+        })();
+    </script>
 }

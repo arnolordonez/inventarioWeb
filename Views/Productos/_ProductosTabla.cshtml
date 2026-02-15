@@ -1,0 +1,118 @@
+﻿@model InventarioWEB.ViewModels.ProductosIndexViewModel
+
+@* =====================================================
+   PARTIAL VIEW: TABLA + PAGINACIÓN
+   - Reutilizable en Index normal y AJAX
+   - SOLO renderiza resultados
+   ===================================================== *@
+
+@{
+    int totalPages = Model.Productos != null && Model.PageSize > 0
+        ? (int)Math.Ceiling((double)Model.TotalItems / Model.PageSize)
+        : 0;
+}
+
+@if (Model.Productos != null && Model.Productos.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle text-center shadow-sm">
+            <thead class="table-primary">
+                <tr>
+                    <th>ID</th>
+                    <th>Producto</th>
+                    <th>Referencia</th>
+                    <th>Talla</th>
+                    <th>Tela</th>
+                    <th>Color</th>
+                    <th>Precio</th>
+                    <th>IVA</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model.Productos)
+                {
+                    <tr class="@(p.Activo ? "" : "table-secondary")">
+                        <td>@p.ID_Producto</td>
+                        <td>@(string.IsNullOrWhiteSpace(p.Nombre) ? "—" : p.Nombre)</td>
+                        <td>@(p.Referencia ?? "—")</td>
+                        <td>@(p.Talla ?? "—")</td>
+                        <td>@(p.Tela ?? "—")</td>
+                        <td>@(p.Color ?? "—")</td>
+                        <td>@p.PrecioVTA.ToString("C2")</td>
+                        <td>@($"{p.IVA_Porcentaje:0.##}%")</td>
+                        <td>
+                            <span class="badge @(p.Activo ? "bg-success" : "bg-secondary")">
+                                @(p.Activo ? "Activo" : "Inactivo")
+                            </span>
+                        </td>
+                        <td class="d-flex justify-content-center gap-1">
+                            <!-- DETALLES -->
+                            <a asp-controller="Productos" asp-action="Detalles"
+                               asp-route-id="@p.ID_Producto"
+                               class="btn btn-sm btn-info text-white">
+                                <i class="bi bi-eye"></i>
+                            </a>
+
+                            <!-- EDITAR -->
+                            <a asp-controller="Productos" asp-action="Editar"
+                               asp-route-id="@p.ID_Producto"
+                               class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+
+                            <!-- CAMBIAR ESTADO -->
+                            <form asp-controller="Productos" asp-action="CambiarEstado"
+                                  asp-route-id="@p.ID_Producto"
+                                  method="post"
+                                  class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit"
+                                        class="btn btn-sm @(p.Activo ? "btn-danger" : "btn-success")">
+                                    <i class="bi @(p.Activo ? "bi-trash" : "bi-arrow-counterclockwise")"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @* ============================
+       PAGINACIÓN SERVER-SIDE
+       ============================ *@
+    @if (totalPages > 1)
+    {
+        <nav class="mt-3">
+            <ul class="pagination justify-content-center">
+                @for (int i = 1; i <= totalPages; i++)
+                {
+                    <li class="page-item @(i == Model.Page ? "active" : "")">
+                        <a class="page-link"
+                           href="@Url.Action("Index", "Productos", new {
+                               page = i,
+                               pageSize = Model.PageSize,
+                               ID_Producto = Model.ID_Producto,
+                               ID_Genero = Model.ID_Genero,
+                               ID_Referencia = Model.ID_Referencia,
+                               ID_Talla = Model.ID_Talla,
+                               ID_Tela = Model.ID_Tela,
+                               EstadoFiltro = Model.EstadoFiltro
+                           })">
+                            @i
+                        </a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+}
+else
+{
+    <div class="alert alert-warning text-center shadow-sm">
+        <i class="bi bi-exclamation-circle"></i>
+        No se encontraron productos con los filtros seleccionados.
+    </div>
+}
