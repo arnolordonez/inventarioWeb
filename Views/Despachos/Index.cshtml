@@ -1,0 +1,136 @@
+﻿@model IEnumerable<InventarioWEB.Models.Despacho>
+
+@using InventarioWEB.Models
+
+@{
+    ViewData["Title"] = "Despachos";
+}
+
+<h2 class="mb-4">📦 Gestión de Despachos</h2>
+
+<div class="card shadow-sm">
+
+    <div class="card-body">
+
+        <div class="table-responsive">
+
+            <table class="table table-striped table-hover table-bordered align-middle mb-0">
+
+                <thead class="table-dark text-center">
+                    <tr>
+                        <th style="width:80px;">ID</th>
+                        <th>Pedido</th>
+                        <th style="width:180px;">Fecha</th>
+                        <th style="width:120px;">Tipo</th>
+                        <th style="width:120px;">Estado</th>
+                        <th style="width:120px;">Acciones</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    @if (Model == null || !Model.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                No hay despachos registrados
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr>
+
+                                <!-- ID -->
+                                <td class="text-center fw-bold">
+                                    @item.ID_Despacho
+                                </td>
+
+                                <!-- PEDIDO -->
+                                <td>
+                                    <span class="fw-semibold">
+                                        Pedido #@item.ID_Pedido
+                                    </span>
+                                </td>
+
+                                <!-- FECHA -->
+                                <td class="text-center">
+                                    @item.Fecha.ToString("dd/MM/yyyy HH:mm")
+                                </td>
+
+                                <!-- TIPO -->
+                                <td class="text-center">
+
+                                    @if (item.Tipo == TipoDespacho.Completo)
+                                    {
+                                        <span class="badge bg-success">
+                                            Completo
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">
+                                            Parcial
+                                        </span>
+                                    }
+
+                                </td>
+
+                                <!-- ESTADO -->
+                                <td class="text-center">
+
+                                    @switch (item.Estado)
+                                    {
+                                        case EstadoDespacho.Despachado:
+                                            <span class="badge bg-primary">
+                                                Despachado
+                                            </span>
+                                            break;
+
+                                        case EstadoDespacho.Pendiente:
+                                            <span class="badge bg-secondary">
+                                                Pendiente
+                                            </span>
+                                            break;
+
+                                        case EstadoDespacho.Cancelado:
+                                            <span class="badge bg-danger">
+                                                Cancelado
+                                            </span>
+                                            break;
+
+                                        default:
+                                            <span class="badge bg-dark">
+                                                N/D
+                                            </span>
+                                            break;
+                                    }
+
+                                </td>
+
+                                <!-- ACCIONES -->
+                                <td class="text-center">
+
+                                    <a asp-action="Detalle"
+                                       asp-route-id="@item.ID_Despacho"
+                                       class="btn btn-sm btn-outline-primary">
+                                        🔍 Ver
+                                    </a>
+
+                                </td>
+
+                            </tr>
+                        }
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>

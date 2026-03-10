@@ -20,11 +20,19 @@ namespace InventarioWEB.Models
         [StringLength(150)]
         public string Nombre { get; set; } = string.Empty;
 
+        // ============================
         // SNAPSHOT HISTÓRICO (NO FK)
-        // ⚠️ RENOMBRADO para evitar colisión con entidad Color
+        // ============================
+        // Se mantiene como texto para auditoría histórica
         [Column("Color")]
         [StringLength(150)]
         public string? ColorSnapshot { get; set; }
+
+        // ============================
+        // 🔥 NUEVO: GÉNERO DIRECTO (CLAVE DEL RENDIMIENTO)
+        // ============================
+        [Required]
+        public int ID_Genero { get; set; }
 
         // ============================
         // RELACIONES (FK)
@@ -58,8 +66,11 @@ namespace InventarioWEB.Models
         public bool Activo { get; set; }
 
         // ============================
-        // NAVEGACIÓN
+        // NAVEGACIÓN (OPCIONAL, NO USADA EN FILTROS)
         // ============================
+        [ForeignKey(nameof(ID_Genero))]
+        public Genero? Genero { get; set; }
+
         [ForeignKey(nameof(ID_Tallas))]
         public Talla? Talla { get; set; }
 

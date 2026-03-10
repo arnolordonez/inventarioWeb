@@ -1,0 +1,163 @@
+﻿@model InventarioWEB.ViewModels.ProduccionCrearViewModel
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Registrar Producción";
+}
+
+<h2 class="mb-3">Registrar Producción</h2>
+
+<form asp-action="Crear" method="post">
+    @Html.AntiForgeryToken()
+
+    <!-- CABECERA -->
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <label asp-for="FechaProduccion" class="form-label"></label>
+            <input asp-for="FechaProduccion" class="form-control" type="date" />
+            <span asp-validation-for="FechaProduccion" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6">
+            <label asp-for="Observaciones" class="form-label"></label>
+            <textarea asp-for="Observaciones" class="form-control" rows="2"></textarea>
+        </div>
+    </div>
+
+    <hr />
+
+    <!-- BUSCADOR -->
+    <h5 class="mb-3">Buscar Producto</h5>
+
+    <div class="row g-2 align-items-end">
+
+        <!-- GÉNERO -->
+        <div class="col-md-2">
+            <select id="filtroGenero" class="form-select">
+                <option value="">Género</option>
+                @foreach (var g in ViewBag.Generos)
+                {
+                    <option value="@g.ID_Genero">@g.DescripGenero</option>
+                }
+            </select>
+        </div>
+
+        <!-- REFERENCIA -->
+        <div class="col-md-3">
+            <select id="filtroReferencia" class="form-select" disabled>
+                <option value="">Referencia</option>
+            </select>
+        </div>
+
+        <!-- TALLA -->
+        <div class="col-md-2">
+            <select id="filtroTalla" class="form-select" disabled>
+                <option value="">Talla</option>
+            </select>
+        </div>
+
+        <!-- TELA -->
+        <div class="col-md-2">
+            <select id="filtroTela" class="form-select" asp-items="ViewBag.Telas">
+                <option value="">Tela</option>
+            </select>
+        </div>
+
+        <!-- COLOR -->
+        <div class="col-md-2">
+            <select id="filtroColor" class="form-select" asp-items="ViewBag.Colores">
+                <option value="">Color</option>
+            </select>
+        </div>
+
+        <div class="col-md-1">
+            <button type="button"
+                    class="btn btn-primary w-100"
+                    onclick="buscarProductos()">
+                Buscar
+            </button>
+        </div>
+    </div>
+
+    <hr />
+
+    <div class="mt-3">
+        <button type="submit" class="btn btn-success">
+            Guardar Producción
+        </button>
+
+        <a asp-action="Index" class="btn btn-secondary">
+            Volver
+        </a>
+    </div>
+</form>
+
+<!-- SCRIPT DIRECTO -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const filtroGenero = document.getElementById("filtroGenero");
+        const filtroReferencia = document.getElementById("filtroReferencia");
+        const filtroTalla = document.getElementById("filtroTalla");
+
+        console.log("Vista Crear cargada correctamente");
+
+        filtroGenero.addEventListener("change", async function () {
+
+            const idGenero = this.value;
+
+            // Reset
+            filtroReferencia.innerHTML = "<option value=''>Referencia</option>";
+            filtroTalla.innerHTML = "<option value=''>Talla</option>";
+
+            filtroReferencia.disabled = true;
+            filtroTalla.disabled = true;
+
+            if (!idGenero) return;
+
+            try {
+
+                // REFERENCIAS
+                const refResp = await fetch(`/Produccion/ObtenerReferenciasPorGenero?idGenero=${idGenero}`);
+                if (!refResp.ok)
+                    throw new Error("Error al cargar referencias");
+
+                const referencias = await refResp.json();
+                console.log("Referencias:", referencias);
+
+                referencias.forEach(r => {
+                    const option = document.createElement("option");
+                    option.value = r.ID_Referencias ?? r.id_Referencias ?? Object.values(r)[0];
+                    option.textContent = r.DescripReferencia ?? r.descripReferencia ?? Object.values(r)[1];
+                    filtroReferencia.appendChild(option);
+                });
+
+                if (referencias.length > 0)
+                    filtroReferencia.disabled = false;
+
+                // TALLAS
+                const tallaResp = await fetch(`/Produccion/ObtenerTallasPorGenero?idGenero=${idGenero}`);
+                if (!tallaResp.ok)
+                    throw new Error("Error al cargar tallas");
+
+                const tallas = await tallaResp.json();
+                console.log("Tallas:", tallas);
+
+                tallas.forEach(t => {
+                    const option = document.createElement("option");
+                    option.value = t.ID_Tallas ?? t.id_Tallas ?? Object.values(t)[0];
+                    option.textContent = t.DescripTalla ?? t.descripTalla ?? Object.values(t)[1];
+                    filtroTalla.appendChild(option);
+                });
+
+                if (tallas.length > 0)
+                    filtroTalla.disabled = false;
+
+            } catch (error) {
+                console.error(error);
+                alert("Error al cargar referencias y tallas.");
+            }
+        });
+
+    });
+</script>

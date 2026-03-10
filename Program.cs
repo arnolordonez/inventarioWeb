@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using InventarioWEB.Data;
+using InventarioWEB.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,12 +25,31 @@ builder.Services.AddDbContext<MovimientoVentasDbContext>(options =>
 );
 
 // ==========================================================
-// SERVICIOS MVC + SESIÓN
+// REGISTRO DE SERVICIOS DE NEGOCIO
 // ==========================================================
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<ProduccionService>();
+
+// ==========================================================
+// SERVICIOS MVC + API
+// ==========================================================
+
+builder.Services.AddControllersWithViews(); // MVC
+builder.Services.AddControllers();          // API
+
+// ==========================================================
+// SWAGGER PARA DOCUMENTACIÓN DE API
+// ==========================================================
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// ==========================================================
+// SESIONES
+// ==========================================================
 
 builder.Services.AddDistributedMemoryCache();
+
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -46,7 +66,12 @@ var app = builder.Build();
 // PIPELINE DE LA APLICACIÓN
 // ==========================================================
 
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+else
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
@@ -60,12 +85,21 @@ app.UseRouting();
 // Activar sesiones (REQUERIDO PARA LOGIN)
 app.UseSession();
 
+app.UseAuthorization();
+
 // ==========================================================
-// RUTA PRINCIPAL (LOGIN POR DEFECTO)
+// MAPEO DE CONTROLADORES API
+// ==========================================================
+
+app.MapControllers();
+
+// ==========================================================
+// RUTA PRINCIPAL MVC (LOGIN)
 // ==========================================================
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Auto}/{action=Login}/{id?}"
 );
+
 app.Run();

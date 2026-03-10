@@ -10,112 +10,129 @@
 
 <div class="container-fluid">
 
-    <!-- TÍTULO -->
+    <!-- ============================= -->
+    <!-- HEADER -->
+    <!-- ============================= -->
     <div class="row mb-3">
         <div class="col-12">
-            <h3 class="fw-bold text-primary">🏭 Producción / Actualización de Inventario</h3>
+            <h3 class="fw-bold text-primary mb-1">🏭 Producción / Inventario</h3>
             <p class="text-muted mb-0">
-                Registro de producción diaria, ajustes de stock y generación de reportes.
+                Selección de productos para registro de producción.
             </p>
         </div>
     </div>
 
-    <!-- BÚSQUEDA -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header fw-bold bg-light">🔍 Búsqueda de productos</div>
-                <div class="card-body">
-
-                    <form id="formBusquedaProduccion">
-                        <div class="row g-2">
-
-                            <!-- Código -->
-                            <div class="col-md-2">
-                                <label class="form-label">Código</label>
-                                <input type="number" class="form-control" name="ID_Producto" />
-                            </div>
-
-                            <!-- Género -->
-                            <div class="col-md-2">
-                                <label class="form-label">Género</label>
-                                <select class="form-select" id="filtroGenero" name="ID_Genero">
-                                    <option value="">-- Todos --</option>
-                                </select>
-                            </div>
-
-                            <!-- Referencia -->
-                            <div class="col-md-2">
-                                <label class="form-label">Referencia</label>
-                                <select class="form-select" id="filtroReferencia" name="ID_Referencias">
-                                    <option value="">-- Todas --</option>
-                                </select>
-                            </div>
-
-                            <!-- Tela -->
-                            <div class="col-md-2">
-                                <label class="form-label">Tela</label>
-                                <select class="form-select" id="filtroTela" name="ID_Telas">
-                                    <option value="">-- Todas --</option>
-                                </select>
-                            </div>
-
-                            <!-- Talla -->
-                            <div class="col-md-2">
-                                <label class="form-label">Talla</label>
-                                <select class="form-select" id="filtroTalla" name="ID_Tallas">
-                                    <option value="">-- Todas --</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-2 d-flex align-items-end">
-                                <button type="button"
-                                        id="btnBuscarProduccion"
-                                        class="btn btn-primary w-100">
-                                    🔎 Buscar
-                                </button>
-                            </div>
-
-                        </div>
-                    </form>
-
-                </div>
-            </div>
+    <!-- ============================= -->
+    <!-- FILTROS -->
+    <!-- ============================= -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light fw-bold">
+            🔍 Filtros de búsqueda
         </div>
-    </div>
 
-    @* ============================================================
-   🧾 REPORTE DE PRODUCCIÓN PDF
-   Genera PDF consolidado de la producción actual
-   con fecha y hora de impresión.
-   Empresa: Confesiones Indomable
-   ============================================================ *@
-       
-    <div class="row mb-3">
-        <div class="col-12 text-end">
-            <a asp-action="GenerarReporteProduccion"
-               class="btn btn-outline-danger"
-               target="_blank">
-                🧾 Generar reporte de producción (PDF)
-            </a>
-        </div>
-    </div>
+        <div class="card-body">
+            <form id="formBusquedaProduccion">
+                <div class="row g-2">
 
+                    <!-- CÓDIGO -->
+                    <div class="col-md-2">
+                        <label class="form-label">Código</label>
+                        <input type="number"
+                               class="form-control"
+                               name="idProducto"
+                               min="1" />
+                    </div>
 
-    <!-- RESULTADOS -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header fw-bold bg-light">
-                    📦 Resultados / Actualización de Stock
-                </div>
-                <div class="card-body">
-                    <div id="contenedorResultadosProduccion">
-                        <p class="text-muted mb-0">
-                            Realiza una búsqueda para mostrar los productos.
-                        </p>
+                    <!-- GÉNERO -->
+                    <div class="col-md-2">
+                        <label class="form-label">Género</label>
+                        <select class="form-select"
+                                id="filtroGenero"
+                                name="idGenero">
+                            <option value="">-- Seleccione --</option>
+                            @foreach (var g in ViewBag.Generos as SelectList)
+                            {
+                                <option value="@g.Value">@g.Text</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- REFERENCIA -->
+                    <div class="col-md-2">
+                        <label class="form-label">Referencia</label>
+                        <select class="form-select"
+                                id="filtroReferencia"
+                                name="idReferencia">
+                            <option value="">-- Todas --</option>
+                        </select>
+                    </div>
+
+                    <!-- TALLA -->
+                    <div class="col-md-2">
+                        <label class="form-label">Talla</label>
+                        <select class="form-select"
+                                id="filtroTalla"
+                                name="idTalla">
+                        <option value="">-- Todas --</option>
+                        </select>
+                    </div>
+
+                    <!-- TELA -->
+                    <div class="col-md-2">
+                        <label class="form-label">Tela</label>
+                        <select class="form-select"
+                                id="filtroTela"
+                                name="idTela">
+                            <option value="">-- Todas --</option>
+                            @foreach (var t in ViewBag.Telas as SelectList)
+                            {
+                                <option value="@t.Value">@t.Text</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- COLOR -->
+                    <div class="col-md-2">
+                        <label class="form-label">Color</label>
+                        <select class="form-select"
+                                id="filtroColor"
+                                name="idColor">
+                            <option value="">-- Todos --</option>
+                            @foreach (var c in ViewBag.Colores as SelectList)
+                            {
+                                <option value="@c.Value">@c.Text</option>
+                            }
+                        </select>
                     </div>
                 </div>
+
+                <!-- BOTÓN -->
+                <div class="row mt-3">
+                    <div class="col-md-3">
+                        <button type="button"
+                                id="btnBuscarProduccion"
+                                class="btn btn-primary w-100">
+                            🔎 Buscar
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================= -->
+    <!-- RESULTADOS -->
+    <!-- ============================= -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light fw-bold">
+            📦 Productos encontrados
+        </div>
+
+        <div class="card-body">
+            <div id="contenedorResultadosProduccion"
+                 class="table-responsive text-muted">
+                Realiza una búsqueda para visualizar productos.
             </div>
         </div>
     </div>
@@ -123,114 +140,168 @@
 </div>
 
 @section Scripts {
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            cargarGeneros();
-            cargarTelas();
-        });
 
-        // ===============================
-        // CARGA DE COMBOS MAESTROS
-        // ===============================
-        function cargarGeneros() {
-            fetch("/Catalogos/Generos")
-                .then(r => r.json())
-                .then(data => {
-                    const select = document.getElementById("filtroGenero");
-                    data.forEach(g => {
-                        select.insertAdjacentHTML(
-                            "beforeend",
-                            `<option value="${g.id_Genero}">${g.descripGenero}</option>`
-                        );
-                    });
-                });
-        }
+<script>
+document.addEventListener("DOMContentLoaded", function () {
 
-        function cargarTelas() {
-            fetch("/Catalogos/Telas")
-                .then(r => r.json())
-                .then(data => {
-                    const select = document.getElementById("filtroTela");
-                    data.forEach(t => {
-                        select.insertAdjacentHTML(
-                            "beforeend",
-                            `<option value="${t.id_Telas}">${t.descripTela}</option>`
-                        );
-                    });
-                });
-        }
+    const filtroGenero = document.getElementById("filtroGenero");
+    const filtroReferencia = document.getElementById("filtroReferencia");
+    const filtroTalla = document.getElementById("filtroTalla");
+    const btnBuscar = document.getElementById("btnBuscarProduccion");
+    const contenedor = document.getElementById("contenedorResultadosProduccion");
+    const form = document.getElementById("formBusquedaProduccion");
 
-        // ===============================
-        // DEPENDENCIA POR GÉNERO
-        // ===============================
-        document.getElementById("filtroGenero").addEventListener("change", function () {
+    console.log("Index Producción cargado");
 
-            const idGenero = this.value;
+    // Estado inicial
+    filtroReferencia.disabled = true;
+    filtroTalla.disabled = true;
 
-            const filtroReferencia = document.getElementById("filtroReferencia");
-            const filtroTalla = document.getElementById("filtroTalla");
+    // =============================
+    // CARGA DINÁMICA REFERENCIAS Y TALLAS
+    // =============================
+    filtroGenero.addEventListener("change", async function () {
 
-            filtroReferencia.innerHTML = '<option value="">-- Todas --</option>';
-            filtroTalla.innerHTML = '<option value="">-- Todas --</option>';
+        const idGenero = this.value;
 
-            if (!idGenero) return;
+        // Reset combos
+        filtroReferencia.innerHTML = `<option value="">-- Todas --</option>`;
+        filtroTalla.innerHTML = `<option value="">-- Todas --</option>`;
 
-            fetch(`/Produccion/ReferenciasPorGenero?idGenero=${idGenero}`)
-                .then(r => r.json())
-                .then(data => {
-                    data.forEach(rf => {
-                        filtroReferencia.insertAdjacentHTML(
-                            "beforeend",
-                            `<option value="${rf.id_Referencias}">${rf.nombre}</option>`
-                        );
-                    });
-                });
+        filtroReferencia.disabled = true;
+        filtroTalla.disabled = true;
 
-            fetch(`/Produccion/TallasPorGenero?idGenero=${idGenero}`)
-                .then(r => r.json())
-                .then(data => {
-                    data.forEach(t => {
-                        filtroTalla.insertAdjacentHTML(
-                            "beforeend",
-                            `<option value="${t.id_Tallas}">${t.descripTalla}</option>`
-                        );
-                    });
-                });
-        });
+        if (!idGenero) return;
 
-        // ===============================
-        // BÚSQUEDA
-        // ===============================
-        document.getElementById("btnBuscarProduccion").addEventListener("click", () => {
+        try {
 
-            const form = document.getElementById("formBusquedaProduccion");
-            const formData = new FormData(form);
-            const params = new URLSearchParams(formData).toString();
+            // REFERENCIAS
+            const resRef = await fetch(`/Produccion/ObtenerReferenciasPorGenero?idGenero=${idGenero}`);
 
-            fetch(`/Produccion/Buscar?${params}`)
-                .then(r => r.text())
-                .then(html => {
-                    document.getElementById("contenedorResultadosProduccion").innerHTML = html;
-                });
-        });
-    </script>
+            if (!resRef.ok)
+                throw new Error("Error cargando referencias");
 
+            const referencias = await resRef.json();
+            console.log("Referencias recibidas:", referencias);
 
-    <script>
-        document.getElementById("btnReporteProduccion")
-            .addEventListener("click", () => {
-
-                const formData = new FormData(
-                    document.getElementById("formBusquedaProduccion")
-                );
-
-                const params = new URLSearchParams(formData).toString();
-
-                window.open(
-                    `/Produccion/ReportePdf?${params}`,
-                    "_blank"
-                );
+            referencias.forEach(r => {
+                const opt = document.createElement("option");
+                opt.value = r.id;
+                opt.textContent = r.descripcion;
+                filtroReferencia.appendChild(opt);
             });
-    </script>
 
+            if (referencias.length > 0)
+                filtroReferencia.disabled = false;
+
+            // TALLAS
+            const resTall = await fetch(`/Produccion/ObtenerTallasPorGenero?idGenero=${idGenero}`);
+
+            if (!resTall.ok)
+                throw new Error("Error cargando tallas");
+
+            const tallas = await resTall.json();
+            console.log("Tallas recibidas:", tallas);
+
+            tallas.forEach(t => {
+                const opt = document.createElement("option");
+                opt.value = t.id;
+                opt.textContent = t.descripcion;
+                filtroTalla.appendChild(opt);
+            });
+
+            if (tallas.length > 0)
+                filtroTalla.disabled = false;
+
+        }
+        catch (error) {
+            console.error(error);
+            contenedor.innerHTML =
+                `<div class="text-danger">❌ Error al cargar referencias y tallas</div>`;
+        }
+    });
+
+    // =============================
+    // BUSCAR PRODUCTOS
+    // =============================
+    btnBuscar.addEventListener("click", async function () {
+
+        const formData = new FormData(form);
+        const params = new URLSearchParams();
+
+        for (let [key, value] of formData.entries()) {
+            if (value && value.trim() !== "")
+                params.append(key, value);
+        }
+
+        if (!params.toString()) {
+            contenedor.innerHTML =
+                `<div class="text-muted">Seleccione al menos un criterio.</div>`;
+            return;
+        }
+
+        contenedor.innerHTML =
+            `<div class="text-muted">⏳ Consultando productos...</div>`;
+
+        try {
+
+            const r = await fetch(`/Produccion/BuscarProductos?${params.toString()}`);
+
+            if (!r.ok)
+                throw new Error("Error en búsqueda");
+
+            const data = await r.json();
+
+            if (!data.length) {
+                contenedor.innerHTML =
+                    `<div class="text-muted">No se encontraron productos.</div>`;
+                return;
+            }
+
+            contenedor.innerHTML = `
+            <table class="table table-bordered table-sm align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Código</th>
+                        <th>Producto</th>
+                        <th>Género</th>
+                        <th>Referencia</th>
+                        <th>Talla</th>
+                        <th class="text-end">Costo</th>
+                        <th class="text-end">Precio Vta</th>
+                        <th class="text-center">Stock</th>
+                        <th class="text-center">IVA %</th>
+                        <th class="text-center">Activo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${data.map(p => `
+                        <tr>
+                            <td>${p.idProducto ?? ''}</td>
+                            <td>${p.nombre ?? ''}</td>
+                            <td>${p.genero ?? ''}</td>
+                            <td>${p.referencia ?? ''}</td>
+                            <td>${p.talla ?? ''}</td>
+                            <td class="text-end">$${Number(p.precioCosto ?? 0).toFixed(2)}</td>
+                            <td class="text-end">$${Number(p.precioVTA ?? 0).toFixed(2)}</td>
+                            <td class="text-center">${p.stock ?? 0}</td>
+                            <td class="text-center">${p.iva ?? 0}</td>
+                            <td class="text-center">${p.activo ? '✔️' : '❌'}</td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>`;
+        }
+        catch (error) {
+            console.error(error);
+            contenedor.innerHTML =
+                `<div class="text-danger">❌ Error al consultar datos</div>`;
+        }
+    });
+
+});
+</script>
+
+}
+    
 }

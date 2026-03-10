@@ -3,96 +3,44 @@ using InventarioWEB.Models;
 
 namespace InventarioWEB.Data
 {
-    /// <summary>
-    /// Contexto principal de base de datos de la aplicación InventarioWEB.
-    /// Gestiona el acceso a datos mediante Entity Framework Core y define:
-    /// 
-    /// • Mapeo de entidades a tablas físicas.
-    /// • Configuración de relaciones entre entidades.
-    /// • Restricciones de integridad referencial.
-    /// • Comportamientos de eliminación (Cascade / Restrict).
-    /// 
-    /// Representa la unidad de trabajo central del sistema.
-    /// </summary>
     public class MovimientoVentasDbContext : DbContext
     {
-        /// <summary>
-        /// Constructor que recibe las opciones de configuración del contexto.
-        /// </summary>
-        /// <param name="options">
-        /// Opciones de configuración del DbContext, incluyendo cadena de conexión
-        /// y proveedor de base de datos.
-        /// </param>
         public MovimientoVentasDbContext(DbContextOptions<MovimientoVentasDbContext> options)
             : base(options) { }
 
         // ==========================================================
-        // DBSETS (Representación de Tablas)
+        // DBSETS
         // ==========================================================
 
-        /// <summary>Tabla de abonos realizados sobre pedidos.</summary>
         public DbSet<Abono> Abonos { get; set; } = null!;
-
-        /// <summary>Tabla de clientes registrados en el sistema.</summary>
         public DbSet<Cliente> Clientes { get; set; } = null!;
-
-        /// <summary>Tabla de colores disponibles para productos.</summary>
         public DbSet<Color> Colores { get; set; } = null!;
-
-        /// <summary>Tabla de detalles asociados a un pedido.</summary>
         public DbSet<DetallePedido> DetallePedidos { get; set; } = null!;
-
-        /// <summary>Tabla de géneros (masculino, femenino, etc.).</summary>
         public DbSet<Genero> Generos { get; set; } = null!;
-
-        /// <summary>Tabla de métodos de pago.</summary>
         public DbSet<MetodoPago> MetodosPago { get; set; } = null!;
-
-        /// <summary>Tabla principal de pedidos realizados por clientes.</summary>
         public DbSet<Pedido> Pedidos { get; set; } = null!;
-
-        /// <summary>Tabla de productos finales disponibles para venta.</summary>
         public DbSet<Producto> Productos { get; set; } = null!;
-
-        /// <summary>Tabla de referencias base de productos.</summary>
         public DbSet<Referencia> Referencias { get; set; } = null!;
-
-        /// <summary>Tabla técnica de combinación entre referencia, talla y tela.</summary>
         public DbSet<ReferenciaTela> ReferenciasTelas { get; set; } = null!;
-
-        /// <summary>Tabla de tallas disponibles.</summary>
         public DbSet<Talla> Tallas { get; set; } = null!;
-
-        /// <summary>Tabla de tipos de tela disponibles.</summary>
         public DbSet<Tela> Telas { get; set; } = null!;
-
-        /// <summary>Tabla de tipos de cliente (Minorista, Mayorista, etc.).</summary>
         public DbSet<TipoCliente> TipoClientes { get; set; } = null!;
-
-        /// <summary>Tabla para gestión de recuperación de contraseña de clientes.</summary>
         public DbSet<PasswordResetCliente> PasswordResetsClientes { get; set; } = null!;
-
-        /// <summary>Tabla de usuarios administrativos del sistema.</summary>
         public DbSet<Usuario> Usuarios { get; set; } = null!;
-
-        /// <summary>Tabla de roles del sistema (Admin, Vendedor, etc.).</summary>
         public DbSet<Rol> Roles { get; set; } = null!;
+        public DbSet<Despacho> Despachos { get; set; } = null!;
+        public DbSet<DetalleDespacho> DetalleDespachos { get; set; } = null!;
 
+        // PRODUCCIÓN
+        public DbSet<Produccion> Producciones { get; set; } = null!;
+        public DbSet<DetalleProduccion> DetalleProducciones { get; set; } = null!;
 
-        /// <summary>
-        /// Configura el modelo de datos mediante Fluent API.
-        /// Define nombres físicos de tablas, claves primarias,
-        /// relaciones y comportamientos de eliminación.
-        /// </summary>
-        /// <param name="modelBuilder">
-        /// Constructor del modelo utilizado para configurar entidades y relaciones.
-        /// </param>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
             // ==========================================================
-            // MAPEO EXPLÍCITO DE TABLAS
+            // TABLAS
             // ==========================================================
 
             modelBuilder.Entity<Cliente>().ToTable("cliente");
@@ -112,11 +60,48 @@ namespace InventarioWEB.Data
             modelBuilder.Entity<Usuario>().ToTable("usuario");
             modelBuilder.Entity<Rol>().ToTable("roles");
 
+            modelBuilder.Entity<Produccion>().ToTable("produccion");
+            modelBuilder.Entity<DetalleProduccion>().ToTable("detalle_produccion");
+
+            modelBuilder.Entity<Despacho>().ToTable("despacho");
+            modelBuilder.Entity<DetalleDespacho>().ToTable("detalle_despacho");
+
             // ==========================================================
-            // RELACIONES PRINCIPALES DEL SISTEMA
+            // ENUMS → STRING (CLAVE)
             // ==========================================================
 
-            // Cliente ↔ TipoCliente
+            modelBuilder.Entity<Despacho>()
+                .Property(d => d.Tipo)
+                .HasConversion<string>();
+
+            modelBuilder.Entity<Despacho>()
+                .Property(d => d.Estado)
+                .HasConversion<string>();
+
+            // ==========================================================
+            // ÍNDICES
+            // ==========================================================
+
+            modelBuilder.Entity<Produccion>()
+                .HasIndex(p => new { p.Activo, p.FechaProduccion })
+                .HasDatabaseName("idx_produccion_fecha");
+
+            // 🔥 CORREGIDO: mismo orden que en BD (CRÍTICO)
+            modelBuilder.Entity<Producto>()
+                .HasIndex(p => new
+                {
+                    p.ID_Referencias,
+                    p.ID_Tallas,
+                    p.ID_Telas,
+                    p.ID_Color,
+                    p.Activo
+                })
+                .HasDatabaseName("idx_producto_busqueda_real");
+
+            // ==========================================================
+            // RELACIONES
+            // ==========================================================
+
             modelBuilder.Entity<Cliente>()
                 .HasOne(c => c.TipoClienteNav)
                 .WithMany()
@@ -124,18 +109,19 @@ namespace InventarioWEB.Data
                 .HasPrincipalKey(tc => tc.Nombre)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Cliente ↔ Pedido (1:N)
             modelBuilder.Entity<Pedido>()
                 .HasOne(p => p.Cliente)
                 .WithMany(c => c.Pedidos)
                 .HasForeignKey(p => p.ID_Cliente)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            
             modelBuilder.Entity<DetallePedido>()
                 .HasOne(dp => dp.Pedido)
                 .WithMany(p => p.DetallePedidos)
                 .HasForeignKey(dp => dp.ID_Pedido)
                 .OnDelete(DeleteBehavior.Cascade);
+            
 
             modelBuilder.Entity<DetallePedido>()
                 .HasOne(dp => dp.Producto)
@@ -143,7 +129,6 @@ namespace InventarioWEB.Data
                 .HasForeignKey(dp => dp.ID_Producto)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Pedidos / Abonos / MétodoPago
             modelBuilder.Entity<Abono>()
                 .HasOne(a => a.Pedido)
                 .WithMany(p => p.Abonos)
@@ -162,7 +147,6 @@ namespace InventarioWEB.Data
                 .HasForeignKey(a => a.ID_MetodoPago)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Género
             modelBuilder.Entity<Talla>()
                 .HasOne(t => t.Genero)
                 .WithMany(g => g.Tallas)
@@ -175,41 +159,15 @@ namespace InventarioWEB.Data
                 .HasForeignKey(r => r.ID_Genero)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ReferenciaTela (Clave compuesta técnica)
             modelBuilder.Entity<ReferenciaTela>()
-                .HasKey(rt => new
-                {
-                    rt.ID_Referencias,
-                    rt.ID_Tallas,
-                    rt.ID_Telas
-                });
+                .HasKey(rt => new { rt.ID_Referencias, rt.ID_Tallas, rt.ID_Telas });
 
-            modelBuilder.Entity<ReferenciaTela>()
-                .HasOne(rt => rt.Referencia)
-                .WithMany()
-                .HasForeignKey(rt => rt.ID_Referencias)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<ReferenciaTela>()
-                .HasOne(rt => rt.Talla)
-                .WithMany()
-                .HasForeignKey(rt => rt.ID_Tallas)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<ReferenciaTela>()
-                .HasOne(rt => rt.Tela)
-                .WithMany()
-                .HasForeignKey(rt => rt.ID_Telas)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // Usuario ↔ Rol
             modelBuilder.Entity<Usuario>()
                 .HasOne(u => u.Rol)
                 .WithMany(r => r.Usuarios)
                 .HasForeignKey(u => u.IdRol)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Producto (Entidad final)
             modelBuilder.Entity<Producto>()
                 .HasOne(p => p.Talla)
                 .WithMany()
@@ -232,6 +190,44 @@ namespace InventarioWEB.Data
                 .HasOne(p => p.ColorNav)
                 .WithMany(c => c.Productos)
                 .HasForeignKey(p => p.ID_Color)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ============================
+            // DESPACHO
+            // ============================
+                        
+            modelBuilder.Entity<Despacho>()
+                .HasOne(d => d.Pedido)
+                .WithMany(p => p.Despachos) // 🔥 CORRECCIÓN CLAVE
+                .HasForeignKey(d => d.ID_Pedido)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<DetalleDespacho>()
+                .HasOne(dd => dd.Despacho)
+                .WithMany(d => d.Detalles)
+                .HasForeignKey(dd => dd.ID_Despacho)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<DetalleDespacho>()
+                .HasOne(dd => dd.Producto)
+                .WithMany()
+                .HasForeignKey(dd => dd.ID_Producto)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ============================
+            // PRODUCCIÓN
+            // ============================
+
+            modelBuilder.Entity<DetalleProduccion>()
+                .HasOne(dp => dp.Produccion)
+                .WithMany(p => p.Detalles)
+                .HasForeignKey(dp => dp.ID_Produccion)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<DetalleProduccion>()
+                .HasOne(dp => dp.Producto)
+                .WithMany()
+                .HasForeignKey(dp => dp.ID_Producto)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

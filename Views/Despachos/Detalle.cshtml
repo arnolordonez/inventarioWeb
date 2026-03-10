@@ -1,0 +1,182 @@
+﻿@model InventarioWEB.Models.Despacho
+
+@{
+    ViewData["Title"] = "Detalle del Despacho";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>📦 Detalle del Despacho</h2>
+
+    <a asp-action="Index" class="btn btn-secondary">
+        ← Volver
+    </a>
+</div>
+
+<!-- ========================================= -->
+<!-- CABECERA DEL DESPACHO -->
+<!-- ========================================= -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white">
+        Información del Despacho
+    </div>
+
+    <div class="card-body">
+
+        <div class="row mb-2">
+            <div class="col-md-3 fw-bold">ID Despacho</div>
+            <div class="col-md-9">@Model.ID_Despacho</div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-md-3 fw-bold">Pedido</div>
+            <div class="col-md-9">
+                <span class="fw-bold">#@Model.ID_Pedido</span>
+            </div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-md-3 fw-bold">Fecha</div>
+            <div class="col-md-9">
+                @Model.Fecha.ToString("dd/MM/yyyy HH:mm")
+            </div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-md-3 fw-bold">Tipo de despacho</div>
+            <div class="col-md-9">
+
+                @if (Model.Tipo == TipoDespacho.Completo)
+                {
+                    <span class="badge bg-success">
+                        Completo
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-warning text-dark">
+                        Parcial
+                    </span>
+                }
+
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-3 fw-bold">Estado</div>
+            <div class="col-md-9">
+
+                @switch (Model.Estado)
+                {
+                    case EstadoDespacho.Despachado:
+                        <span class="badge bg-primary">Despachado</span>
+                        break;
+
+                    case EstadoDespacho.Pendiente:
+                        <span class="badge bg-secondary">Pendiente</span>
+                        break;
+
+                    case EstadoDespacho.Cancelado:
+                        <span class="badge bg-danger">Cancelado</span>
+                        break;
+
+                    default:
+                        <span class="badge bg-dark">Sin estado</span>
+                        break;
+                }
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ========================================= -->
+<!-- DETALLE DE PRODUCTOS -->
+<!-- ========================================= -->
+<div class="card shadow-sm">
+
+    <div class="card-header bg-dark text-white">
+        📦 Productos Despachados
+    </div>
+
+    <div class="card-body p-0">
+
+        <table class="table table-striped table-bordered align-middle mb-0">
+
+            <thead class="table-dark">
+                <tr>
+                    <th>Referencia</th>
+                    <th>Producto</th>
+                    <th>Talla</th>
+                    <th class="text-center">Cantidad</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                @if (Model.Detalles == null || !Model.Detalles.Any())
+                {
+                    <tr>
+                        <td colspan="4" class="text-center py-3">
+                            No hay productos registrados en este despacho
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in Model.Detalles)
+                    {
+                        <tr>
+
+                            <td>
+                                @(item.Producto?.Referencia?.DescripReferencia ?? "-")
+                            </td>
+
+                            <td>
+                                @(item.Producto?.Nombre ?? "-")
+                            </td>
+
+                            <td>
+                                @(item.Producto?.Talla?.DescripTalla ?? "-")
+                            </td>
+
+                            <td class="text-center fw-bold">
+                                @item.Cantidad_Despachada
+                            </td>
+
+                        </tr>
+                    }
+                }
+
+            </tbody>
+
+            <!-- ========================================= -->
+            <!-- TOTAL -->
+            <!-- ========================================= -->
+            <tfoot>
+
+                <tr class="table-secondary">
+
+                    <td colspan="3" class="text-end fw-bold">
+                        Total Despachado
+                    </td>
+
+                    <td class="text-center fw-bold">
+
+                        @{
+                            var total = Model.Detalles?.Sum(x => x.Cantidad_Despachada) ?? 0;
+                        }
+
+                        @total
+
+                    </td>
+
+                </tr>
+
+            </tfoot>
+
+        </table>
+
+    </div>
+
+</div>
