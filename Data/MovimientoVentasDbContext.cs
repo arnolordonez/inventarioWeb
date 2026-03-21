@@ -30,6 +30,7 @@ namespace InventarioWEB.Data
         public DbSet<Rol> Roles { get; set; } = null!;
         public DbSet<Despacho> Despachos { get; set; } = null!;
         public DbSet<DetalleDespacho> DetalleDespachos { get; set; } = null!;
+        public DbSet<MovimientoInventario> MovimientoInventarios { get; set; } = null!;
 
         // PRODUCCIÓN
         public DbSet<Produccion> Producciones { get; set; } = null!;
@@ -66,6 +67,10 @@ namespace InventarioWEB.Data
             modelBuilder.Entity<Despacho>().ToTable("despacho");
             modelBuilder.Entity<DetalleDespacho>().ToTable("detalle_despacho");
 
+
+            modelBuilder.Entity<MovimientoInventario>().ToTable("movimiento_inventario");
+
+
             // ==========================================================
             // ENUMS → STRING (CLAVE)
             // ==========================================================
@@ -77,6 +82,13 @@ namespace InventarioWEB.Data
             modelBuilder.Entity<Despacho>()
                 .Property(d => d.Estado)
                 .HasConversion<string>();
+
+            modelBuilder.Entity<MovimientoInventario>()
+                .HasOne(m => m.Producto)
+                .WithMany()
+                .HasForeignKey(m => m.ID_Producto)
+                .OnDelete(DeleteBehavior.Restrict);
+
 
             // ==========================================================
             // ÍNDICES
@@ -134,12 +146,6 @@ namespace InventarioWEB.Data
                 .WithMany(p => p.Abonos)
                 .HasForeignKey(a => a.ID_Pedido)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<Pedido>()
-                .HasOne(p => p.MetodoPago)
-                .WithMany(mp => mp.Pedidos)
-                .HasForeignKey(p => p.ID_MetodoPago)
-                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Abono>()
                 .HasOne(a => a.MetodoPago)
@@ -229,6 +235,9 @@ namespace InventarioWEB.Data
                 .WithMany()
                 .HasForeignKey(dp => dp.ID_Producto)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Pedido>().Ignore("MetodoPagoID_MetodoPago");
+
         }
     }
 }

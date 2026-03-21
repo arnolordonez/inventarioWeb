@@ -17,65 +17,73 @@ namespace InventarioWEB.Models
         // IDENTIDAD DEL PRODUCTO
         // ============================
         [Required]
+        [Column("Nombre")]
         [StringLength(150)]
         public string Nombre { get; set; } = string.Empty;
 
         // ============================
-        // SNAPSHOT HISTÓRICO (NO FK)
+        // SNAPSHOT HISTÓRICO DEL COLOR
         // ============================
-        // Se mantiene como texto para auditoría histórica
         [Column("Color")]
         [StringLength(150)]
         public string? ColorSnapshot { get; set; }
 
         // ============================
-        // 🔥 NUEVO: GÉNERO DIRECTO (CLAVE DEL RENDIMIENTO)
+        // CLAVES FORÁNEAS
         // ============================
         [Required]
+        [Column("ID_Genero")]
         public int ID_Genero { get; set; }
 
-        // ============================
-        // RELACIONES (FK)
-        // ============================
         [Required]
+        [Column("ID_Referencias")]
         public int ID_Referencias { get; set; }
 
         [Required]
+        [Column("ID_Tallas")]
         public int ID_Tallas { get; set; }
 
         [Required]
+        [Column("ID_Telas")]
         public int ID_Telas { get; set; }
 
         [Required]
+        [Column("ID_Color")]
         public int ID_Color { get; set; }
 
         // ============================
-        // INVENTARIO Y PRECIOS
+        // PRECIOS
         // ============================
-        [Column(TypeName = "decimal(10,2)")]
+        [Column("PrecioCosto", TypeName = "decimal(10,2)")]
         public decimal PrecioCosto { get; set; }
 
-        [Column(TypeName = "decimal(10,2)")]
+        [Column("PrecioVTA", TypeName = "decimal(10,2)")]
         public decimal PrecioVTA { get; set; }
 
-        [Column(TypeName = "decimal(5,2)")]
+        [Column("IVA_Porcentaje", TypeName = "decimal(5,2)")]
         public decimal IVA_Porcentaje { get; set; }
 
+        // ============================
+        // INVENTARIO
+        // ============================
+        [Column("Stock")]
         public int Stock { get; set; }
 
+        [Column("Activo")]
         public bool Activo { get; set; }
 
         // ============================
-        // NAVEGACIÓN (OPCIONAL, NO USADA EN FILTROS)
+        // NAVEGACIONES
         // ============================
+
         [ForeignKey(nameof(ID_Genero))]
         public Genero? Genero { get; set; }
 
-        [ForeignKey(nameof(ID_Tallas))]
-        public Talla? Talla { get; set; }
-
         [ForeignKey(nameof(ID_Referencias))]
         public Referencia? Referencia { get; set; }
+
+        [ForeignKey(nameof(ID_Tallas))]
+        public Talla? Talla { get; set; }
 
         [ForeignKey(nameof(ID_Telas))]
         public Tela? Tela { get; set; }

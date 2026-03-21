@@ -117,7 +117,9 @@
             font-size: 0.85rem;
         }
     </style>
-</head>
+ </head>
+
+
 
 <body>
     @if (sesionActiva)
@@ -167,6 +169,11 @@
             <!-- CATÁLOGOS -->
             <a asp-controller="Catalogos" asp-action="Index">
                 <i class="bi bi-collection me-2"></i>Catálogos
+            </a>
+
+            <!-- CATÁLOGOS MONGO -->
+            <a asp-controller="ColorMongo" asp-action="Index">
+                <i class="bi bi-database me-2"></i>Catálogos Mongo
             </a>
 
             <a asp-controller="Clientes" asp-action="Index">
@@ -232,5 +239,23 @@
     <script src="~/js/site.js"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
+
+    @if (TempData["success"] != null)
+    {
+        <div class="toast show position-fixed bottom-0 end-0 m-3 bg-success text-white">
+            <div class="toast-body">
+                @TempData["success"]
+            </div>
+        </div>
+    }
+
+    @if (TempData["error"] != null)
+    {
+        <div class="toast show position-fixed bottom-0 end-0 m-3 bg-danger text-white">
+            <div class="toast-body">
+                @TempData["error"]
+            </div>
+        </div>
+    }
 </body>
 </html>

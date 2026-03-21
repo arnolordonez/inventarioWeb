@@ -1,0 +1,40 @@
+﻿@model List<InventarioWEB.ViewModels.VentaHistorialVM>
+
+<div class="container mt-4">
+    <h4>Historial de Ventas</h4>
+
+    <table class="table table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Cliente</th>
+                <th>Fecha</th>
+                <th>Total</th>
+                <th>Abonado</th>
+                <th>Saldo</th>
+                <th>Estado</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var v in Model)
+            {
+                <tr>
+                    <td>@v.ID_Pedido</td>
+                    <td>@v.Cliente</td>
+                    <td>@v.Fecha.ToShortDateString()</td>
+                    <td>$@v.TotalVenta</td>
+                    <td>$@v.TotalAbonado</td>
+                    <td>$@v.Saldo</td>
+                    <td>@v.Estado</td>
+                    <td>
+                        <a href="/Ventas/Detalle/@v.ID_Pedido"
+                           class="btn btn-sm btn-primary">
+                            Ver
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

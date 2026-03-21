@@ -1,307 +1,284 @@
 ﻿@model InventarioWEB.ViewModels.ProduccionViewModel
 
 @{
-    ViewData["Title"] = "Producción / Inventario";
+    ViewData["Title"] = "Producciones Registradas";
 }
-
-<form id="formAntiForgery">
-    @Html.AntiForgeryToken()
-</form>
 
 <div class="container-fluid">
 
-    <!-- ============================= -->
-    <!-- HEADER -->
-    <!-- ============================= -->
+    ```
+    <!-- TITULO Y BOTON -->
     <div class="row mb-3">
-        <div class="col-12">
-            <h3 class="fw-bold text-primary mb-1">🏭 Producción / Inventario</h3>
-            <p class="text-muted mb-0">
-                Selección de productos para registro de producción.
-            </p>
+
+        <div class="col-md-6">
+            <h3 class="fw-bold text-primary">
+                🏭 Control de Producción
+            </h3>
         </div>
+
+        <div class="col-md-6 text-end">
+            <a asp-action="Crear" class="btn btn-success">
+                ➕ Nueva Producción
+            </a>
+        </div>
+
     </div>
 
-    <!-- ============================= -->
-    <!-- FILTROS -->
-    <!-- ============================= -->
-    <div class="card shadow-sm mb-3">
-        <div class="card-header bg-light fw-bold">
-            🔍 Filtros de búsqueda
+
+    <!-- MENSAJE DE EXITO -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+
+            <strong>✔</strong> @TempData["Success"]
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert">
+            </button>
+
         </div>
+    }
 
-        <div class="card-body">
-            <form id="formBusquedaProduccion">
-                <div class="row g-2">
 
-                    <!-- CÓDIGO -->
-                    <div class="col-md-2">
-                        <label class="form-label">Código</label>
-                        <input type="number"
-                               class="form-control"
-                               name="idProducto"
-                               min="1" />
-                    </div>
+    <!-- RESUMEN RAPIDO -->
+    <div class="row mb-3">
 
-                    <!-- GÉNERO -->
-                    <div class="col-md-2">
-                        <label class="form-label">Género</label>
-                        <select class="form-select"
-                                id="filtroGenero"
-                                name="idGenero">
-                            <option value="">-- Seleccione --</option>
-                            @foreach (var g in ViewBag.Generos as SelectList)
-                            {
-                                <option value="@g.Value">@g.Text</option>
-                            }
-                        </select>
-                    </div>
+        <div class="col-md-4">
 
-                    <!-- REFERENCIA -->
-                    <div class="col-md-2">
-                        <label class="form-label">Referencia</label>
-                        <select class="form-select"
-                                id="filtroReferencia"
-                                name="idReferencia">
-                            <option value="">-- Todas --</option>
-                        </select>
-                    </div>
+            <div class="card border-0 shadow-sm">
 
-                    <!-- TALLA -->
-                    <div class="col-md-2">
-                        <label class="form-label">Talla</label>
-                        <select class="form-select"
-                                id="filtroTalla"
-                                name="idTalla">
-                        <option value="">-- Todas --</option>
-                        </select>
-                    </div>
+                <div class="card-body text-center">
 
-                    <!-- TELA -->
-                    <div class="col-md-2">
-                        <label class="form-label">Tela</label>
-                        <select class="form-select"
-                                id="filtroTela"
-                                name="idTela">
-                            <option value="">-- Todas --</option>
-                            @foreach (var t in ViewBag.Telas as SelectList)
-                            {
-                                <option value="@t.Value">@t.Text</option>
-                            }
-                        </select>
-                    </div>
+                    <h6 class="text-muted">Producciones</h6>
 
-                    <!-- COLOR -->
-                    <div class="col-md-2">
-                        <label class="form-label">Color</label>
-                        <select class="form-select"
-                                id="filtroColor"
-                                name="idColor">
-                            <option value="">-- Todos --</option>
-                            @foreach (var c in ViewBag.Colores as SelectList)
-                            {
-                                <option value="@c.Value">@c.Text</option>
-                            }
-                        </select>
-                    </div>
+                    <h3 class="fw-bold text-primary">
+                        @Model.Producciones.Count()
+                    </h3>
+
                 </div>
 
-                <!-- BOTÓN -->
-                <div class="row mt-3">
-                    <div class="col-md-3">
-                        <button type="button"
-                                id="btnBuscarProduccion"
-                                class="btn btn-primary w-100">
-                            🔎 Buscar
-                        </button>
-                    </div>
-                </div>
-
-            </form>
-        </div>
-    </div>
-
-    <!-- ============================= -->
-    <!-- RESULTADOS -->
-    <!-- ============================= -->
-    <div class="card shadow-sm">
-        <div class="card-header bg-light fw-bold">
-            📦 Productos encontrados
-        </div>
-
-        <div class="card-body">
-            <div id="contenedorResultadosProduccion"
-                 class="table-responsive text-muted">
-                Realiza una búsqueda para visualizar productos.
             </div>
+
         </div>
+
+
+        <div class="col-md-4">
+
+            <div class="card border-0 shadow-sm">
+
+                <div class="card-body text-center">
+
+                    <h6 class="text-muted">Artículos distintos</h6>
+
+                    <h3 class="fw-bold text-success">
+
+                        @(
+                            Model.Producciones
+                            .SelectMany(p => p.Detalles)
+                            .Select(d => d.ID_Producto)
+                            .Distinct()
+                            .Count()
+                            )
+
+                    </h3>
+
+                    
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-4">
+
+            <div class="card border-0 shadow-sm">
+
+                <div class="card-body text-center">
+
+                    <h6 class="text-muted">Unidades producidas</h6>
+                    <h3 class="fw-bold text-dark">
+
+                        @(
+                            Model.Producciones
+                            .SelectMany(p => p.Detalles)
+                            .Sum(d => d.Cantidad)
+                            )
+
+                    </h3>
+                                      
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
 
-</div>
 
-@section Scripts {
+    <!-- TABLA PRODUCCIONES -->
+    <div class="card shadow-sm">
 
-<script>
-document.addEventListener("DOMContentLoaded", function () {
+        <div class="card-header bg-light fw-bold">
+            📋 Historial de Producción
+        </div>
 
-    const filtroGenero = document.getElementById("filtroGenero");
-    const filtroReferencia = document.getElementById("filtroReferencia");
-    const filtroTalla = document.getElementById("filtroTalla");
-    const btnBuscar = document.getElementById("btnBuscarProduccion");
-    const contenedor = document.getElementById("contenedorResultadosProduccion");
-    const form = document.getElementById("formBusquedaProduccion");
+        <div class="card-body">
 
-    console.log("Index Producción cargado");
+            @if (!Model.Producciones.Any())
+            {
+                <div class="alert alert-info">
+                    No existen producciones registradas.
+                </div>
+            }
+            else
+            {
 
-    // Estado inicial
-    filtroReferencia.disabled = true;
-    filtroTalla.disabled = true;
+                <div class="table-responsive">
 
-    // =============================
-    // CARGA DINÁMICA REFERENCIAS Y TALLAS
-    // =============================
-    filtroGenero.addEventListener("change", async function () {
+                    <table class="table table-bordered table-sm table-hover align-middle">
 
-        const idGenero = this.value;
+                        <thead class="table-light">
 
-        // Reset combos
-        filtroReferencia.innerHTML = `<option value="">-- Todas --</option>`;
-        filtroTalla.innerHTML = `<option value="">-- Todas --</option>`;
+                            <tr>
 
-        filtroReferencia.disabled = true;
-        filtroTalla.disabled = true;
+                                <th style="width:80px">ID</th>
+                                <th style="width:140px">Fecha</th>
+                                <th>Usuario</th>
+                                <th>Observación</th>
 
-        if (!idGenero) return;
+                                <th class="text-center" style="width:110px">
+                                    Artículos
+                                </th>
 
-        try {
+                                <th class="text-center" style="width:120px">
+                                    Unidades
+                                </th>
 
-            // REFERENCIAS
-            const resRef = await fetch(`/Produccion/ObtenerReferenciasPorGenero?idGenero=${idGenero}`);
+                                <th class="text-center" style="width:140px">
+                                    Acción
+                                </th>
 
-            if (!resRef.ok)
-                throw new Error("Error cargando referencias");
+                            </tr>
 
-            const referencias = await resRef.json();
-            console.log("Referencias recibidas:", referencias);
+                        </thead>
 
-            referencias.forEach(r => {
-                const opt = document.createElement("option");
-                opt.value = r.id;
-                opt.textContent = r.descripcion;
-                filtroReferencia.appendChild(opt);
-            });
+                        <tbody>
 
-            if (referencias.length > 0)
-                filtroReferencia.disabled = false;
+                            @foreach (var p in Model.Producciones)
+                            {
 
-            // TALLAS
-            const resTall = await fetch(`/Produccion/ObtenerTallasPorGenero?idGenero=${idGenero}`);
+                                var totalUnidades = p.Detalles?.Sum(d => d.Cantidad) ?? 0;
 
-            if (!resTall.ok)
-                throw new Error("Error cargando tallas");
+                                <tr>
 
-            const tallas = await resTall.json();
-            console.log("Tallas recibidas:", tallas);
+                                    <td>
+                                        @p.ID_Produccion
+                                    </td>
 
-            tallas.forEach(t => {
-                const opt = document.createElement("option");
-                opt.value = t.id;
-                opt.textContent = t.descripcion;
-                filtroTalla.appendChild(opt);
-            });
+                                    <td>
+                                        @p.FechaProduccion.ToString("dd/MM/yyyy")
+                                    </td>
 
-            if (tallas.length > 0)
-                filtroTalla.disabled = false;
+                                    <td>
+                                        @p.Usuario
+                                    </td>
 
-        }
-        catch (error) {
-            console.error(error);
-            contenedor.innerHTML =
-                `<div class="text-danger">❌ Error al cargar referencias y tallas</div>`;
-        }
-    });
+                                    <td>
+                                        @p.Observacion
+                                    </td>
 
-    // =============================
-    // BUSCAR PRODUCTOS
-    // =============================
-    btnBuscar.addEventListener("click", async function () {
+                                    <td class="text-center">
+                                        @(p.Detalles?.Count ?? 0)
+                                    </td>
 
-        const formData = new FormData(form);
-        const params = new URLSearchParams();
+                                    <td class="text-center fw-bold">
+                                        @totalUnidades
+                                    </td>
 
-        for (let [key, value] of formData.entries()) {
-            if (value && value.trim() !== "")
-                params.append(key, value);
-        }
+                                    <td class="text-center">
 
-        if (!params.toString()) {
-            contenedor.innerHTML =
-                `<div class="text-muted">Seleccione al menos un criterio.</div>`;
-            return;
-        }
+                                        <a asp-action="ReporteProduccionPdf"
+                                           asp-route-id="@p.ID_Produccion"
+                                           class="btn btn-sm btn-primary">
 
-        contenedor.innerHTML =
-            `<div class="text-muted">⏳ Consultando productos...</div>`;
+                                            📄 Reporte
 
-        try {
+                                        </a>
 
-            const r = await fetch(`/Produccion/BuscarProductos?${params.toString()}`);
+                                    </td>
 
-            if (!r.ok)
-                throw new Error("Error en búsqueda");
+                                </tr>
 
-            const data = await r.json();
+                            }
 
-            if (!data.length) {
-                contenedor.innerHTML =
-                    `<div class="text-muted">No se encontraron productos.</div>`;
-                return;
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+
+                <!-- PAGINACION -->
+                @if (Model.TotalPaginas > 1)
+                {
+                    <nav>
+
+                        <ul class="pagination justify-content-center">
+
+                            <li class="page-item @(Model.PaginaActual == 1 ? "disabled" : "")">
+
+                                <a class="page-link"
+                                   asp-action="Index"
+                                   asp-route-pagina="@(Model.PaginaActual - 1)">
+
+                                    ⬅ Anterior
+
+                                </a>
+
+                            </li>
+
+                            @for (int i = 1; i <= Model.TotalPaginas; i++)
+                            {
+
+                                <li class="page-item @(i == Model.PaginaActual ? "active" : "")">
+
+                                    <a class="page-link"
+                                       asp-action="Index"
+                                       asp-route-pagina="@i">
+
+                                        @i
+
+                                    </a>
+
+                                </li>
+
+                            }
+
+                            <li class="page-item @(Model.PaginaActual == Model.TotalPaginas ? "disabled" : "")">
+
+                                <a class="page-link"
+                                   asp-action="Index"
+                                   asp-route-pagina="@(Model.PaginaActual + 1)">
+
+                                    Siguiente ➡
+
+                                </a>
+
+                            </li>
+
+                        </ul>
+
+                    </nav>
+                }
+
             }
 
-            contenedor.innerHTML = `
-            <table class="table table-bordered table-sm align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Código</th>
-                        <th>Producto</th>
-                        <th>Género</th>
-                        <th>Referencia</th>
-                        <th>Talla</th>
-                        <th class="text-end">Costo</th>
-                        <th class="text-end">Precio Vta</th>
-                        <th class="text-center">Stock</th>
-                        <th class="text-center">IVA %</th>
-                        <th class="text-center">Activo</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${data.map(p => `
-                        <tr>
-                            <td>${p.idProducto ?? ''}</td>
-                            <td>${p.nombre ?? ''}</td>
-                            <td>${p.genero ?? ''}</td>
-                            <td>${p.referencia ?? ''}</td>
-                            <td>${p.talla ?? ''}</td>
-                            <td class="text-end">$${Number(p.precioCosto ?? 0).toFixed(2)}</td>
-                            <td class="text-end">$${Number(p.precioVTA ?? 0).toFixed(2)}</td>
-                            <td class="text-center">${p.stock ?? 0}</td>
-                            <td class="text-center">${p.iva ?? 0}</td>
-                            <td class="text-center">${p.activo ? '✔️' : '❌'}</td>
-                        </tr>
-                    `).join("")}
-                </tbody>
-            </table>`;
-        }
-        catch (error) {
-            console.error(error);
-            contenedor.innerHTML =
-                `<div class="text-danger">❌ Error al consultar datos</div>`;
-        }
-    });
+        </div>
 
-});
-</script>
+    </div>
+    ```
 
-}
-    
-}
+</div>

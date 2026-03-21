@@ -3,7 +3,6 @@ using InventarioWEB.Data;
 using InventarioWEB.Models;
 using InventarioWEB.ViewModels;
 
-
 namespace InventarioWEB.Services
 {
     public class ProduccionService
@@ -15,35 +14,29 @@ namespace InventarioWEB.Services
             _context = context;
         }
 
-
         // ============================================================
         // 🔍 BÚSQUEDA OPTIMIZADA DE PRODUCTOS PARA PRODUCCIÓN
-        // - Soporta búsqueda exacta por código (PK)
-        // - Soporta filtros combinables
-        // - Incluye paginación
-        // - Evita listar todos los registros
-        // - No usa Include (optimización de rendimiento)
         // ============================================================
 
         public async Task<(List<ProductoProduccionDTO> Lista, int Total)>
-BuscarProductosAsync(
-    int? idProducto,
-    int? idGenero,
-    int? idReferencia,
-    int? idTalla,
-    int? idTela,
-    int? idColor,
-    int pagina = 1,
-    int registrosPorPagina = 50)
+        BuscarProductosAsync(
+            int? idProducto,
+            int? idGenero,
+            int? idReferencia,
+            int? idTalla,
+            int? idTela,
+            int? idColor,
+            int pagina = 1,
+            int registrosPorPagina = 50)
         {
-            // =========================================================
-            // 1️⃣ BÚSQUEDA POR PK (FAST PATH)
-            // =========================================================
+            // FAST PATH por PK
             if (idProducto.HasValue && idProducto.Value > 0)
             {
                 var pkQuery =
                     from p in _context.Productos.AsNoTracking()
                     join r in _context.Referencias on p.ID_Referencias equals r.ID_Referencias
+                    join g in _context.Generos on p.ID_Genero equals g.ID_Genero
+
                     join t in _context.Tallas on p.ID_Tallas equals t.ID_Tallas
                     join te in _context.Telas on p.ID_Telas equals te.ID_Telas
                     join c in _context.Colores on p.ID_Color equals c.ID_Color
@@ -52,6 +45,8 @@ BuscarProductosAsync(
                     {
                         ID_Producto = p.ID_Producto,
                         Nombre = p.Nombre,
+                        Genero = g.DescripGenero,        // ✅ NUEVO CAMPO
+
                         Referencia = r.DescripReferencia,
                         Talla = t.DescripTalla,
                         Tela = te.DescripTela,
@@ -65,9 +60,7 @@ BuscarProductosAsync(
                 return (pk, pk.Count);
             }
 
-            // =========================================================
-            // 2️⃣ VALIDACIÓN ANTI FULL SCAN
-            // =========================================================
+            // Evita full scan
             if (!idGenero.HasValue &&
                 !idReferencia.HasValue &&
                 !idTalla.HasValue &&
@@ -77,63 +70,51 @@ BuscarProductosAsync(
                 return (new List<ProductoProduccionDTO>(), 0);
             }
 
-            // =========================================================
-            // 3️⃣ QUERY BASE SOBRE ENTIDAD (NO DTO)
-            // =========================================================
             var baseQuery = _context.Productos
                 .AsNoTracking()
                 .Where(p => p.Activo);
 
-            // =========================================================
-            // 4️⃣ FILTROS SOBRE PRODUCTOS (CORRECTO)
-            // =========================================================
-            if (idGenero.HasValue && idGenero.Value > 0)
+            if (idGenero.HasValue)
                 baseQuery = baseQuery.Where(p => p.ID_Genero == idGenero.Value);
 
-            if (idReferencia.HasValue && idReferencia.Value > 0)
+            if (idReferencia.HasValue)
                 baseQuery = baseQuery.Where(p => p.ID_Referencias == idReferencia.Value);
 
-            if (idTalla.HasValue && idTalla.Value > 0)
+            if (idTalla.HasValue)
                 baseQuery = baseQuery.Where(p => p.ID_Tallas == idTalla.Value);
 
-            if (idTela.HasValue && idTela.Value > 0)
+            if (idTela.HasValue)
                 baseQuery = baseQuery.Where(p => p.ID_Telas == idTela.Value);
 
-            if (idColor.HasValue && idColor.Value > 0)
+            if (idColor.HasValue)
                 baseQuery = baseQuery.Where(p => p.ID_Color == idColor.Value);
 
-            // =========================================================
-            // 5️⃣ TOTAL (ANTES DE PAGINAR)
-            // =========================================================
             var total = await baseQuery.CountAsync();
 
             if (total == 0)
                 return (new List<ProductoProduccionDTO>(), 0);
 
-            // =========================================================
-            // 6️⃣ JOIN + PAGINACIÓN + PROYECCIÓN FINAL
-            // =========================================================
-            var lista =
-                await (
-                    from p in baseQuery
-                    join r in _context.Referencias on p.ID_Referencias equals r.ID_Referencias
-                    join t in _context.Tallas on p.ID_Tallas equals t.ID_Tallas
-                    join te in _context.Telas on p.ID_Telas equals te.ID_Telas
-                    join c in _context.Colores on p.ID_Color equals c.ID_Color
-                    orderby p.ID_Referencias, p.ID_Tallas, p.ID_Telas, p.ID_Color
-                    select new ProductoProduccionDTO
-                    {
-                        ID_Producto = p.ID_Producto,
-                        Nombre = p.Nombre,
-                        Referencia = r.DescripReferencia,
-                        Talla = t.DescripTalla,
-                        Tela = te.DescripTela,
-                        Color = c.Nombre,
-                        Stock = p.Stock,
-                        PrecioCosto = p.PrecioCosto,
-                        PrecioVTA = p.PrecioVTA
-                    }
-                )
+            var lista = await (
+                from p in baseQuery
+                join r in _context.Referencias on p.ID_Referencias equals r.ID_Referencias
+                join g in _context.Generos on p.ID_Genero equals g.ID_Genero   // ✅ AGREGADO
+                join t in _context.Tallas on p.ID_Tallas equals t.ID_Tallas
+                join te in _context.Telas on p.ID_Telas equals te.ID_Telas
+                join c in _context.Colores on p.ID_Color equals c.ID_Color
+                orderby p.ID_Referencias, p.ID_Tallas, p.ID_Telas, p.ID_Color
+                select new ProductoProduccionDTO
+                {
+                    ID_Producto = p.ID_Producto,
+                    Nombre = p.Nombre,
+                    Genero = g.DescripGenero,        // ✅ AGREGADO
+                    Referencia = r.DescripReferencia,
+                    Talla = t.DescripTalla,
+                    Tela = te.DescripTela,
+                    Color = c.Nombre,
+                    Stock = p.Stock,
+                    PrecioCosto = p.PrecioCosto,
+                    PrecioVTA = p.PrecioVTA
+                })
                 .Skip((pagina - 1) * registrosPorPagina)
                 .Take(registrosPorPagina)
                 .ToListAsync();
@@ -144,6 +125,7 @@ BuscarProductosAsync(
         // ============================================================
         // 🔄 REFERENCIAS POR GÉNERO
         // ============================================================
+
         public async Task<List<object>> ObtenerReferenciasPorGenero(int idGenero)
         {
             return await _context.Referencias
@@ -161,6 +143,7 @@ BuscarProductosAsync(
         // ============================================================
         // 🔄 TALLAS POR GÉNERO
         // ============================================================
+
         public async Task<List<object>> ObtenerTallasPorGenero(int idGenero)
         {
             return await _context.Tallas
@@ -174,9 +157,11 @@ BuscarProductosAsync(
                 })
                 .ToListAsync<object>();
         }
+
         // ============================================================
         // 📦 REGISTRO DE PRODUCCIÓN ROBUSTO
         // ============================================================
+
         public async Task RegistrarProduccionAsync(
             Produccion produccion,
             List<DetalleProduccion> detalles)
@@ -192,6 +177,7 @@ BuscarProductosAsync(
                     if (detalles == null || !detalles.Any())
                         throw new Exception("La producción debe tener al menos un detalle.");
 
+                    // Guardar cabecera
                     _context.Producciones.Add(produccion);
                     await _context.SaveChangesAsync();
 
@@ -203,11 +189,20 @@ BuscarProductosAsync(
                     var productos = await _context.Productos
                         .Where(p => productosIds.Contains(p.ID_Producto))
                         .ToDictionaryAsync(p => p.ID_Producto);
+                    if (productos.Count != productosIds.Count)
+                    {
+                        throw new Exception("Uno o más productos no existen.");
+                    }
+
+                    var detallesInsertar = new List<DetalleProduccion>();
 
                     foreach (var detalle in detalles)
                     {
                         if (!productos.TryGetValue(detalle.ID_Producto, out var producto))
                             throw new Exception($"Producto {detalle.ID_Producto} no existe.");
+
+                        if (!producto.Activo)
+                            throw new Exception($"Producto {producto.Nombre} está inactivo.");
 
                         if (detalle.Cantidad <= 0)
                             throw new Exception("Cantidad inválida.");
@@ -215,35 +210,75 @@ BuscarProductosAsync(
                         if (detalle.CostoUnitario <= 0)
                             throw new Exception("Costo unitario inválido.");
 
+                        var margenMinimo = producto.PrecioVTA * 0.90m;
+
+                        if (detalle.CostoUnitario > margenMinimo)
+                        {
+                            throw new Exception(
+                                $"El costo del producto '{producto.Nombre}' es demasiado alto respecto al precio de venta."
+                            );
+                        }
+
+                        // Validación lógica de negocio
+                        if (detalle.CostoUnitario >= producto.PrecioVTA)
+                        {
+                            throw new Exception(
+                                $"El costo del producto '{producto.Nombre}' no puede ser mayor o igual al precio de venta."
+                            );
+                        }
+                        if (producto.PrecioVTA <= 0)
+                        {
+                            Console.WriteLine(
+                                $"ADVERTENCIA: El producto '{producto.Nombre}' no tiene precio de venta configurado."
+                            );
+                        }
                         detalle.ID_Produccion = produccion.ID_Produccion;
 
-                        // SNAPSHOT comercial
                         detalle.PrecioVentaUnitario = producto.PrecioVTA;
                         detalle.IVA = producto.IVA_Porcentaje;
 
-                        // Cálculo costo
-                        detalle.SubtotalCosto = detalle.Cantidad * detalle.CostoUnitario;
+                        detalle.SubtotalCosto =
+                         Math.Round(detalle.Cantidad * detalle.CostoUnitario, 2, MidpointRounding.AwayFromZero);
+                       
 
                         var baseVenta = detalle.Cantidad * detalle.PrecioVentaUnitario;
                         var ivaValor = (baseVenta * detalle.IVA) / 100;
-                        detalle.SubtotalVenta = baseVenta + ivaValor;
 
-                        // 🔥 PROMEDIO PONDERADO CORRECTO
+                        detalle.SubtotalVenta =
+                           Math.Round(baseVenta + ivaValor, 2, MidpointRounding.AwayFromZero);
+
                         var nuevoStock = producto.Stock + detalle.Cantidad;
 
-                        if (nuevoStock <= 0)
-                            throw new Exception("Stock final inválido.");
+                        // Protección de costo actual corrupto
+                        decimal costoActual = producto.PrecioCosto;
 
-                        var nuevoCostoPromedio =
-                            ((producto.Stock * producto.PrecioCosto)
-                             + (detalle.Cantidad * detalle.CostoUnitario))
-                             / nuevoStock;
+                        if (costoActual <= 0 || costoActual > 100000)
+                        {
+                            costoActual = detalle.CostoUnitario;
+                        }
+
+                        // Si no hay stock previo, el costo queda igual al nuevo
+                        if (producto.Stock == 0)
+                        {
+                            producto.PrecioCosto = detalle.CostoUnitario;
+                        }
+                        else
+                        {
+                            var nuevoCostoPromedio =
+                                ((producto.Stock * costoActual) +
+                                (detalle.Cantidad * detalle.CostoUnitario))
+                                / nuevoStock;
+
+                            producto.PrecioCosto =
+                                Math.Round(nuevoCostoPromedio, 2, MidpointRounding.AwayFromZero);
+                        }
 
                         producto.Stock = nuevoStock;
-                        producto.PrecioCosto = Math.Round(nuevoCostoPromedio, 2);
 
-                        _context.DetalleProducciones.Add(detalle);
+                        detallesInsertar.Add(detalle);
                     }
+
+                    _context.DetalleProducciones.AddRange(detallesInsertar);
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
@@ -259,6 +294,7 @@ BuscarProductosAsync(
         // ============================================================
         // 📊 REPORTE POR FECHA
         // ============================================================
+
         public async Task<List<DetalleProduccion>> ObtenerProduccionPorFecha(DateTime fecha)
         {
             var inicio = fecha.Date;
@@ -269,7 +305,7 @@ BuscarProductosAsync(
                 .Where(d => d.Produccion.FechaProduccion >= inicio &&
                             d.Produccion.FechaProduccion < fin)
                 .Include(d => d.Producto)
-                    .ThenInclude(p => p.Referencia)
+                .ThenInclude(p => p.Referencia)
                 .OrderByDescending(d => d.Produccion.FechaProduccion)
                 .ToListAsync();
         }

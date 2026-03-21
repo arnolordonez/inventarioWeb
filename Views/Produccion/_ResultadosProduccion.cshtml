@@ -1,7 +1,7 @@
 ﻿@* ==========================================================
    PARCIAL: _ResultadosProduccion.cshtml
    Uso: Vista Crear Producción
-   Fuente de datos: AJAX -> Produccion/BuscarProductos
+   Fuente: AJAX -> Produccion/BuscarProductos
    ========================================================== *@
 
 <div class="card mt-3">
@@ -13,15 +13,17 @@
 
         <div class="table-responsive">
             <table class="table table-sm table-striped table-bordered align-middle mb-0">
+
                 <thead class="table-light text-center">
                     <tr>
-                        <th style="width: 80px;">Código</th>
+                        <th style="width:80px">Código</th>
                         <th>Producto</th>
-                        <th style="width: 90px;">Stock</th>
-                        <th style="width: 110px;">Costo</th>
-                        <th style="width: 90px;">Acción</th>
+                        <th style="width:90px">Stock</th>
+                        <th style="width:110px">Costo</th>
+                        <th style="width:90px">Acción</th>
                     </tr>
                 </thead>
+
                 <tbody id="tablaResultadosProduccion">
                     <tr>
                         <td colspan="5" class="text-center text-muted">
@@ -29,55 +31,44 @@
                         </td>
                     </tr>
                 </tbody>
+
             </table>
         </div>
 
     </div>
 </div>
 
+
 @section Scripts {
 
     <script>
+        @* ==========================================================
+       functión buscar productos
+        ========================================================== *@
 
-       
-        // ===============================
-        // 🔍 BUSCAR PRODUCTOS
-        // ===============================
-        async function buscarProductos() {
+               async function buscarProductos(){
 
             const codigo     = document.getElementById("CodigoProducto")?.value;
+            const genero     = document.getElementById("FiltroGenero")?.value;
             const referencia = document.getElementById("FiltroReferencia")?.value;
             const talla      = document.getElementById("FiltroTalla")?.value;
             const tela       = document.getElementById("FiltroTela")?.value;
             const color      = document.getElementById("FiltroColor")?.value;
 
-            // 🚫 No buscar si no hay filtros
-            if ([codigo, referencia, talla, tela, color].every(v => !v || v === "0")) {
-                return;
-            }
-
             const params = new URLSearchParams();
 
-            if (codigo && codigo !== "0")
-                params.append("idProducto", codigo);
-
-            if (referencia && referencia !== "0")
-                params.append("idReferencia", referencia);
-
-            if (talla && talla !== "0")
-                params.append("idTalla", talla);
-
-            if (tela && tela !== "0")
-                params.append("idTela", tela);
-
-            if (color && color !== "0")
-                params.append("idColor", color);
+            if(codigo) params.append("idProducto",codigo);
+            if(genero) params.append("idGenero",genero);
+            if(referencia) params.append("idReferencia",referencia);
+            if(talla) params.append("idTalla",talla);
+            if(tela) params.append("idTela",tela);
+            if(color) params.append("idColor",color);
 
             const url = `/Produccion/BuscarProductos?${params.toString()}`;
 
             const response = await fetch(url);
 
-            if (!response.ok) {
+            if(!response.ok){
                 alert("Error en la búsqueda.");
                 return;
             }
@@ -87,112 +78,143 @@
             const tbody = document.getElementById("tablaResultadosProduccion");
             tbody.innerHTML = "";
 
-            if (!data || data.length === 0) {
+            if(!data || data.length === 0){
                 tbody.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="text-center text-muted">
-                            No se encontraron productos
-                        </td>
-                    </tr>`;
-                return;
-            }
-
-            data.forEach(p => {
-
-                const nombreSeguro = (p.nombre ?? "").replace(/'/g, "\\'");
-
-                const fila = `
-                    <tr>
-                        <td class="text-center">${p.id_Producto ?? ""}</td>
-
-                        <td>
-                            ${p.nombre ?? ""} -
-                            ${p.referencia ?? ""} -
-                            ${p.talla ?? ""} -
-                            ${p.tela ?? ""} -
-                            ${p.color ?? ""}
-                        </td>
-
-                        <td class="text-center">
-                            ${p.stock}
-                        </td>
-
-                        <td class="text-end">
-                            ${Number(p.precioCosto).toLocaleString('es-CO', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                            })}
-                        </td>
-
-                        <td class="text-center">
-                            <button type="button"
-                                    class="btn btn-sm btn-primary"
-                                    onclick="agregarAlDetalle(${p.id_Producto}, '${nombreSeguro}', ${p.precioCosto})">
-                                Agregar
-                            </button>
-                        </td>
-                    </tr>
-                `;
-
-                tbody.insertAdjacentHTML("beforeend", fila);
-            });
-        }
-    
-
-        // ===============================
-        // ➕ AGREGAR AL DETALLE
-        // ===============================
-        function agregarAlDetalle(idProducto, nombreProducto, costoUnitario) {
-
-            const tablaDetalle = document.querySelector("#tablaDetalles tbody");
-
-            if (!tablaDetalle) {
-                console.error("No se encontró #tablaDetalles tbody");
-                return;
-            }
-
-            // Evitar duplicados
-            if (document.querySelector(`input[value='${idProducto}'][name*='ID_Producto']`)) {
-                alert("Este producto ya fue agregado.");
-                return;
-            }
-
-            const index = tablaDetalle.rows.length;
-
-            const fila = `
                 <tr>
+                    <td colspan="5" class="text-center text-muted">
+                        No se encontraron productos
+                    </td>
+                </tr>`;
+                return;
+            }
+
+            data.forEach(p=>{
+
+                const fila = document.createElement("tr");
+
+                fila.innerHTML = `
+                    <td class="text-center">${p.idProducto}</td>
+
                     <td>
-                        <input type="hidden"
-                               name="Detalles[${index}].ID_Producto"
-                               value="${idProducto}" />
-
-                        <input type="hidden"
-                               name="Detalles[${index}].CostoUnitario"
-                               value="${costoUnitario}" />
-
-                        ${nombreProducto}
+                        ${p.nombre} -
+                        ${p.referencia ?? ""} -
+                        ${p.talla ?? ""} -
+                        ${p.tela ?? ""} -
+                        ${p.color ?? ""}
                     </td>
 
-                    <td>
-                        <input type="number"
-                               name="Detalles[${index}].Cantidad"
-                               class="form-control form-control-sm"
-                               min="1"
-                               required />
+                    <td class="text-center">${p.stock}</td>
+
+                    <td class="text-end">
+                        ${Number(p.precioCosto).toLocaleString('es-CO',{
+                            minimumFractionDigits:2,
+                            maximumFractionDigits:2
+                        })}
                     </td>
 
                     <td class="text-center">
                         <button type="button"
-                                class="btn btn-danger btn-sm"
-                                onclick="this.closest('tr').remove();">
-                            X
+                                class="btn btn-sm btn-primary btnAgregarProducto"
+                                data-id="${p.idProducto}"
+                                data-nombre="${p.nombre}"
+                                data-costo="${p.precioCosto}">
+                            Agregar
                         </button>
                     </td>
-                </tr>
+                `;
+
+                tbody.appendChild(fila);
+            });
+
+
+            // evento botones agregar
+            document.querySelectorAll(".btnAgregarProducto").forEach(btn=>{
+
+                btn.addEventListener("click",function(){
+
+                    const id = this.dataset.id;
+                    const nombre = this.dataset.nombre;
+                    const costo = parseFloat(this.dataset.costo);
+
+                    agregarAlDetalle(id,nombre,costo);
+
+                });
+
+            });
+
+        }
+
+
+        // ===============================
+        // ➕ AGREGAR PRODUCTO AL DETALLE
+        // ===============================
+                function agregarAlDetalle(idProducto,nombreProducto,costoUnitario){
+
+            const tablaDetalle = document.querySelector("#tablaDetalles tbody");
+
+            if(!tablaDetalle){
+                console.error("No se encontró tabla detalle");
+                return;
+            }
+
+            // eliminar fila vacía
+            const filaVacia = document.getElementById("filaVaciaDetalle");
+            if(filaVacia) filaVacia.remove();
+
+
+            // evitar duplicados
+            if(document.querySelector(`input[value='${idProducto}'][name*='ID_Producto']`)){
+                alert("Este producto ya fue agregado.");
+                return;
+            }
+
+            const index = tablaDetalle.querySelectorAll("tr").length;
+
+            const fila = document.createElement("tr");
+
+            fila.innerHTML = `
+
+                <td>
+
+                    <input type="hidden"
+                           name="Detalles[${index}].ID_Producto"
+                           value="${idProducto}" />
+
+                    <input type="hidden"
+                           name="Detalles[${index}].CostoUnitario"
+                           value="${costoUnitario}" />
+
+                    ${nombreProducto}
+
+                </td>
+
+                <td>
+
+                    <input type="number"
+                           name="Detalles[${index}].Cantidad"
+                           class="form-control form-control-sm"
+                           value="1"
+                           min="1"
+                           required>
+
+                </td>
+
+                <td class="text-center">
+
+                    <button type="button"
+                            class="btn btn-danger btn-sm"
+                            onclick="this.closest('tr').remove();">
+                        X
+                    </button>
+
+                </td>
+
             `;
 
-            tablaDetalle.insertAdjacentHTML("beforeend", fila);
+            tablaDetalle.appendChild(fila);
+
         }
+
 
     </script>
 

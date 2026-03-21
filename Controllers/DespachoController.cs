@@ -50,10 +50,7 @@ namespace InventarioWEB.Controllers
         }
 
         // ==========================================================
-        // CREAR DESPACHO (GET)
-        // ==========================================================
-        // ==========================================================
-        // CREAR DESPACHO (GET)
+        // CREAR (GET)
         // ==========================================================
         public async Task<IActionResult> Crear(int idPedido)
         {
@@ -66,21 +63,17 @@ namespace InventarioWEB.Controllers
             if (pedido == null)
                 return NotFound();
 
-            if (pedido.Estado == EstadoPedido.Despachado)
+            if (pedido.Estado == "Despachado")
                 return BadRequest("El pedido ya está completamente despachado");
 
-            // resto del código...
-        
-
-        // =========================================
-        // HISTÓRICO DESPACHADO
-        // =========================================
-
-        var despachado = await _context.DetalleDespachos
+            // =========================================
+            // HISTÓRICO DESPACHADO
+            // =========================================
+            var despachado = await _context.DetalleDespachos
                 .Join(_context.Despachos,
-                      dd => dd.ID_Despacho,
-                      d => d.ID_Despacho,
-                      (dd, d) => new { dd, d })
+                    dd => dd.ID_Despacho,
+                    d => d.ID_Despacho,
+                    (dd, d) => new { dd, d })
                 .Where(x => x.d.ID_Pedido == idPedido)
                 .GroupBy(x => x.dd.ID_Producto)
                 .Select(g => new
@@ -116,7 +109,7 @@ namespace InventarioWEB.Controllers
         }
 
         // ==========================================================
-        // CREAR DESPACHO (POST)
+        // CREAR (POST)
         // ==========================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -132,7 +125,6 @@ namespace InventarioWEB.Controllers
                 // =========================================
                 // PEDIDO
                 // =========================================
-
                 var pedido = await _context.Pedidos
                     .Include(p => p.DetallePedidos)
                     .FirstOrDefaultAsync(p => p.ID_Pedido == model.ID_Pedido);
@@ -140,13 +132,12 @@ namespace InventarioWEB.Controllers
                 if (pedido == null)
                     throw new Exception("El pedido no existe");
 
-                if (pedido.Estado == EstadoPedido.Despachado)
+                if (pedido.Estado == "Despachado")
                     throw new Exception("El pedido ya está cerrado");
 
                 // =========================================
                 // PRODUCTOS
                 // =========================================
-
                 var productoIds = model.Tallas.Select(t => t.ID_Producto).ToList();
 
                 var productos = await _context.Productos
@@ -156,12 +147,11 @@ namespace InventarioWEB.Controllers
                 // =========================================
                 // HISTÓRICO DESPACHADO
                 // =========================================
-
                 var despachadoHistorico = await _context.DetalleDespachos
                     .Join(_context.Despachos,
-                          dd => dd.ID_Despacho,
-                          d => d.ID_Despacho,
-                          (dd, d) => new { dd, d })
+                        dd => dd.ID_Despacho,
+                        d => d.ID_Despacho,
+                        (dd, d) => new { dd, d })
                     .Where(x => x.d.ID_Pedido == model.ID_Pedido)
                     .GroupBy(x => x.dd.ID_Producto)
                     .Select(g => new
@@ -171,31 +161,28 @@ namespace InventarioWEB.Controllers
                     })
                     .ToDictionaryAsync(x => x.ProductoId, x => x.Total);
 
-                int totalSolicitado = model.TotalUnidades;
-
-                if (totalSolicitado <= 0)
+                // =========================================
+                // VALIDACIÓN GLOBAL
+                // =========================================
+                if (model.TotalUnidades <= 0)
                     throw new Exception("Debe ingresar cantidades");
 
-                if (totalSolicitado % 12 != 0)
-                    throw new Exception("El despacho debe ser múltiplo de 12 unidades");
+                if (model.TotalUnidades % 12 != 0)
+                    throw new Exception("El despacho debe ser múltiplo de 12");
 
                 // =========================================
-                // VALIDACIONES
+                // VALIDACIONES POR PRODUCTO
                 // =========================================
-
                 foreach (var item in model.Tallas.Where(t => t.Cantidad > 0))
                 {
                     if (!productos.TryGetValue(item.ID_Producto, out var producto))
                         throw new Exception($"Producto inválido ID {item.ID_Producto}");
 
-                    if (producto.Stock < item.Cantidad)
-                        throw new Exception($"Stock insuficiente para talla {item.Talla}");
-
                     var pedidoDetalle = pedido.DetallePedidos
                         .FirstOrDefault(d => d.ID_Producto == item.ID_Producto);
 
                     if (pedidoDetalle == null)
-                        throw new Exception($"Producto {item.ID_Producto} no pertenece al pedido");
+                        throw new Exception($"Producto no pertenece al pedido");
 
                     var yaDespachado = despachadoHistorico.ContainsKey(item.ID_Producto)
                         ? despachadoHistorico[item.ID_Producto]
@@ -203,17 +190,16 @@ namespace InventarioWEB.Controllers
 
                     var pendiente = pedidoDetalle.Cantidad - yaDespachado;
 
-                    if (pendiente <= 0)
-                        throw new Exception($"La talla {item.Talla} ya está completa");
-
                     if (item.Cantidad > pendiente)
-                        throw new Exception($"Excede pendiente en talla {item.Talla}. Máximo: {pendiente}");
+                        throw new Exception($"Excede pendiente en talla {item.Talla}");
+
+                    if (producto.Stock < item.Cantidad)
+                        throw new Exception($"Stock insuficiente en talla {item.Talla}");
                 }
 
                 // =========================================
                 // CREAR DESPACHO
                 // =========================================
-
                 var despacho = new Despacho
                 {
                     ID_Pedido = model.ID_Pedido,
@@ -224,33 +210,13 @@ namespace InventarioWEB.Controllers
                 _context.Despachos.Add(despacho);
                 await _context.SaveChangesAsync();
 
-
                 // =========================================
-                // DETALLES + ACTUALIZAR INVENTARIO
-                // =========================================
-                // =========================================
-                // VALIDAR STOCK
-                // =========================================
-
-                foreach (var item in model.Tallas.Where(t => t.Cantidad > 0))
-                {
-                    var producto = productos[item.ID_Producto];
-
-                    if (producto.Stock < item.Cantidad)
-                    {
-                        ModelState.AddModelError("", $"Stock insuficiente para la talla {item.Talla}");
-                        return View(model);
-                    }
-                }
-
-                // =========================================
-                // DETALLES + ACTUALIZAR INVENTARIO
+                // DETALLES + INVENTARIO
                 // =========================================
                 foreach (var item in model.Tallas.Where(t => t.Cantidad > 0))
                 {
                     var producto = productos[item.ID_Producto];
 
-                    // Registrar detalle del despacho
                     _context.DetalleDespachos.Add(new DetalleDespacho
                     {
                         ID_Despacho = despacho.ID_Despacho,
@@ -258,22 +224,21 @@ namespace InventarioWEB.Controllers
                         Cantidad_Despachada = item.Cantidad
                     });
 
-                    // Descontar inventario
                     producto.Stock -= item.Cantidad;
                 }
 
                 await _context.SaveChangesAsync();
+
                 // =========================================
                 // TIPO DESPACHO
                 // =========================================
-
                 var totalPedido = pedido.DetallePedidos.Sum(x => x.Cantidad);
 
                 var totalDespachado = await _context.DetalleDespachos
                     .Join(_context.Despachos,
-                          dd => dd.ID_Despacho,
-                          d => d.ID_Despacho,
-                          (dd, d) => new { dd, d })
+                        dd => dd.ID_Despacho,
+                        d => d.ID_Despacho,
+                        (dd, d) => new { dd, d })
                     .Where(x => x.d.ID_Pedido == model.ID_Pedido)
                     .SumAsync(x => (int?)x.dd.Cantidad_Despachada) ?? 0;
 
@@ -284,10 +249,9 @@ namespace InventarioWEB.Controllers
                 // =========================================
                 // ESTADO PEDIDO
                 // =========================================
-                if (despacho.Tipo == TipoDespacho.Completo)
-                {
-                    pedido.Estado = EstadoPedido.Despachado;
-                }
+                pedido.Estado = despacho.Tipo == TipoDespacho.Completo
+                    ? "Despachado"
+                    : "Pendiente";
 
                 await _context.SaveChangesAsync();
 
@@ -298,9 +262,7 @@ namespace InventarioWEB.Controllers
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-
                 ModelState.AddModelError("", ex.Message);
-
                 return View(model);
             }
         }

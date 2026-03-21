@@ -2,57 +2,39 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
 
-namespace InventarioWEB.Models
+[Table("pedido")]
+public class Pedido
 {
-    public enum EstadoPedido
-    {
-        Pendiente = 1,
-        ParcialmenteDespachado = 2,
-        Despachado = 3,
-        Cancelado = 4
-    }
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public int ID_Pedido { get; set; }
 
-    [Table("pedido")]
-    public class Pedido
-    {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        [Column("ID_Pedido")]
-        public int ID_Pedido { get; set; }
+    [Required]
+    public DateTime Fecha { get; set; } = DateTime.Now;
 
-        [Required]
-        public DateTime Fecha { get; set; } = DateTime.Now;
+    // 🔥 AHORA STRING (IGUAL QUE BD)
+    [Required]
+    [StringLength(50)]
+    public string Estado { get; set; } = "Pendiente";
 
-        [Required]
-        public EstadoPedido Estado { get; set; } = EstadoPedido.Pendiente;
+    [Column(TypeName = "decimal(10,2)")]
+    public decimal Total { get; set; }
 
-        [Column(TypeName = "decimal(10,2)")]
-        public decimal Total { get; set; }
+    // ❌ ELIMINADO: Saldo_Pendiente
 
-        [Column("Saldo_Pendiente", TypeName = "decimal(10,2)")]
-        public decimal Saldo_Pendiente { get; set; }
+    [Required]
+    public int ID_Cliente { get; set; }
 
-        [Required]
-        [Column("ID_Cliente")]
-        public int ID_Cliente { get; set; }
+    public Cliente Cliente { get; set; } = null!;
 
-        [ForeignKey("ID_Cliente")]
-        public Cliente Cliente { get; set; } = null!;
+    // 🔥 OPCIONAL
 
-        [Column("ID_MetodoPago")]
-        public int? ID_MetodoPago { get; set; }
+    [Column(TypeName = "decimal(10,2)")]
+    public decimal TotalVenta { get; set; }
 
-        [ForeignKey("ID_MetodoPago")]
-        public MetodoPago? MetodoPago { get; set; }
+    public ICollection<DetallePedido> DetallePedidos { get; set; } = new List<DetallePedido>();
 
-        [Column("TotalVenta", TypeName = "decimal(10,2)")]
-        public decimal TotalVenta { get; set; }
+    public ICollection<Abono> Abonos { get; set; } = new List<Abono>();
 
-        public ICollection<DetallePedido> DetallePedidos { get; set; } = new List<DetallePedido>();
-
-        public ICollection<Abono> Abonos { get; set; } = new List<Abono>();
-
-        [InverseProperty("Pedido")]
-        public ICollection<Despacho> Despachos { get; set; } = new List<Despacho>();
-    }
+    public ICollection<Despacho> Despachos { get; set; } = new List<Despacho>();
 }

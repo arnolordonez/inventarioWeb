@@ -1,0 +1,80 @@
+﻿@model InventarioWEB.ViewModels.VentaDetalleVM
+
+<div class="container mt-4">
+
+    <h4>Detalle de Venta #@Model.ID_Pedido</h4>
+
+    <p><strong>Cliente:</strong> @Model.Cliente</p>
+    <p><strong>Fecha:</strong> @Model.Fecha.ToShortDateString()</p>
+
+    <hr />
+
+    <h5>Productos</h5>
+
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Talla</th>
+                <th>Color</th>
+                <th>Cantidad</th>
+                <th>Despachado</th>
+                <th>Precio</th>
+                <th>Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in Model.Productos)
+            {
+                <tr>
+                    <td>@p.Producto</td>
+                    <td>@p.Talla</td>
+                    <td>@p.Color</td>
+                    <td>@p.Cantidad</td>
+                    <td>@p.Cantidad_Despachada</td>
+                    <td>@p.PrecioVenta</td>
+                    <td>@p.Subtotal</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <hr />
+
+    <h5>Abonos</h5>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Monto</th>
+                <th>Método</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var a in Model.Abonos)
+            {
+                <tr>
+                    <td>@a.Fecha.ToShortDateString()</td>
+                    <td>$@a.Monto</td>
+                    <td>@a.MetodoPago</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <hr />
+
+    <h4>Total: $@Model.TotalVenta</h4>
+    <h5>Saldo: $@Model.Saldo</h5>
+
+    <!-- BOTÓN ABONO -->
+    <button class="btn btn-success"
+            data-bs-toggle="modal"
+            data-bs-target="#modalAbono">
+        Registrar Abono
+    </button>
+
+    @await Html.PartialAsync("_FormularioAbono", Model)
+
+</div>

@@ -22,15 +22,14 @@ namespace InventarioWEB.Controllers
         }
 
         // ==========================================================
-        // 📄 INDEX - LISTADO DE PRODUCCIONES 
+        // LISTADO DE PRODUCCIONES
         // ==========================================================
         public async Task<IActionResult> Index(int pagina = 1, int registrosPorPagina = 20)
         {
-            // 🔹 CARGAR COMBOS PARA FILTROS
             await CargarFiltrosBaseAsync();
 
             var query = _context.Producciones
-                        .AsNoTracking()
+                .AsNoTracking()
                 .Include(p => p.Detalles)
                     .ThenInclude(d => d.Producto)
                 .OrderByDescending(p => p.FechaProduccion)
@@ -59,13 +58,14 @@ namespace InventarioWEB.Controllers
         }
 
         // ==========================================================
-        // ➕ GET: CREAR PRODUCCIÓN
+        // GET CREAR PRODUCCION
         // ==========================================================
         public async Task<IActionResult> Crear()
         {
             var model = new ProduccionCrearViewModel
             {
-                FechaProduccion = DateTime.Today
+                FechaProduccion = DateTime.Today,
+                Detalles = new List<DetalleProduccionVM>()
             };
 
             await CargarFiltrosBaseAsync();
@@ -73,19 +73,25 @@ namespace InventarioWEB.Controllers
         }
 
         // ==========================================================
-        // 💾 POST: CREAR PRODUCCIÓN
+        // POST CREAR PRODUCCION
         // ==========================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Crear(ProduccionCrearViewModel model)
         {
             model.Detalles = model.Detalles?
-                .Where(d => d.ID_Producto > 0 && d.Cantidad > 0)
+                .Where(d => d.ID_Producto > 0 && d.Cantidad > 0 && d.CostoUnitario > 0)
                 .ToList() ?? new List<DetalleProduccionVM>();
 
             if (!model.Detalles.Any())
             {
-                ModelState.AddModelError("", "Debe agregar al menos un producto válido.");
+                ModelState.AddModelError("", "Debe ingresar al menos un producto con cantidad mayor a cero.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                await CargarFiltrosBaseAsync();
+                return View(model);
             }
 
             var idsProductos = model.Detalles
@@ -98,30 +104,9 @@ namespace InventarioWEB.Controllers
                 .Where(p => idsProductos.Contains(p.ID_Producto))
                 .ToListAsync();
 
-            foreach (var detalle in model.Detalles)
+            if (productosBD.Count != idsProductos.Count)
             {
-                var producto = productosBD
-                    .FirstOrDefault(p => p.ID_Producto == detalle.ID_Producto);
-
-                if (producto == null)
-                {
-                    ModelState.AddModelError("", $"El producto con ID {detalle.ID_Producto} no existe.");
-                    continue;
-                }
-
-                if (!producto.Activo)
-                {
-                    ModelState.AddModelError("", $"El producto {producto.Nombre} está inactivo.");
-                }
-
-                if (detalle.CostoUnitario <= 0)
-                {
-                    ModelState.AddModelError("", $"El costo del producto {producto.Nombre} debe ser mayor a cero.");
-                }
-            }
-
-            if (!ModelState.IsValid)
-            {
+                ModelState.AddModelError("", "Uno o más productos no existen.");
                 await CargarFiltrosBaseAsync();
                 return View(model);
             }
@@ -135,20 +120,48 @@ namespace InventarioWEB.Controllers
                 Usuario = User?.Identity?.Name ?? "Sistema"
             };
 
-            var detalles = model.Detalles.Select(d => new DetalleProduccion
+            var productosDict = productosBD.ToDictionary(p => p.ID_Producto);
+
+            var detalles = new List<DetalleProduccion>();
+
+            foreach (var d in model.Detalles)
             {
-                ID_Producto = d.ID_Producto,
-                Cantidad = d.Cantidad,
-                CostoUnitario = d.CostoUnitario
-            }).ToList();
+                if (!productosDict.TryGetValue(d.ID_Producto, out var producto))
+                    continue;
+
+                // Corrección de costo si viene multiplicado por 100 desde el frontend
+                decimal costoUnitario = d.CostoUnitario;
+
+                if (costoUnitario > 10000) // evita guardar 240000 en lugar de 2400
+                    costoUnitario = costoUnitario / 100;
+
+                costoUnitario = Math.Round(costoUnitario, 2, MidpointRounding.AwayFromZero);
+
+                var subtotalCosto = Math.Round(d.Cantidad * costoUnitario, 2, MidpointRounding.AwayFromZero);
+                var subtotalVenta = Math.Round(d.Cantidad * producto.PrecioVTA, 2, MidpointRounding.AwayFromZero);
+
+                detalles.Add(new DetalleProduccion
+                {
+                    ID_Producto = d.ID_Producto,
+                    Cantidad = d.Cantidad,
+                    CostoUnitario = costoUnitario,
+                    PrecioVentaUnitario = producto.PrecioVTA,
+                    IVA = producto.IVA_Porcentaje,
+                    SubtotalCosto = subtotalCosto,
+                    SubtotalVenta = subtotalVenta
+                });
+            }
 
             try
             {
-                await _produccionService.RegistrarProduccionAsync(produccion, detalles);
+                await _produccionService
+                    .RegistrarProduccionAsync(produccion, detalles);
+
                 TempData["Success"] = "Producción registrada correctamente.";
+
                 return RedirectToAction(nameof(Index));
             }
-            catch (Exception)
+            catch
             {
                 ModelState.AddModelError("", "Ocurrió un error al registrar la producción.");
                 await CargarFiltrosBaseAsync();
@@ -157,84 +170,45 @@ namespace InventarioWEB.Controllers
         }
 
         // ==========================================================
-        // 🔍 BÚSQUEDA AJAX DE PRODUCTOS (CONTROLADA)
+        // BUSCAR PRODUCTOS (AJAX)
         // ==========================================================
-        // ==========================================================
-        // 🔍 BÚSQUEDA AJAX DE PRODUCTOS (CONTROLADA)
-        // ==========================================================
-
         [HttpGet]
         public async Task<IActionResult> BuscarProductos(
-    int? idProducto,
-    int? idGenero,
-    int? idReferencia,
-    int? idTalla,
-    int? idTela,
-    int? idColor)
+            int? idProducto,
+            int? idGenero,
+            int? idReferencia,
+            int? idTalla,
+            int? idTela,
+            int? idColor,
+            int pagina = 1,
+            int registrosPorPagina = 50)
         {
-            Console.WriteLine("==== CHECK CONTROLLER ====");
-            Console.WriteLine($"idGenero: {idGenero}");
-            Console.WriteLine($"idReferencia: {idReferencia}");
-            Console.WriteLine($"idTalla: {idTalla}");
-            Console.WriteLine($"idTela: {idTela}");
-            Console.WriteLine($"idColor: {idColor}");
-            Console.WriteLine("==========================");
-            var query = _context.Productos
-    .Include(p => p.Referencia)
-    .Include(p => p.Talla)
-    .AsQueryable();
+            var (lista, total) = await _produccionService.BuscarProductosAsync(
+                idProducto,
+                idGenero,
+                idReferencia,
+                idTalla,
+                idTela,
+                idColor,
+                pagina,
+                registrosPorPagina);
 
-            if (idProducto.HasValue && idProducto.Value > 0)
+            var resultado = lista.Select(p => new
             {
-                query = query.Where(p => p.ID_Producto == idProducto.Value);
-            }
-            else
-            {
-                if (idGenero.HasValue && idGenero.Value > 0)
-                    query = query.Where(p => p.Referencia.ID_Genero == idGenero.Value);
-
-                if (idReferencia.HasValue && idReferencia.Value > 0)
-                    query = query.Where(p => p.ID_Referencias == idReferencia.Value);
-
-                if (idTalla.HasValue && idTalla.Value > 0)
-                    query = query.Where(p => p.ID_Tallas == idTalla.Value);
-
-                if (idTela.HasValue && idTela.Value > 0)
-                    query = query.Where(p => p.ID_Telas == idTela.Value);
-
-                if (idColor.HasValue && idColor.Value > 0)
-                    query = query.Where(p => p.ID_Color == idColor.Value);
-            }
-
-            // ============================
-            // PROYECCIÓN
-            // ============================
-            var sql = query.ToQueryString();
-            Console.WriteLine("==== SQL GENERADO ====");
-            Console.WriteLine(sql);
-            Console.WriteLine("======================");
-
-            var resultado = await query
-                .Select(p => new
-                {
-                    idProducto = p.ID_Producto,
-                    nombre = p.Nombre,
-                    precioCosto = p.PrecioCosto,
-                    precioVTA = p.PrecioVTA,
-                    stock = p.Stock,
-                    iva = p.IVA_Porcentaje,
-                    activo = p.Activo,
-                    genero = p.Genero.DescripGenero,
-                    referencia = p.Referencia.DescripReferencia,
-                    talla = p.Talla.DescripTalla
-                })
-                .ToListAsync();
+                idProducto = p.ID_Producto,
+                nombre = p.Nombre,
+                genero = p.Genero,
+                referencia = p.Referencia,
+                talla = p.Talla,
+                tela = p.Tela,
+                color = p.Color,
+                precioCosto = p.PrecioCosto,
+                precioVTA = p.PrecioVTA,
+                stock = p.Stock
+            });
 
             return Json(resultado);
         }
-        // ==========================================================
-        // 🔄 REFERENCIAS POR GÉNERO (AJAX)
-        // ==========================================================
 
         [HttpGet]
         public async Task<IActionResult> ObtenerReferenciasPorGenero(int idGenero)
@@ -245,10 +219,7 @@ namespace InventarioWEB.Controllers
             var data = await _produccionService.ObtenerReferenciasPorGenero(idGenero);
             return Json(data);
         }
-        // ==========================================================
-        // 🔄 TALLAS POR GÉNERO (AJAX)
-        // ==========================================================
-        
+
         [HttpGet]
         public async Task<IActionResult> ObtenerTallasPorGenero(int idGenero)
         {
@@ -259,12 +230,6 @@ namespace InventarioWEB.Controllers
             return Json(data);
         }
 
-        // ==========================================================
-        // 📌 CARGA BASE DE CATÁLOGOS (SIN REFERENCIAS NI TALLAS)
-        // ==========================================================
-        // ==========================================================
-        // 📌 CARGA BASE DE CATÁLOGOS (SIN REFERENCIAS NI TALLAS)
-        // ==========================================================
         private async Task CargarFiltrosBaseAsync()
         {
             ViewBag.Generos = new SelectList(
@@ -292,6 +257,43 @@ namespace InventarioWEB.Controllers
                     .ToListAsync(),
                 "ID_Color",
                 "Nombre");
+        }
+
+        public async Task<IActionResult> ReporteProduccionPdf(int id)
+        {
+            var produccion = await _context.Producciones
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.ID_Produccion == id);
+
+            if (produccion == null)
+                return NotFound();
+
+            var detalles = await (
+                from d in _context.DetalleProducciones
+                join p in _context.Productos
+                    on d.ID_Producto equals p.ID_Producto
+                where d.ID_Produccion == id
+                select new DetalleProduccionReporteVM
+                {
+                    ID_Producto = d.ID_Producto,
+                    NombreProducto = p.Nombre,
+                    Cantidad = d.Cantidad,
+                    CostoUnitario = d.CostoUnitario,
+                    PrecioVentaUnitario = d.PrecioVentaUnitario,
+                    IVA = d.IVA,
+                    SubtotalCosto = d.SubtotalCosto,
+                    SubtotalVenta = d.SubtotalVenta
+                })
+                .AsNoTracking()
+                .ToListAsync();
+
+            var vm = new ReporteProduccionViewModel
+            {
+                Produccion = produccion,
+                Detalles = detalles
+            };
+
+            return View("ReporteProduccionPdf", vm);
         }
     }
 }

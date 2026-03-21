@@ -11,35 +11,41 @@ namespace InventarioWEB.Models
         public int ID_DetalleProduccion { get; set; }
 
         [Required]
+        [Column("ID_Produccion")]
         public int ID_Produccion { get; set; }
 
         [Required]
+        [Column("ID_Producto")]
         public int ID_Producto { get; set; }
 
         [Required]
         public int Cantidad { get; set; }
 
+        [Required]
         [Column(TypeName = "decimal(10,2)")]
         public decimal CostoUnitario { get; set; }
 
+        [Required]
         [Column(TypeName = "decimal(10,2)")]
         public decimal PrecioVentaUnitario { get; set; }
 
-        // ⚠️ ESTE ES PORCENTAJE (ej: 19)
+        // porcentaje de IVA (ej: 19)
+        [Required]
         [Column(TypeName = "decimal(5,2)")]
         public decimal IVA { get; set; }
 
-        // ⚠️ CALCULADOS EN SERVICE
+        // valores calculados en el servicio
         [Column(TypeName = "decimal(12,2)")]
         public decimal SubtotalCosto { get; set; }
 
         [Column(TypeName = "decimal(12,2)")]
         public decimal SubtotalVenta { get; set; }
 
-        [ForeignKey(nameof(ID_Produccion))]
-        public Produccion? Produccion { get; set; }
+        // relaciones
+        [ForeignKey("ID_Produccion")]
+        public virtual Produccion? Produccion { get; set; }
 
-        [ForeignKey(nameof(ID_Producto))]
-        public Producto? Producto { get; set; }
+        [ForeignKey("ID_Producto")]
+        public virtual Producto? Producto { get; set; }
     }
 }

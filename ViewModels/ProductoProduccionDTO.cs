@@ -7,6 +7,7 @@ namespace InventarioWEB.ViewModels
         public int ID_Producto { get; set; }
 
         public string Nombre { get; set; } = string.Empty;
+        public string Genero { get; set; } = string.Empty;  // ✅ AGREGADO
 
         public string Referencia { get; set; } = string.Empty;
 

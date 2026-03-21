@@ -2,6 +2,11 @@
 using InventarioWEB.Data;
 using InventarioWEB.Services;
 
+using InventarioWEB.Mongo;
+using InventarioWEB.Mongo.Context;
+using InventarioWEB.Mongo.Services;
+using Microsoft.Extensions.Options;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // ==========================================================
@@ -29,6 +34,21 @@ builder.Services.AddDbContext<MovimientoVentasDbContext>(options =>
 // ==========================================================
 
 builder.Services.AddScoped<ProduccionService>();
+
+// ==========================================================
+// CONFIGURACIÓN MONGODB
+// ==========================================================
+
+builder.Services.Configure<MongoSettings>(
+    builder.Configuration.GetSection("MongoSettings"));
+
+builder.Services.AddSingleton<MongoDbContext>(sp =>
+{
+    var settings = sp.GetRequiredService<IOptions<MongoSettings>>().Value;
+    return new MongoDbContext(settings);
+});
+
+builder.Services.AddScoped<ColorService>();
 
 // ==========================================================
 // SERVICIOS MVC + API

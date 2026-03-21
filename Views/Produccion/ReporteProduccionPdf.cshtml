@@ -1,70 +1,197 @@
-﻿@model IEnumerable<InventarioWEB.Models.Producto>
+﻿@model InventarioWEB.ViewModels.ReporteProduccionViewModel
+
 @{
     Layout = null;
+
     var fecha = DateTime.Now;
+
+    var totalCantidad = Model.Detalles.Sum(x => x.Cantidad);
+    var totalCosto = Model.Detalles.Sum(x => x.SubtotalCosto);
+    var totalVenta = Model.Detalles.Sum(x => x.SubtotalVenta);
+    var utilidad = totalVenta - totalCosto;
 }
 
 <!DOCTYPE html>
 <html>
 <head>
+
     <meta charset="utf-8" />
+
     <style>
-        body { font-family: Arial; font-size: 11px; }
-        h1 { text-align: center; margin-bottom: 5px; }
-        .meta { text-align: center; font-size: 10px; margin-bottom: 15px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #000; padding: 4px; }
-        th { background-color: #f0f0f0; }
-        tfoot td { font-weight: bold; }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11px;
+            margin: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 2px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            font-size: 14px;
+        }
+
+        .meta {
+            margin-bottom: 15px;
+            font-size: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #000;
+            padding: 4px;
+        }
+
+        th {
+            background: #efefef;
+            text-align: center;
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        tfoot td {
+            font-weight: bold;
+            background: #f8f8f8;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 9px;
+            text-align: center;
+            color: #555;
+        }
+
     </style>
+
 </head>
+
 <body>
 
     <h1>CONFESIONES INDOMABLE</h1>
+    <h2>REPORTE DE PRODUCCIÓN</h2>
 
     <div class="meta">
-        Reporte de Producción<br />
-        Fecha impresión: @fecha.ToString("dd/MM/yyyy HH:mm")<br />
-        Usuario: @User.Identity?.Name ?? "Sistema"
+
+        <strong>ID Producción:</strong> @Model.Produccion.ID_Produccion
+        <br />
+
+        <strong>Fecha Producción:</strong> @Model.Produccion.FechaProduccion.ToString("dd/MM/yyyy")
+
+        <br />
+
+        <strong>Usuario:</strong> @Model.Produccion.Usuario
+
+        <br />
+
+        <strong>Observación:</strong> @Model.Produccion.Observacion
+
+        <br />
+
+        <strong>Fecha impresión:</strong> @fecha.ToString("dd/MM/yyyy HH:mm")
+
     </div>
 
     <table>
+
         <thead>
+
             <tr>
+
                 <th>Código</th>
-                <th>Referencia</th>
-                <th>Tela</th>
-                <th>Talla</th>
-                <th>Color</th>
-                <th>Stock</th>
-                <th>Costo</th>
-                <th>Venta</th>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Costo Unit</th>
+                <th>IVA %</th>
+                <th>Subtotal Costo</th>
+                <th>Precio Venta</th>
+                <th>Subtotal Venta</th>
+
             </tr>
+
         </thead>
+
         <tbody>
-            @foreach (var p in Model)
+
+            @foreach (var d in Model.Detalles)
             {
+
                 <tr>
-                    <td>@p.ID_Producto</td>
-                    <td>@p.Referencia?.DescripReferencia</td>
-                    <td>@p.Tela?.DescripTela</td>
-                    <td>@p.Talla?.DescripTalla</td>
-                    <td>@p.ColorNav?.Nombre</td>
-                    <td>@p.Stock</td>
-                    <td>@p.PrecioCosto</td>
-                    <td>@p.PrecioVTA</td>
+
+                    <td class="center">@d.ID_Producto</td>
+
+                    <td>@d.NombreProducto</td>
+
+                    <td class="center">@d.Cantidad</td>
+
+                    <td class="right">@d.CostoUnitario.ToString("N2")</td>
+
+                    <td class="center">@d.IVA</td>
+
+                    <td class="right">@d.SubtotalCosto.ToString("N2")</td>
+
+                    <td class="right">@d.PrecioVentaUnitario.ToString("N2")</td>
+
+                    <td class="right">@d.SubtotalVenta.ToString("N2")</td>
+
                 </tr>
+
             }
+
         </tbody>
+
         <tfoot>
+
             <tr>
-                <td colspan="5">TOTALES</td>
-                <td>@Model.Sum(x => x.Stock)</td>
-                <td>@Model.Sum(x => x.Stock * x.PrecioCosto)</td>
-                <td>@Model.Sum(x => x.Stock * x.PrecioVTA)</td>
+
+                <td colspan="2">TOTALES</td>
+
+                <td class="center">@totalCantidad</td>
+
+                <td></td>
+                <td></td>
+
+                <td class="right">@totalCosto.ToString("N2")</td>
+
+                <td></td>
+
+                <td class="right">@totalVenta.ToString("N2")</td>
+
             </tr>
+
+            <tr>
+
+                <td colspan="7">UTILIDAD ESTIMADA</td>
+
+                <td class="right">@utilidad.ToString("N2")</td>
+
+            </tr>
+
         </tfoot>
+
     </table>
+
+
+    <div class="footer">
+
+        Sistema de Inventario y Producción
+        Confesiones Indomable © @DateTime.Now.Year
+
+    </div>
 
 </body>
 </html>

@@ -22,14 +22,7 @@ namespace InventarioWEB.Models
 
         public bool Activo { get; set; }
 
-        // ==========================================================
-        // 🔗 PROPIEDADES DE NAVEGACIÓN
-        // ==========================================================
-
-        // Un método de pago puede tener muchos pedidos asociados
-        public ICollection<Pedido> Pedidos { get; set; } = new List<Pedido>();
-
-        // Un método de pago puede tener muchos abonos asociados
+        // ✅ SOLO ESTA RELACIÓN
         public ICollection<Abono> Abonos { get; set; } = new List<Abono>();
     }
 }
