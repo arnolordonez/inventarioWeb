@@ -18,95 +18,101 @@ namespace InventarioWEB.ViewModels
         public string Genero { get; set; } = string.Empty;
 
         // ================================
-        // 📊 PEDIDO ORIGINAL
+        // 📊 PEDIDO ORIGINAL (DOCENAS)
         // ================================
-        public int TotalUnidadesPedido { get; set; }
-
-        public int TotalDocenasPedido => TotalUnidadesPedido / 12;
+        public int TotalDocenasPedido { get; set; }
 
         // ================================
-        // 🚚 DESPACHADO (DINÁMICO ✔)
+        // 🚚 TOTAL YA DESPACHADO (DOCENAS)
         // ================================
-        public int TotalUnidadesDespachadas =>
+        public int TotalDocenasDespachadas =>
             Tallas.Sum(t => t.CantidadDespachada);
 
-        public int TotalDocenasDespachadas => TotalUnidadesDespachadas / 12;
-
         // ================================
-        // ⚖️ SALDO
+        // ⚖️ TOTAL PENDIENTE (DOCENAS)
+        // 🔥 CORREGIDO: ahora sí es real
         // ================================
-        public int TotalUnidadesPendientes =>
-            Math.Max(0, TotalUnidadesPedido - TotalUnidadesDespachadas);
-
-        public int TotalDocenasPendientes => TotalUnidadesPendientes / 12;
+        public int TotalDocenasPendientes =>
+            Math.Max(0, TotalDocenasPedido - TotalDocenasDespachadas);
 
         // ================================
         // ✍️ INPUT USUARIO
         // ================================
-        [MinLength(1, ErrorMessage = "Debe ingresar al menos una talla")]
+        [MinLength(1, ErrorMessage = "Debe existir al menos una talla")]
         public List<DespachoTallaItemVM> Tallas { get; set; } = new();
 
         // ================================
-        // 🔢 TOTALES DINÁMICOS
+        // 🔢 TOTAL INGRESADO (DOCENAS)
         // ================================
-        public int TotalUnidades => Tallas.Sum(t => t.Cantidad);
-
-        public int TotalDocenas => TotalUnidades / 12;
+        public int TotalDocenasIngresadas =>
+            Tallas.Sum(t => t.Cantidad);
 
         // ================================
-        // ✔ VALIDACIONES GLOBALES
+        // ✔ VALIDACIONES BÁSICAS (NO NEGOCIO)
         // ================================
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
-            if (TotalUnidades == 0)
+            if (Tallas == null || !Tallas.Any())
             {
                 yield return new ValidationResult(
-                    "Debe ingresar al menos una cantidad",
+                    "Debe ingresar al menos una talla",
+                    new[] { nameof(Tallas) });
+                yield break;
+            }
+
+            // =========================================
+            // 🔥 VALIDAR QUE EXISTA AL MENOS UNA CANTIDAD > 0
+            // =========================================
+            if (!Tallas.Any(t => t.Cantidad > 0))
+            {
+                yield return new ValidationResult(
+                    "Debe ingresar al menos una cantidad mayor a 0",
                     new[] { nameof(Tallas) });
             }
 
-            if (TotalUnidades % 12 != 0)
-            {
-                yield return new ValidationResult(
-                    "El despacho debe ser múltiplo de 12 (docenas)");
-            }
-
-            if (TotalUnidades > TotalUnidadesPendientes)
-            {
-                yield return new ValidationResult(
-                    "No puede despachar más de lo pendiente");
-            }
-
-            foreach (var talla in Tallas)
-            {
-                if (talla.Cantidad > talla.CantidadPendiente)
-                {
-                    yield return new ValidationResult(
-                        $"La talla {talla.Talla} excede lo pendiente");
-                }
-            }
+            // =========================================
+            // 🚫 NO VALIDAR NEGOCIO AQUÍ
+            // =========================================
+            // ❌ NO comparar contra pendientes
+            // ❌ NO validar stock
+            // ❌ NO validar históricos
+            //
+            // 👉 TODO ESO VA EN EL CONTROLLER (BD = fuente de verdad)
         }
     }
 
+    // ==========================================================
+    // ITEM POR TALLA
+    // ==========================================================
     public class DespachoTallaItemVM
     {
+        // ================================
+        // 🔗 IDENTIFICADORES
+        // ================================
+        [Required]
+        public int ID_Detalle { get; set; }
+
         [Required]
         public int ID_Producto { get; set; }
 
+        // ================================
+        // 📦 INFORMACIÓN VISUAL
+        // ================================
         public string Talla { get; set; } = string.Empty;
 
         // ================================
-        // 📊 CONTROL
+        // 📊 CONTROL (DOCENAS)
         // ================================
         public int CantidadPedida { get; set; }
 
         public int CantidadDespachada { get; set; }
 
+        // 🔥 CALCULADO CORRECTO
         public int CantidadPendiente =>
             Math.Max(0, CantidadPedida - CantidadDespachada);
 
         // ================================
-        // ✍️ INPUT USUARIO
+        // ✍️ INPUT USUARIO (DOCENAS)
         // ================================
         [Range(0, 1000, ErrorMessage = "Cantidad inválida")]
         public int Cantidad { get; set; }

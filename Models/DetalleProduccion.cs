@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-
 namespace InventarioWEB.Models
 {
     [Table("detalle_produccion")]
@@ -43,9 +42,11 @@ namespace InventarioWEB.Models
 
         // relaciones
         [ForeignKey("ID_Produccion")]
-        public virtual Produccion? Produccion { get; set; }
+        public virtual Produccion Produccion { get; set; } = null!;
 
         [ForeignKey("ID_Producto")]
-        public virtual Producto? Producto { get; set; }
+        public virtual Producto Producto { get; set; } = null!;
+
+
     }
 }

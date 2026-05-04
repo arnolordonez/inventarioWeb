@@ -146,7 +146,7 @@
 @section Scripts {
 
     <script>
-               
+
         document.addEventListener("DOMContentLoaded",function(){
 
             const filtroGenero = document.getElementById("filtroGenero");
@@ -155,7 +155,7 @@
             const btnBuscar = document.getElementById("btnBuscarProduccion");
             const contenedor = document.getElementById("contenedorResultadosProduccion");
             const form = document.getElementById("formProduccion");
-            
+
 
             filtroReferencia.disabled = true;
             filtroTalla.disabled = true;
@@ -257,7 +257,7 @@
                         <th style="width:70px" class="text-center">Cantidad</th>
 
                         <th style="width:110px" class="text-end">Subtotal</th>
-                        <th style="width:110px" class="text-center">Acción</th>
+                       
 
                         </tr>
 
@@ -281,7 +281,10 @@
 
                         <td>${p.talla ?? ''}</td>
 
-                        <td class="text-center">${p.stock ?? 0}</td>
+                        <td class="text-center stock">
+                            ${p.stock ?? 0}
+                            <input type="hidden" class="stock-original" value="${p.stock ?? 0}" />
+                        </td>
 
                         <td class="text-center">
                         ${p.iva ?? 0}
@@ -334,16 +337,7 @@
 
                         <td class="text-end subtotal">0.00</td>
 
-                        <td class="text-center">
-
-                        <button type="button"
-                        class="btn btn-sm btn-primary"
-                        onclick="actualizarFila(this)">
-                        Actualizar
-                        </button>
-
-                        </td>
-
+                        
                         </tr>
 
                        `).join("")}
@@ -362,23 +356,30 @@
 
         });
 
-        function calcularSubtotal(input){
+               function calcularSubtotal(input){
 
             const fila = input.closest("tr");
 
             const costo = parseFloat(
-            fila.querySelector(".costo").value
+                fila.querySelector(".costo").value
             ) || 0;
 
             const cantidad = parseFloat(
-            fila.querySelector(".cantidad").value
+                fila.querySelector(".cantidad").value
             ) || 0;
 
+            // 🔥 SUBTOTAL
             const subtotal = Math.round((costo * cantidad) * 100) / 100;
+            fila.querySelector(".subtotal").innerText = subtotal.toFixed(2);
 
-            fila.querySelector(".subtotal").innerText =
-            subtotal.toFixed(2);
+            // 🔥 STOCK DINÁMICO
+            const stockOriginal = parseFloat(
+                fila.querySelector(".stock-original").value
+            ) || 0;
 
+            const nuevoStock = stockOriginal + cantidad;
+
+            fila.querySelector(".stock").childNodes[0].nodeValue = nuevoStock;
         }
 
         function actualizarFila(btn){

@@ -3,29 +3,60 @@ using Microsoft.EntityFrameworkCore;
 using InventarioWEB.Models;
 using InventarioWEB.Data;
 using InventarioWEB.ViewModels;
+//using iText.Commons.Actions.Contexts;
+using iText.Kernel.Pdf;
+using iText.Layout;
+using iText.Layout.Element;
+using iText.Kernel.Font;
+using iText.IO.Font.Constants;
+using Microsoft.AspNetCore.Hosting;
+using iText.IO.Image;
+using iText.Layout.Borders;
+using iText.Layout.Properties;
 
 namespace InventarioWEB.Controllers
 {
     public class DespachoController : Controller
     {
+        private readonly IWebHostEnvironment _env;
         private readonly MovimientoVentasDbContext _context;
-
-        public DespachoController(MovimientoVentasDbContext context)
+        public DespachoController(MovimientoVentasDbContext context, IWebHostEnvironment env)
         {
             _context = context;
+            _env = env;
         }
+
 
         // ==========================================================
         // LISTADO
         // ==========================================================
         public async Task<IActionResult> Index()
         {
+            // 🔥 SOLO LECTURA → AsNoTracking mejora rendimiento
             var despachos = await _context.Despachos
                 .Include(d => d.Pedido)
-                .OrderByDescending(d => d.Fecha)
+                .OrderBy(d => d.ID_Pedido)
+                .ThenBy(d => d.ID_Despacho)
+                .AsNoTracking()
                 .ToListAsync();
 
-            return View("~/Views/Despachos/Index.cshtml", despachos);
+            return View(despachos);
+        }
+
+        // ==========================================================
+        // SELECCIONAR PEDIDO
+        // ==========================================================
+        public async Task<IActionResult> SeleccionarPedido()
+        {
+            // 🔥 SOLO PEDIDOS PENDIENTES
+            var pedidos = await _context.Pedidos
+                .Include(p => p.Cliente)
+                .Where(p => p.Estado != "DESPACHADO")
+                .OrderBy(p => p.ID_Pedido)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return View(pedidos);
         }
 
         // ==========================================================
@@ -41,12 +72,13 @@ namespace InventarioWEB.Controllers
                 .Include(d => d.Detalles)
                     .ThenInclude(dd => dd.Producto)
                         .ThenInclude(p => p.Referencia)
+                .AsNoTracking() // 🔥 SOLO VISUAL
                 .FirstOrDefaultAsync(d => d.ID_Despacho == id);
 
             if (despacho == null)
                 return NotFound();
 
-            return View("~/Views/Despachos/Detalle.cshtml", despacho);
+            return View(despacho);
         }
 
         // ==========================================================
@@ -63,51 +95,64 @@ namespace InventarioWEB.Controllers
             if (pedido == null)
                 return NotFound();
 
-            if (pedido.Estado == "Despachado")
+            if (pedido.Estado == "DESPACHADO")
                 return BadRequest("El pedido ya está completamente despachado");
 
-            // =========================================
-            // HISTÓRICO DESPACHADO
-            // =========================================
-            var despachado = await _context.DetalleDespachos
+            // =====================================================
+            // 🔥 FUENTE REAL: detalle_despacho (NO detalle_pedido)
+            // =====================================================
+            var despachadoReal = await _context.DetalleDespachos
                 .Join(_context.Despachos,
                     dd => dd.ID_Despacho,
                     d => d.ID_Despacho,
                     (dd, d) => new { dd, d })
                 .Where(x => x.d.ID_Pedido == idPedido)
-                .GroupBy(x => x.dd.ID_Producto)
+                .GroupBy(x => x.dd.ID_Detalle)
                 .Select(g => new
                 {
-                    ProductoId = g.Key,
+                    DetalleId = g.Key,
                     Total = g.Sum(x => x.dd.Cantidad_Despachada)
                 })
-                .ToDictionaryAsync(x => x.ProductoId, x => x.Total);
+                .ToDictionaryAsync(x => x.DetalleId, x => x.Total);
 
+            // =====================================================
+            // 🔥 CONSTRUCCIÓN DEL VIEWMODEL
+            // =====================================================
             var vm = new DespachoTallaViewModel
             {
                 ID_Pedido = pedido.ID_Pedido,
 
                 Tallas = pedido.DetallePedidos.Select(dp =>
                 {
-                    var yaDespachado = despachado.ContainsKey(dp.ID_Producto)
-                        ? despachado[dp.ID_Producto]
+                    // 🔥 DESPACHADO REAL DESDE BD
+                    var yaDespachado = despachadoReal.ContainsKey(dp.ID_Detalle)
+                        ? despachadoReal[dp.ID_Detalle]
                         : 0;
 
                     return new DespachoTallaItemVM
                     {
+                        ID_Detalle = dp.ID_Detalle,
+
+                        // 🔥 CLAVE CRÍTICA PARA EL POST (NO SE PUEDE PERDER)
                         ID_Producto = dp.ID_Producto,
+
                         Talla = dp.Producto.Talla?.DescripTalla ?? "",
+
+                        // 🔥 DATOS BASE DEL PEDIDO
                         CantidadPedida = dp.Cantidad,
+
+                        // 🔥 YA DESPACHADO REAL (NO usar campo de detalle_pedido)
                         CantidadDespachada = yaDespachado
                     };
+
                 }).ToList(),
 
-                TotalUnidadesPedido = pedido.DetallePedidos.Sum(x => x.Cantidad)
+                // 🔥 TOTAL ORIGINAL DEL PEDIDO
+                TotalDocenasPedido = pedido.DetallePedidos.Sum(x => x.Cantidad)
             };
 
             return View(vm);
         }
-
         // ==========================================================
         // CREAR (POST)
         // ==========================================================
@@ -116,15 +161,12 @@ namespace InventarioWEB.Controllers
         public async Task<IActionResult> Crear(DespachoTallaViewModel model)
         {
             if (!ModelState.IsValid)
-                return View(model);
+                return await Crear(model.ID_Pedido);
 
             using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {
-                // =========================================
-                // PEDIDO
-                // =========================================
                 var pedido = await _context.Pedidos
                     .Include(p => p.DetallePedidos)
                     .FirstOrDefaultAsync(p => p.ID_Pedido == model.ID_Pedido);
@@ -132,107 +174,241 @@ namespace InventarioWEB.Controllers
                 if (pedido == null)
                     throw new Exception("El pedido no existe");
 
-                if (pedido.Estado == "Despachado")
-                    throw new Exception("El pedido ya está cerrado");
+                // 🔥 CORREGIDO: permitir despachar pedidos PAGADOS y PENDIENTES
+                if (pedido.Estado == "DESPACHADO")
+                    throw new Exception("El pedido ya fue despachado completamente");
 
-                // =========================================
-                // PRODUCTOS
-                // =========================================
-                var productoIds = model.Tallas.Select(t => t.ID_Producto).ToList();
+                // 🔥 OPCIONAL (recomendado): validar estados válidos
+                if (pedido.Estado != "PENDIENTE" && pedido.Estado != "PAGADO")
+                    throw new Exception($"El pedido no puede ser despachado en estado: {pedido.Estado}");
+
+                if (model.Tallas == null || !model.Tallas.Any())
+                    throw new Exception("No hay datos para despachar");
+
+                if (model.Tallas.Any(t => t.Cantidad < 0))
+                    throw new Exception("No se permiten valores negativos en las cantidades");
+            
+
+                // =====================================================
+                // 🔥 PRODUCTOS (DESDE DETALLE_PEDIDO → FUENTE CORRECTA)
+                // =====================================================
+                var productoIds = pedido.DetallePedidos
+                    .Select(d => d.ID_Producto)
+                    .Distinct()
+                    .ToList();
 
                 var productos = await _context.Productos
                     .Where(p => productoIds.Contains(p.ID_Producto))
                     .ToDictionaryAsync(p => p.ID_Producto);
 
-                // =========================================
-                // HISTÓRICO DESPACHADO
-                // =========================================
-                var despachadoHistorico = await _context.DetalleDespachos
+                // =====================================================
+                // 🔥 HISTÓRICO REAL (FUENTE: detalle_despacho)
+                // =====================================================
+                var despachadoReal = await _context.DetalleDespachos
                     .Join(_context.Despachos,
                         dd => dd.ID_Despacho,
                         d => d.ID_Despacho,
                         (dd, d) => new { dd, d })
                     .Where(x => x.d.ID_Pedido == model.ID_Pedido)
-                    .GroupBy(x => x.dd.ID_Producto)
+                    .GroupBy(x => x.dd.ID_Detalle)
+                    .ToDictionaryAsync(
+                        g => g.Key,
+                        g => g.Sum(x => x.dd.Cantidad_Despachada)
+                    );
+
+                // =====================================================
+                // 🔥 VALIDACIÓN POR ITEM
+                // =====================================================
+                foreach (var item in model.Tallas.Where(t => t.Cantidad > 0))
+                {
+                    var detalle = pedido.DetallePedidos
+                        .FirstOrDefault(d => d.ID_Detalle == item.ID_Detalle);
+
+                    if (detalle == null)
+                        throw new Exception("El detalle no pertenece al pedido");
+
+                    if (!productos.TryGetValue(detalle.ID_Producto, out var producto))
+                        throw new Exception($"Producto inválido ID {detalle.ID_Producto}");
+
+                    var yaDespachado = despachadoReal.ContainsKey(detalle.ID_Detalle)
+                        ? despachadoReal[detalle.ID_Detalle]
+                        : 0;
+
+                    var pendiente = detalle.Cantidad - yaDespachado;
+
+                    if (pendiente < 0)
+                        pendiente = 0;
+
+                    // 🚫 EXCESO
+                    if (item.Cantidad > pendiente)
+                        throw new Exception(
+                        $"No puede despachar {item.Cantidad} docenas en la talla {item.Talla}. " +
+                        $"Pendiente real: {pendiente} docenas."
+                    );
+                    
+                    // 🚫 STOCK CERO
+                    if (producto.Stock <= 0)
+                        throw new Exception(
+                            $"El producto {producto.Nombre} (talla {item.Talla}) no tiene stock disponible."
+                        );
+
+                    // 🚫 STOCK INSUFICIENTE
+                    if (producto.Stock < item.Cantidad)
+                        throw new Exception(
+                              $"Stock insuficiente para {producto.Nombre} (talla {item.Talla}). " +
+                              $"Disponible: {producto.Stock} docenas, solicitado: {item.Cantidad}."
+                        );
+
+                    // 🚫 STOCK MÍNIMO
+
+                    if (producto.Stock < 10)
+                    {
+                        ModelState.AddModelError("",
+                            $"⚠️ Stock bajo en {producto.Nombre} (talla {item.Talla}). Disponible: {producto.Stock}");
+                    }
+
+                    //if (producto.Stock < 10)
+                    //  throw new Exception(
+                    //     $"Advertencia: el producto {producto.Nombre} (talla {item.Talla}) " +
+                    //   $"tiene stock crítico ({producto.Stock} docenas)."
+                    //   );
+                }
+
+                // =====================================================
+                // 🔥 VALIDACIÓN GLOBAL (ACUMULADA POR PRODUCTO)
+                // =====================================================
+
+                var agrupadoPorProducto = model.Tallas
+                    .Where(t => t.Cantidad > 0)
+                    .GroupBy(t => pedido.DetallePedidos
+                        .First(d => d.ID_Detalle == t.ID_Detalle).ID_Producto)
                     .Select(g => new
                     {
                         ProductoId = g.Key,
-                        Total = g.Sum(x => x.dd.Cantidad_Despachada)
-                    })
-                    .ToDictionaryAsync(x => x.ProductoId, x => x.Total);
+                        Total = g.Sum(x => x.Cantidad)
+                    });
 
-                // =========================================
-                // VALIDACIÓN GLOBAL
-                // =========================================
-                if (model.TotalUnidades <= 0)
-                    throw new Exception("Debe ingresar cantidades");
-
-                if (model.TotalUnidades % 12 != 0)
-                    throw new Exception("El despacho debe ser múltiplo de 12");
-
-                // =========================================
-                // VALIDACIONES POR PRODUCTO
-                // =========================================
-                foreach (var item in model.Tallas.Where(t => t.Cantidad > 0))
+                foreach (var grupo in agrupadoPorProducto)
                 {
-                    if (!productos.TryGetValue(item.ID_Producto, out var producto))
-                        throw new Exception($"Producto inválido ID {item.ID_Producto}");
+                    var producto = productos[grupo.ProductoId];
 
-                    var pedidoDetalle = pedido.DetallePedidos
-                        .FirstOrDefault(d => d.ID_Producto == item.ID_Producto);
-
-                    if (pedidoDetalle == null)
-                        throw new Exception($"Producto no pertenece al pedido");
-
-                    var yaDespachado = despachadoHistorico.ContainsKey(item.ID_Producto)
-                        ? despachadoHistorico[item.ID_Producto]
-                        : 0;
-
-                    var pendiente = pedidoDetalle.Cantidad - yaDespachado;
-
-                    if (item.Cantidad > pendiente)
-                        throw new Exception($"Excede pendiente en talla {item.Talla}");
-
-                    if (producto.Stock < item.Cantidad)
-                        throw new Exception($"Stock insuficiente en talla {item.Talla}");
+                    if (grupo.Total > producto.Stock)
+                    {
+                        throw new Exception(
+                            $"Stock insuficiente acumulado para producto {producto.Nombre}. Disponible: {producto.Stock}, solicitado: {grupo.Total}"
+                        );
+                    }
                 }
 
-                // =========================================
+                // =====================================================
+                // 🔥 VALIDACIÓN GLOBAL DEL PEDIDO
+                // =====================================================
+
+                var pedidoTotal = pedido.DetallePedidos.Sum(x => x.Cantidad);
+
+                var totalNuevo = model.Tallas.Sum(t => t.Cantidad);
+
+                var totalYaDespachado = despachadoReal.Values.Sum();
+
+                if ((totalNuevo + totalYaDespachado) > pedidoTotal)
+                {
+                    throw new Exception("No puede despachar más de lo pendiente");
+                }
+
+                // =====================================================
+                // VALIDACIÓN FINAL
+                // =====================================================
+                if ((totalNuevo + totalYaDespachado) > pedidoTotal)
+                {
+                    throw new Exception("No puede despachar más de lo pendiente");
+                }
+
+                // =====================================================
                 // CREAR DESPACHO
-                // =========================================
+                // =====================================================
                 var despacho = new Despacho
                 {
                     ID_Pedido = model.ID_Pedido,
                     Fecha = DateTime.Now,
-                    Estado = EstadoDespacho.Despachado
+                    Estado = EstadoDespacho.Despachado,
+                    Tipo = TipoDespacho.Parcial // se recalcula después
                 };
 
                 _context.Despachos.Add(despacho);
                 await _context.SaveChangesAsync();
 
-                // =========================================
-                // DETALLES + INVENTARIO
-                // =========================================
+                // =====================================================
+                // DETALLES (FUENTE REAL: detalle_despacho)
+                // =====================================================
                 foreach (var item in model.Tallas.Where(t => t.Cantidad > 0))
                 {
-                    var producto = productos[item.ID_Producto];
+                    // ==============================================
+                    // 🔍 OBTENER DETALLE DEL PEDIDO
+                    // ==============================================
+                    var detallePedido = pedido.DetallePedidos
+                        .FirstOrDefault(d => d.ID_Detalle == item.ID_Detalle);
 
-                    _context.DetalleDespachos.Add(new DetalleDespacho
+                    if (detallePedido == null)
+                        throw new Exception("El detalle no pertenece al pedido");
+
+                    // ==============================================
+                    // 🔍 OBTENER PRODUCTO
+                    // ==============================================
+                    if (!productos.TryGetValue(detallePedido.ID_Producto, out var producto))
+                        throw new Exception($"Producto no encontrado ID {detallePedido.ID_Producto}");
+
+                    // ==============================================
+                    // 🔒 VALIDACIONES FINALES (ANTI-CONCURRENCIA)
+                    // ==============================================
+                    if (item.Cantidad <= 0)
+                        continue;
+
+                    if (producto.Stock <= 0)
+                        throw new Exception($"Stock sin existencias para el producto: {producto.Nombre}");
+
+                    if (producto.Stock < item.Cantidad)
+                    {
+                        throw new Exception(
+                            $"Stock insuficiente al guardar. Producto: {producto.Nombre}, Disponible: {producto.Stock}"
+                        );
+                    }
+
+                    // ==============================================
+                    // 📦 INSERTAR DETALLE DESPACHO (FUENTE DE VERDAD)
+                    // ==============================================
+                    var detalleDespacho = new DetalleDespacho
                     {
                         ID_Despacho = despacho.ID_Despacho,
-                        ID_Producto = item.ID_Producto,
+                        ID_Detalle = detallePedido.ID_Detalle,
+                        ID_Producto = detallePedido.ID_Producto,
                         Cantidad_Despachada = item.Cantidad
-                    });
+                    };
 
+                    _context.DetalleDespachos.Add(detalleDespacho);
+
+                    // ==============================================
+                    // 📉 ACTUALIZAR STOCK (ÚNICA MUTACIÓN REAL)
+                    // ==============================================
                     producto.Stock -= item.Cantidad;
-                }
 
+                    if (producto.Stock < 0)
+                    {
+                        throw new Exception(
+                            $"El stock no puede quedar negativo. Producto: {producto.Nombre}"
+                        );
+                    }
+
+                    _context.Entry(producto).State = EntityState.Modified;
+                }
+                // ==============================================
+                // 💾 GUARDAR CAMBIOS
+                // ==============================================
                 await _context.SaveChangesAsync();
 
-                // =========================================
-                // TIPO DESPACHO
-                // =========================================
-                var totalPedido = pedido.DetallePedidos.Sum(x => x.Cantidad);
+                // =====================================================
+                // 🔥 RECALCULAR ESTADO REAL DEL PEDIDO (BD)
+                // =====================================================
+                var totalPedidoFinal = pedido.DetallePedidos.Sum(x => x.Cantidad);
 
                 var totalDespachado = await _context.DetalleDespachos
                     .Join(_context.Despachos,
@@ -240,31 +416,221 @@ namespace InventarioWEB.Controllers
                         d => d.ID_Despacho,
                         (dd, d) => new { dd, d })
                     .Where(x => x.d.ID_Pedido == model.ID_Pedido)
-                    .SumAsync(x => (int?)x.dd.Cantidad_Despachada) ?? 0;
+                    .SumAsync(x => x.dd.Cantidad_Despachada);
 
-                despacho.Tipo = totalDespachado >= totalPedido
+                // =====================================================
+                // 🔥 DEFINIR TIPO DE DESPACHO
+                // =====================================================
+                despacho.Tipo = totalDespachado >= totalPedidoFinal
                     ? TipoDespacho.Completo
                     : TipoDespacho.Parcial;
 
-                // =========================================
-                // ESTADO PEDIDO
-                // =========================================
-                pedido.Estado = despacho.Tipo == TipoDespacho.Completo
-                    ? "Despachado"
-                    : "Pendiente";
+                // =====================================================
+                // 🔥 ACTUALIZAR ESTADO DEL PEDIDO (IMPORTANTE)
+                // =====================================================
+                if (totalDespachado >= totalPedidoFinal)
+                {
+                    pedido.Estado = "DESPACHADO";
+                    _context.Entry(pedido).State = EntityState.Modified;
+                }
 
+                // ==============================================
+                // 💾 GUARDAR ESTADO FINAL
+                // ==============================================
                 await _context.SaveChangesAsync();
 
                 await transaction.CommitAsync();
 
-                return RedirectToAction(nameof(Index));
+                // 🚀 CAMBIO CLAVE: IR A FACTURA EN LUGAR DE INDEX
+                return RedirectToAction("Factura", new { id = despacho.ID_Despacho });
+
             }
+                       
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
+
                 ModelState.AddModelError("", ex.Message);
-                return View(model);
+
+                return await Crear(model.ID_Pedido);
+                // return RedirectToAction(nameof(Crear), new { idPedido = model.ID_Pedido });
             }
+            
+        }
+
+        // ==========================================================
+        // 🔥 GENERAR FACTURA PDF
+        // ==========================================================
+        public async Task<IActionResult> Factura(int id)
+        {
+            var despacho = await _context.Despachos
+                .Include(d => d.Pedido)
+                    .ThenInclude(p => p.Cliente)
+                .Include(d => d.Detalles)
+                    .ThenInclude(dd => dd.Producto)
+                        .ThenInclude(p => p.Talla)
+                .Include(d => d.Detalles)
+                    .ThenInclude(dd => dd.Producto)
+                        .ThenInclude(p => p.Referencia)
+                .Include(d => d.Detalles)
+                    .ThenInclude(dd => dd.Producto)
+                        .ThenInclude(p => p.ColorNav)
+                .FirstOrDefaultAsync(d => d.ID_Despacho == id);
+
+            if (despacho == null)
+                return NotFound();
+
+            using var stream = new MemoryStream();
+
+            var writer = new PdfWriter(stream);
+            var pdf = new PdfDocument(writer);
+            var document = new Document(pdf);
+
+            // ======================================================
+            // 🔥 FUENTES
+            // ======================================================
+            var boldFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
+            var normalFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA);
+
+            // ======================================================
+            // 🔥 LOGO
+            // ======================================================
+            var logoPath = Path.Combine(_env.WebRootPath, "img", "Logo.jpg");
+
+            Image? logo = null;
+
+            if (System.IO.File.Exists(logoPath))
+            {
+                var imageData = ImageDataFactory.Create(logoPath);
+
+                // 🔥 LOGO MÁS GRANDE
+                logo = new Image(imageData).ScaleToFit(160, 100);
+            }
+
+            // ======================================================
+            // 🔥 ENCABEZADO
+            // ======================================================
+            var headerTable = new Table(new float[] { 1, 3 })
+                .UseAllAvailableWidth();
+
+            var cellLogo = new Cell()
+                .SetBorder(Border.NO_BORDER)
+                .SetVerticalAlignment(VerticalAlignment.MIDDLE);
+
+            if (logo != null)
+            {
+                cellLogo.Add(logo);
+            }
+
+            headerTable.AddCell(cellLogo);
+
+            headerTable.AddCell(new Cell()
+                .Add(new Paragraph("INDOMABLE S.A.S").SetFont(boldFont).SetFontSize(12))
+                .Add(new Paragraph("NIT: 900.123.456-7").SetFont(normalFont))
+                .Add(new Paragraph("Bogotá D.C").SetFont(normalFont))
+                .Add(new Paragraph("Tel: 300 123 4567").SetFont(normalFont))
+                .SetBorder(Border.NO_BORDER)
+                .SetVerticalAlignment(VerticalAlignment.MIDDLE)
+            );
+
+            document.Add(headerTable);
+
+            document.Add(new Paragraph("\n"));
+
+            // ======================================================
+            // 🔥 DATOS FACTURA / TRAZABILIDAD
+            // ======================================================
+            document.Add(new Paragraph($"Factura N°: {despacho.ID_Despacho}").SetFont(boldFont));
+            document.Add(new Paragraph($"Pedido N°: {despacho.ID_Pedido}").SetFont(boldFont));
+            document.Add(new Paragraph($"Fecha: {despacho.Fecha:dd/MM/yyyy HH:mm}"));
+            document.Add(new Paragraph($"Estado: {despacho.Estado}"));
+            document.Add(new Paragraph($"Tipo: {despacho.Tipo}"));
+
+            document.Add(new Paragraph("\n"));
+
+            // ======================================================
+            // 🔥 CLIENTE
+            // ======================================================
+            var cliente = despacho.Pedido.Cliente;
+
+            document.Add(new Paragraph(
+                $"Cliente: {cliente.Nombre} {cliente.Apellido}    " +
+                $"Doc: {cliente.ID_Cliente}    Tel: {cliente.Telefono}"
+            ));
+
+            document.Add(new Paragraph(
+                $"Dirección: {cliente.Direccion}    Ciudad: {cliente.CiudadMunicipio}"
+            ));
+
+            document.Add(new Paragraph("\n"));
+
+            // ======================================================
+            // 🔥 TABLA PRODUCTOS
+            // ======================================================
+            var table = new Table(new float[] { 2, 4, 2, 2, 2, 2 });
+            table.UseAllAvailableWidth();
+
+            table.AddHeaderCell(new Cell().Add(new Paragraph("Cod").SetFont(boldFont)));
+            table.AddHeaderCell(new Cell().Add(new Paragraph("Producto").SetFont(boldFont)));
+            table.AddHeaderCell(new Cell().Add(new Paragraph("Talla").SetFont(boldFont)));
+            table.AddHeaderCell(new Cell().Add(new Paragraph("Color").SetFont(boldFont)));
+            table.AddHeaderCell(new Cell().Add(new Paragraph("Cant").SetFont(boldFont)));
+            table.AddHeaderCell(new Cell().Add(new Paragraph("Subtotal").SetFont(boldFont)));
+
+            decimal total = 0;
+
+            var detallesIds = despacho.Detalles.Select(x => x.ID_Detalle).ToList();
+
+            var precios = await _context.DetallePedidos
+                .Where(x => detallesIds.Contains(x.ID_Detalle))
+                .ToDictionaryAsync(x => x.ID_Detalle, x => x.PrecioVenta);
+
+            foreach (var d in despacho.Detalles)
+            {
+                var p = d.Producto;
+
+                var color = p.ColorNav?.Nombre ?? p.ColorSnapshot ?? "";
+
+                decimal precio = precios.ContainsKey(d.ID_Detalle)
+                    ? precios[d.ID_Detalle]
+                    : 0;
+
+                decimal subtotal = precio * d.Cantidad_Despachada;
+
+                total += subtotal;
+
+                table.AddCell(new Paragraph(p.ID_Producto.ToString()));
+                table.AddCell(new Paragraph(p.Nombre));
+                table.AddCell(new Paragraph(p.Talla?.DescripTalla ?? ""));
+                table.AddCell(new Paragraph(color));
+                table.AddCell(new Paragraph(d.Cantidad_Despachada.ToString()));
+                table.AddCell(new Paragraph($"${subtotal:N0}"));
+            }
+
+            document.Add(table);
+
+            document.Add(new Paragraph("\n"));
+
+            // ======================================================
+            // 🔥 TOTALES
+            // ======================================================
+            document.Add(
+                new Paragraph($"TOTAL: ${total:N0}")
+                    .SetFont(boldFont)
+                    .SetTextAlignment(TextAlignment.RIGHT)
+            );
+
+            document.Add(new Paragraph("\n"));
+
+            // ======================================================
+            // 🔥 FIRMA
+            // ======================================================
+            document.Add(new Paragraph("____________________________"));
+            document.Add(new Paragraph("Firma Responsable"));
+
+            document.Close();
+
+            return File(stream.ToArray(), "application/pdf", $"Factura_{id}.pdf");
         }
     }
 }

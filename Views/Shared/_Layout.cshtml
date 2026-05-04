@@ -2,7 +2,7 @@
 @inject IHttpContextAccessor HttpContextAccessor
 
 @{
-    var usuarioId = HttpContextAccessor.HttpContext.Session.GetString("UsuarioID");
+    var usuarioId = HttpContextAccessor.HttpContext?.Session?.GetString("UsuarioID");
     bool sesionActiva = !string.IsNullOrEmpty(usuarioId);
 }
 
@@ -12,12 +12,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!--
-        Layout principal de la aplicación
-        Módulo prioritario actual: PRODUCCIÓN
-    -->
     <title>@ViewData["Title"] - ProducciónWEB</title>
 
+    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
 
@@ -117,61 +114,52 @@
             font-size: 0.85rem;
         }
     </style>
- </head>
-
-
+</head>
 
 <body>
+
     @if (sesionActiva)
     {
-        <!-- ========================================================= -->
-        <!-- NAVBAR SUPERIOR -->
-        <!-- ========================================================= -->
+        <!-- NAVBAR -->
         <nav class="navbar fixed-top d-flex justify-content-between align-items-center shadow-sm">
             <span class="menu-toggle" id="menu-toggle">
                 <i class="bi bi-list"></i>
             </span>
 
-            <!-- Nombre del sistema enfocado en Producción -->
             <span class="navbar-brand">ProducciónWEB</span>
         </nav>
 
-        <!-- Overlay para menú lateral -->
+        <!-- OVERLAY -->
         <div id="overlay"></div>
 
-        <!-- ========================================================= -->
-        <!-- MENÚ LATERAL PRINCIPAL -->
-        <!-- ========================================================= -->
+        <!-- SIDEBAR -->
         <div class="sidebar" id="sidebar">
             <h6 class="text-center mb-3 fw-bold">Menú Principal</h6>
 
-            <!-- INICIO -->
             <a asp-controller="Auto" asp-action="Dashboard">
                 <i class="bi bi-house me-2"></i>Inicio
             </a>
 
-            <!-- PRODUCCIÓN (antes Inventario) -->
-            <!-- Módulo prioritario del sistema -->
             <a asp-controller="Produccion" asp-action="Index">
                 <i class="bi bi-box-seam me-2"></i>Producción
             </a>
 
-            <!-- DESPACHO -->
-            <!-- Placeholder visual: módulo a implementar posteriormente -->
             <a asp-controller="Despacho" asp-action="Index">
                 <i class="bi bi-truck me-2"></i>Despacho
             </a>
-            <!-- PRODUCTOS -->
+
+            <a asp-controller="Despacho" asp-action="SeleccionarPedido">
+                <i class="bi bi-list-check me-2"></i>Seleccionar Pedido
+            </a>
+
             <a asp-controller="Productos" asp-action="Index">
                 <i class="bi bi-bag me-2"></i>Productos
             </a>
 
-            <!-- CATÁLOGOS -->
             <a asp-controller="Catalogos" asp-action="Index">
                 <i class="bi bi-collection me-2"></i>Catálogos
             </a>
 
-            <!-- CATÁLOGOS MONGO -->
             <a asp-controller="ColorMongo" asp-action="Index">
                 <i class="bi bi-database me-2"></i>Catálogos Mongo
             </a>
@@ -182,6 +170,10 @@
 
             <a asp-controller="Ventas" asp-action="Index">
                 <i class="bi bi-cart-check me-2"></i>Ventas
+            </a>
+
+            <a asp-controller="Ventas" asp-action="HistorialEnvios">
+                <i class="bi bi-send me-2"></i>Historial Envíos
             </a>
 
             <a asp-controller="Abonos" asp-action="Index">
@@ -198,9 +190,7 @@
         </div>
     }
 
-    <!-- ========================================================= -->
-    <!-- CONTENIDO PRINCIPAL -->
-    <!-- ========================================================= -->
+    <!-- CONTENIDO -->
     <div class="content @(sesionActiva ? "" : "p-3")" id="content">
         <div class="container">
             @RenderBody()
@@ -214,6 +204,14 @@
         </footer>
     }
 
+    <!-- SCRIPTS BASE -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- SCRIPT GLOBAL -->
+    <script src="~/js/site.js"></script>
+
+    <!-- MENÚ -->
     @if (sesionActiva)
     {
         <script>
@@ -235,11 +233,7 @@
         </script>
     }
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js"></script>
-
-    @await RenderSectionAsync("Scripts", required: false)
-
+    <!-- TOASTS -->
     @if (TempData["success"] != null)
     {
         <div class="toast show position-fixed bottom-0 end-0 m-3 bg-success text-white">
@@ -257,5 +251,9 @@
             </div>
         </div>
     }
+
+    <!-- JS DE CADA VISTA -->
+    @await RenderSectionAsync("Scripts", required: false)
+
 </body>
 </html>

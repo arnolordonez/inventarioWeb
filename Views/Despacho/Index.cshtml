@@ -1,0 +1,151 @@
+﻿@model IEnumerable<InventarioWEB.Models.Despacho>
+
+@using InventarioWEB.Models
+
+@{
+    ViewData["Title"] = "Despachos";
+}
+
+<h2 class="mb-4">📦 Gestión de Despachos</h2>
+
+<a asp-action="SeleccionarPedido" class="btn btn-success mb-3">
+    📦 Generar Despacho
+</a>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        <div class="table-responsive">
+
+            <table class="table table-striped table-hover table-bordered align-middle mb-0">
+
+                <thead class="table-dark text-center">
+                    <tr>
+                        <th>ID</th>
+                        <th>Pedido</th>
+                        <th>Estado Pedido</th>
+                        <th>✔ Factura</th>
+                        <th>✔ Despacho</th>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    @if (Model == null || !Model.Any())
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center text-muted">
+                                No hay despachos
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr>
+
+                                <td class="text-center fw-bold">
+                                    #@item.ID_Despacho
+                                </td>
+
+                                <td>
+                                    Pedido #@item.ID_Pedido
+                                </td>
+
+                                <!-- 🔥 ESTADO PEDIDO -->
+                                <td class="text-center">
+                                    @if (item.Pedido != null)
+                                    {
+                                        if (item.Pedido.Estado == "PENDIENTE")
+                                        {
+                                            <span class="badge bg-warning">PENDIENTE</span>
+                                        }
+                                        else if (item.Pedido.Estado == "PAGADO")
+                                        {
+                                            <span class="badge bg-success">PAGADO</span>
+                                        }
+                                        else if (item.Pedido.Estado == "DESPACHADO")
+                                        {
+                                            <span class="badge bg-primary">DESPACHADO</span>
+                                        }
+                                    }
+                                </td>
+
+                                <!-- ✅ CHECK FACTURA -->
+                                <td class="text-center">
+                                    @if (item.Estado == EstadoDespacho.Despachado)
+                                    {
+                                        <span class="text-success fw-bold">✔</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-danger fw-bold">✖</span>
+                                    }
+                                </td>
+
+                                <!-- ✅ CHECK DESPACHO -->
+                                <td class="text-center">
+                                    @if (item.Tipo == TipoDespacho.Completo)
+                                    {
+                                        <span class="text-success fw-bold">✔ Completo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-warning fw-bold">◑ Parcial</span>
+                                    }
+                                </td>
+
+                                <td class="text-center">
+                                    @item.Fecha.ToString("yyyy-MM-dd HH:mm")
+                                </td>
+
+                                <td class="text-center">
+                                    @if (item.Tipo == TipoDespacho.Completo)
+                                    {
+                                        <span class="badge bg-success">COMPLETO</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">PARCIAL</span>
+                                    }
+                                </td>
+
+                                <td class="text-center">
+                                    <span class="badge bg-primary">
+                                        @item.Estado.ToString().ToUpper()
+                                    </span>
+                                </td>
+
+                                <td class="text-center">
+
+                                    <a asp-action="Detalle"
+                                       asp-route-id="@item.ID_Despacho"
+                                       class="btn btn-sm btn-outline-primary">
+                                        🔍
+                                    </a>
+
+                                    <a asp-action="Factura"
+                                       asp-route-id="@item.ID_Despacho"
+                                       target="_blank"
+                                       class="btn btn-sm btn-success">
+                                        🧾
+</a>
+                                </td>
+
+                            </tr>
+                        }
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+</div>

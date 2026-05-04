@@ -5,6 +5,8 @@ VisualStudioVersion = 17.12.35514.174
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InventarioWEB", "InventarioWEB.csproj", "{8CC96DB7-7887-4398-8BA1-15961C08B366}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InventarioWEB.Tests", "..\InventarioWEB.Tests\InventarioWEB.Tests.csproj", "{D9305700-1A27-4342-B85E-B68363548298}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{8CC96DB7-7887-4398-8BA1-15961C08B366}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8CC96DB7-7887-4398-8BA1-15961C08B366}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8CC96DB7-7887-4398-8BA1-15961C08B366}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D9305700-1A27-4342-B85E-B68363548298}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D9305700-1A27-4342-B85E-B68363548298}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D9305700-1A27-4342-B85E-B68363548298}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D9305700-1A27-4342-B85E-B68363548298}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

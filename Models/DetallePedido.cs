@@ -1,5 +1,4 @@
-﻿using InventarioWEB.Models;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -51,11 +50,15 @@ namespace InventarioWEB.Models
         public decimal Subtotal { get; set; }
 
         // ============================
-        // 🚚 CONTROL DE DESPACHO
+        // 💰 IMPUESTOS
         // ============================
         [Required]
-        [Column("Cantidad_Despachada")]
-        public int Cantidad_Despachada { get; set; } = 0;
+        [Column("IVA_Porcentaje", TypeName = "decimal(5,2)")]
+        public decimal IVA_Porcentaje { get; set; } = 0;
+
+        [Required]
+        [Column("IVA_Valor", TypeName = "decimal(10,2)")]
+        public decimal IVA_Valor { get; set; } = 0;
 
         // ============================
         // 🔗 NAVEGACIÓN

@@ -1,6 +1,7 @@
 ﻿@model InventarioWEB.ViewModels.VentaVM
 
 @{
+    Layout = "~/Views/Shared/_Layout.cshtml";
     ViewData["Title"] = "Punto de Venta";
 }
 
@@ -8,56 +9,107 @@
 
     <h4 class="mb-4">🛒 Punto de Venta</h4>
 
-    <!-- ===================================================== -->
     <!-- 🔹 CLIENTE -->
-    <!-- ===================================================== -->
     <div class="card p-3 mb-3">
-        <label>Cliente</label>
 
-        <input type="text" id="clienteBusqueda" class="form-control"
-               placeholder="Buscar por nombre o documento..." autocomplete="off" />
+        <label class="form-label fw-bold">Cliente</label>
+
+        <div class="input-group">
+            <input type="text" id="txtBuscarCliente" class="form-control"
+                   placeholder="Buscar cliente por nombre o cedula">
+
+            <button class="btn btn-primary" type="button" onclick="buscarCliente()">
+                🔍 Buscar
+            </button>
+        </div>
+
+        <div id="listaClientes" class="mt-3"></div>
 
         <input type="hidden" id="ID_Cliente" />
 
-        <small id="clienteSeleccionado" class="text-success"></small>
+        <!-- 🔥 CORREGIDO: quitar d-none -->
+        <small id="clienteError" class="text-danger" style="display:none;">
+            Debe seleccionar un cliente existente
+        </small>
 
-        <button type="button" class="btn btn-sm btn-warning mt-2"
-                onclick="cambiarCliente()">
-            Cambiar cliente
-        </button>
+        <!-- 🔽 INFORMACIÓN CLIENTE -->
+        <!-- 🔥 CORREGIDO: quitar d-none -->
+        <div id="clienteInfo" class="mt-3" style="display:none;">
+
+            <div id="clienteAlert" class="alert p-3 mb-2">
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <strong>Cliente seleccionado</strong>
+
+                    <button type="button" id="btnCambiarCliente"
+                            class="btn btn-sm btn-warning"
+                            onclick="cambiarCliente()">
+                        Cambiar
+                    </button>
+                </div>
+
+                <hr class="my-2" />
+
+                <div class="row">
+
+                    <div class="col-md-6">
+                        <b>Nombre:</b>
+                        <div id="cliNombre" class="text-primary"></div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <b>Cedula:</b>
+                        <div>
+                            <span id="cliCedula"></span>
+                            &nbsp;&nbsp;
+                            <span id="cliEstado" class="fw-bold"></span>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
 
-    <!-- ===================================================== -->
-    <!-- 🔹 FILTROS (CLAVE DEL SISTEMA) -->
-    <!-- ===================================================== -->
+    <!-- 🔹 FILTROS -->
     <div class="card p-3 mb-3">
         <h6>Filtros</h6>
 
         <div class="row">
 
             <div class="col-md-3">
-                <label>Género</label>
-                <select id="genero" class="form-control"></select>
+                <label>Genero</label>
+                <select id="genero" class="form-control">
+                    <option value="">Cargando...</option>
+                </select>
             </div>
 
             <div class="col-md-3">
                 <label>Referencia</label>
-                <select id="referencia" class="form-control"></select>
+                <select id="referencia" class="form-control">
+                    <option value="">Seleccione referencia</option>
+                </select>
             </div>
 
             <div class="col-md-2">
                 <label>Tela</label>
-                <select id="tela" class="form-control"></select>
+                <select id="tela" class="form-control">
+                    <option value="">Cargando...</option>
+                </select>
             </div>
 
             <div class="col-md-2">
                 <label>Color</label>
-                <select id="color" class="form-control"></select>
+                <select id="color" class="form-control">
+                    <option value="">Cargando...</option>
+                </select>
             </div>
 
             <div class="col-md-2 d-flex align-items-end">
-                <button class="btn btn-primary w-100"
-                        onclick="cargarMatriz()">
+                <button class="btn btn-primary w-100" onclick="cargarMatriz()">
                     Buscar
                 </button>
             </div>
@@ -65,65 +117,78 @@
         </div>
     </div>
 
-    <!-- ===================================================== -->
-    <!-- 🔹 MATRIZ DE TALLAS -->
-    <!-- ===================================================== -->
+    <!-- 🔹 DEBUG -->
+    <div id="debugCombos" class="text-danger mt-2"></div>
+
+    <!-- 🔹 MATRIZ -->
     <div class="card p-3 mb-3">
         <h6>Matriz de tallas</h6>
+
+        <!-- 🔥 AYUDA VISUAL CLAVE -->
+        <small class="text-muted d-block mb-2">
+            ⚠️ Todas las cantidades se manejan en docenas (1 = 1 docena)
+        </small>
+
         <div id="matriz"></div>
     </div>
 
-    <!-- ===================================================== -->
     <!-- 🔹 CARRITO -->
-    <!-- ===================================================== -->
     <div class="card p-3 mb-3">
         <h6>Carrito</h6>
 
         <table class="table table-bordered" id="carrito">
-            <thead>
+            <thead class="table-light">
                 <tr>
                     <th>Producto</th>
-                    <th>Talla</th>
-                    <th>Cantidad</th>
-                    <th>Precio</th>
+                    <th>Docenas</th>
+                    <th>Precio Docena</th>
                     <th>Subtotal</th>
-                    <th></th>
+                    <th style="width: 50px;"></th>
                 </tr>
             </thead>
             <tbody></tbody>
         </table>
     </div>
 
-    <!-- ===================================================== -->
+   
     <!-- 🔹 TOTALES -->
-    <!-- ===================================================== -->
     <div class="card p-3 mb-3">
+        <div class="row g-3">
 
-        <div class="row">
+            <div class="col-md-3">
+                <label class="form-label">Total sin IVA</label>
+                <input type="number" id="totalSinIva" class="form-control" readonly />
+            </div>
 
-            <div class="col-md-4">
-                <label>Total Venta</label>
+            <div class="col-md-3">
+                <label class="form-label">Total Venta (con IVA)</label>
                 <input type="number" id="totalVenta" class="form-control" readonly />
             </div>
 
-            <div class="col-md-4">
-                <label>Abono inicial</label>
-                <input type="number" id="abonoInicial" class="form-control" />
+            <div class="col-md-3">
+                <label class="form-label">Tipo de venta</label>
+                <select id="tipoVenta" class="form-control">
+                    <option value="CONTADO">Contado</option>
+                    <option value="CREDITO">Crédito</option>
+                </select>
             </div>
 
-            <div class="col-md-4">
-                <label>Método de pago</label>
-                <select id="metodoPago" class="form-control"></select>
+            <div class="col-md-3">
+                <label class="form-label">Abono inicial (sobre total con IVA)</label>
+                <input type="number" id="abonoInicial" class="form-control" min="0" step="0.01" />
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Método de pago</label>
+                <select id="metodoPago" class="form-control">
+                    <option value="">Seleccione...</option>
+                </select>
             </div>
 
         </div>
-
     </div>
-
-    <!-- ===================================================== -->
     <!-- 🔹 GUARDAR -->
-    <!-- ===================================================== -->
-    <button class="btn btn-success w-100" onclick="guardarVenta()">
+    <button id="btnGuardarVenta" class="btn btn-success w-100" onclick="guardarVenta()">
         💾 Guardar Venta
     </button>
 
@@ -131,142 +196,10 @@
 
 @section Scripts {
 
-    <!-- jQuery UI (autocomplete) -->
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css" />
-    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <!-- 🔥 CRÍTICO: ASEGURAR jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    <script src="~/js/ventas.js"></script>
+    <!-- 🔥 TU JS DESPUÉS -->
+    <script src="~/js/ventas.js?v=4"></script>
+
 }
-
-
-
-
-
-
-
-@*
-
-@model InventarioWEB.ViewModels.VentaVM
-@{
-    ViewData["Title"] = "Punto de Venta";
-}
-
-<div class="container mt-4">
-
-    <h3 class="mb-4">🛒 Punto de Venta</h3>
-
-    <!-- ========================= -->
-    <!-- 🔹 CLIENTE -->
-    <!-- ========================= -->
-    <div class="card p-3 mb-3">
-        <label>Buscar Cliente</label>
-        <input type="text" id="cliente" class="form-control" placeholder="Nombre o cédula">
-        <input type="hidden" id="ID_Cliente" />
-    </div>
-
-    <!-- ========================= -->
-    <!-- 🔹 FILTROS -->
-    <!-- ========================= -->
-    <div class="card p-3 mb-3">
-        <div class="row">
-
-            <div class="col-md-3">
-                <label>Género</label>
-                <select id="genero" class="form-control">
-                    <option value="">Seleccione</option>
-                    @foreach (var g in ViewBag.Generos)
-                    {
-                        <option value="@g.Value">@g.Text</option>
-                    }
-                </select>
-            </div>
-
-            <div class="col-md-3">
-                <label>Referencia</label>
-                <select id="referencia" class="form-control">
-                    <option value="">Seleccione</option>
-                </select>
-            </div>
-
-            <div class="col-md-3">
-                <label>Tela</label>
-                <select id="tela" class="form-control">
-                    <option value="">Seleccione</option>
-                    @foreach (var t in ViewBag.Telas)
-                    {
-                        <option value="@t.Value">@t.Text</option>
-                    }
-                </select>
-            </div>
-
-            <div class="col-md-3">
-                <label>Color</label>
-                <select id="color" class="form-control">
-                    <option value="">Seleccione</option>
-                    @foreach (var c in ViewBag.Colores)
-                    {
-                        <option value="@c.Value">@c.Text</option>
-                    }
-                </select>
-            </div>
-
-        </div>
-
-        <div class="mt-3">
-            <button class="btn btn-primary" onclick="cargarMatriz()">
-                🔍 Buscar
-            </button>
-        </div>
-    </div>
-
-    <!-- ========================= -->
-    <!-- 🔹 MATRIZ -->
-    <!-- ========================= -->
-    <div class="card p-3 mb-3">
-        <h5>Matriz de Tallas</h5>
-        <div id="matriz"></div>
-    </div>
-
-    <!-- ========================= -->
-    <!-- 🔹 CARRITO -->
-    <!-- ========================= -->
-    <div class="card p-3 mb-3">
-        <h5>Carrito</h5>
-
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>ID Producto</th>
-                    <th>Cantidad</th>
-                    <th>Precio</th>
-                    <th>Subtotal</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody id="carrito"></tbody>
-        </table>
-
-        <h4 class="text-end">
-            Total: $<span id="total">0</span>
-        </h4>
-    </div>
-
-    <!-- ========================= -->
-    <!-- 🔹 GUARDAR -->
-    <!-- ========================= -->
-    <button class="btn btn-success w-100" onclick="guardarVenta()">
-        💾 Guardar Venta
-    </button>
-
-</div>
-
-@section Scripts {
-    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
-    <script src="~/js/ventas.js"></script>
-}
-*@
-
-
- 
-
-

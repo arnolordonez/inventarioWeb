@@ -1,10 +1,19 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using InventarioWEB.Data;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using InventarioWEB.Data;
 using InventarioWEB.Models;
 using InventarioWEB.ViewModels;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using System.IO;
 
+using iText.Kernel.Pdf;
+using iText.Layout;
+using iText.Layout.Element;
+using iText.Layout.Properties;
+using iText.IO.Image;
+using Microsoft.AspNetCore.Hosting;
+using iText.IO.Font.Constants;
+using iText.Kernel.Font;
 
 namespace InventarioWEB.Controllers
 {
@@ -12,10 +21,14 @@ namespace InventarioWEB.Controllers
     {
         private readonly MovimientoVentasDbContext _context;
 
-        public VentasController(MovimientoVentasDbContext context)
+        private readonly IWebHostEnvironment _env;
+
+        public VentasController(MovimientoVentasDbContext context, IWebHostEnvironment env)
         {
             _context = context;
+            _env = env;
         }
+       
 
         // ==========================================================
         // 🔹 INDEX (POS)
@@ -27,34 +40,37 @@ namespace InventarioWEB.Controllers
         }
 
         // ==========================================================
-        // 🔹 BUSCAR CLIENTES (AUTOCOMPLETE)
+        // 🔹 BUSCAR CLIENTES
         // ==========================================================
+
+
         [HttpGet]
         public async Task<IActionResult> BuscarClientes(string term)
         {
             if (string.IsNullOrWhiteSpace(term))
                 return Json(new List<object>());
 
-            term = term.Trim();
+            term = term.Trim().ToLower();
 
             var query = _context.Clientes
-                .AsNoTracking()
-                .Where(c => c.Activo);
+    .AsNoTracking()
+    .Where(c => c.Activo);
 
-            // 🔥 FILTRO INTELIGENTE
+            // 🔥 Búsqueda inteligente (RÁPIDA)
             if (int.TryParse(term, out int idBusqueda))
             {
-                // 🔹 Búsqueda por “documento” (ID_Cliente)
                 query = query.Where(c => c.ID_Cliente == idBusqueda);
             }
             else
             {
-                // 🔹 Búsqueda por texto
+                term = term.Trim();
+
                 query = query.Where(c =>
-                    c.Nombre.Contains(term) ||
-                    c.Apellido.Contains(term) ||
-                    (c.Nombre + " " + c.Apellido).Contains(term)
-                );
+                    (c.Nombre ?? "").Contains(term) ||
+                    (c.Apellido ?? "").Contains(term) ||
+                    ((c.Nombre ?? "") + " " + (c.Apellido ?? ""))
+                        .Contains(term)
+                );                    
             }
 
             var clientes = await query
@@ -62,45 +78,105 @@ namespace InventarioWEB.Controllers
                 .ThenBy(c => c.Apellido)
                 .Select(c => new
                 {
-                    iD_Cliente = c.ID_Cliente,   // ✅ EXACTO como lo usa tu JS
-
-                    nombreCompleto = (c.Nombre ?? "") + " " + (c.Apellido ?? ""),
-
-                    documento = c.ID_Cliente, // en tu caso la cédula
-
-                    telefono = c.Telefono,
-                    correo = c.Correo,
-                    ciudad = c.CiudadMunicipio
+                    id_Cliente = c.ID_Cliente,
+                    cedula = c.ID_Cliente,
+                    nombreCompleto = ((c.Nombre ?? "") + " " + (c.Apellido ?? "")).Trim(),
+                    ClienteId = c.ID_Cliente
                 })
-
                 .Take(10)
                 .ToListAsync();
 
-            return Json(clientes);
+            return Json(clientes.Select(c => new
+            {
+                c.id_Cliente,
+                c.cedula,
+                c.nombreCompleto,
+                tieneDeuda = false,
+                totalDeuda = 0,
+                estado = "OK"
+            }));
+
         }
-        // ==========================================================
-        // 🔹 REFERENCIAS POR GÉNERO
-        // ==========================================================
+
         [HttpGet]
         public async Task<IActionResult> ObtenerReferenciasPorGenero(int idGenero)
         {
             var data = await _context.Referencias
                 .Where(r => r.ID_Genero == idGenero && r.Activo)
-                .Select(r => new { r.ID_Referencias, r.DescripReferencia })
+                .Select(r => new
+                {
+                    value = r.ID_Referencias,
+                    text = r.DescripReferencia
+                })
+                .OrderBy(r => r.text)
                 .ToListAsync();
 
             return Json(data);
         }
 
-        // ==========================================================
-        // 🔹 MATRIZ DE TALLAS (CLAVE)
-        // ==========================================================
         [HttpGet]
-        public async Task<IActionResult> ObtenerMatriz(
-            int idGenero,
-            int idReferencia,
-            int idTela,
-            int idColor)
+        public async Task<IActionResult> ObtenerGeneros()
+        {
+            var data = await _context.Generos
+                .Select(g => new
+                {
+                    value = g.ID_Genero,
+                    text = g.DescripGenero
+                })
+                .OrderBy(g => g.text)
+                .ToListAsync();
+
+            return Json(data);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ObtenerTelas()
+        {
+            var data = await _context.Telas
+                .Where(t => t.Activo)
+                .Select(t => new
+                {
+                    value = t.ID_Telas,
+                    text = t.DescripTela
+                })
+                .ToListAsync();
+
+            return Json(data);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ObtenerColores()
+        {
+            var data = await _context.Colores
+                .Where(c => c.Activo)
+                .Select(c => new
+                {
+                    value = c.ID_Color,
+                    text = c.Nombre
+                })
+                .ToListAsync();
+
+            return Json(data);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ObtenerMetodosPago()
+        {
+            var data = await _context.MetodosPago
+                .Where(m => m.Activo)
+                .Select(m => new
+                {
+                    value = m.ID_MetodoPago,
+                    text = m.Nombre
+                })
+                .OrderBy(m => m.text)
+                .ToListAsync();
+
+            return Json(data);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ObtenerMatriz(int idGenero, int idReferencia, int idTela, int idColor)
         {
             var productos = await _context.Productos
                 .Include(p => p.Talla)
@@ -113,39 +189,19 @@ namespace InventarioWEB.Controllers
                 )
                 .Select(p => new
                 {
-                    p.ID_Producto,
-                    Talla = p.Talla.DescripTalla,
-                    p.Stock,
-                    p.PrecioVTA
+                    id_Producto = p.ID_Producto,
+                    talla = p.Talla != null ? p.Talla.DescripTalla : "Sin talla",
+                    stock = p.Stock,
+                    precioVTA = p.PrecioVTA
                 })
-                .OrderBy(p => p.Talla)
+                .OrderBy(p => p.talla)
                 .ToListAsync();
 
             return Json(productos);
         }
 
         // ==========================================================
-        // 🔹 BÚSQUEDA RÁPIDA POR CÓDIGO
-        // ==========================================================
-        [HttpGet]
-        public async Task<IActionResult> BuscarPorCodigo(int idProducto)
-        {
-            var p = await _context.Productos
-                .FirstOrDefaultAsync(x => x.ID_Producto == idProducto);
-
-            if (p == null) return Json(null);
-
-            return Json(new
-            {
-                p.ID_Producto,
-                p.Nombre,
-                p.PrecioVTA,
-                p.Stock
-            });
-        }
-
-        // ==========================================================
-        // 🔹 GUARDAR VENTA
+        // 🔹 GUARDAR VENTA (VERSIÓN ESTABLE - CORREGIDA + URL PDF)
         // ==========================================================
         [HttpPost]
         public async Task<IActionResult> Crear([FromBody] VentaVM venta)
@@ -154,55 +210,147 @@ namespace InventarioWEB.Controllers
 
             try
             {
+                // ======================================================
+                // 🔥 VALIDACIONES BÁSICAS
+                // ======================================================
+
+                if (venta == null)
+                    return BadRequest("Datos de venta inválidos.");
+
+                if (venta.ID_Cliente <= 0)
+                    return BadRequest("Cliente inválido.");
+
+                if (venta.Detalles == null || !venta.Detalles.Any(x => x.Cantidad > 0))
+                    return BadRequest("No hay productos válidos en la venta.");
+
+                if (string.IsNullOrEmpty(venta.TipoVenta))
+                    return BadRequest("El tipo de venta es obligatorio.");
+
+                // ======================================================
+                // 🔥 RECALCULAR TOTALES (BACKEND MANDA)
+                // ======================================================
+                decimal totalBase = 0;
+                decimal totalIVA = 0;
+
+                var detallesAgrupados = venta.Detalles
+                    .Where(x => x.Cantidad > 0)
+                    .GroupBy(x => x.ID_Producto)
+                    .Select(g => new
+                    {
+                        ID_Producto = g.Key,
+                        Cantidad = g.Sum(x => x.Cantidad)
+                    })
+                    .ToList();
+
+                var ids = detallesAgrupados.Select(d => d.ID_Producto).ToList();
+
+                var productos = await _context.Productos
+                    .Where(p => ids.Contains(p.ID_Producto))
+                    .ToDictionaryAsync(p => p.ID_Producto);
+
+                var calculos = new List<(int idProducto, int cantidad, decimal precio, decimal subtotal, decimal iva, decimal ivaPorcentaje)>();
+
+                foreach (var item in detallesAgrupados)
+                {
+                    if (!productos.ContainsKey(item.ID_Producto))
+                        throw new Exception($"Producto no existe (ID: {item.ID_Producto})");
+
+                    var producto = productos[item.ID_Producto];
+
+                    decimal precio = producto.PrecioVTA;
+                    decimal ivaPorcentaje = producto.IVA_Porcentaje;
+
+                    decimal subtotal = item.Cantidad * precio;
+                    decimal iva = subtotal * (ivaPorcentaje / 100);
+
+                    calculos.Add((item.ID_Producto, item.Cantidad, precio, subtotal, iva, ivaPorcentaje));
+
+                    totalBase += subtotal;
+                    totalIVA += iva;
+                }
+
+                decimal totalFinal = totalBase + totalIVA;
+
+                // ======================================================
+                // 🔹 AJUSTE CONTADO
+                // ======================================================
+                if (venta.TipoVenta == "CONTADO")
+                    venta.AbonoInicial = totalFinal;
+
+                // ======================================================
+                // 🔥 VALIDACIONES
+                // ======================================================
+                if (totalBase <= 0)
+                    return BadRequest("El total base no es válido.");
+
+                if (totalFinal <= 0)
+                    return BadRequest("El total de la venta no es válido.");
+
+                if (venta.TipoVenta != "CONTADO")
+                {
+                    if (venta.AbonoInicial < 0)
+                        return BadRequest("El abono no puede ser negativo.");
+
+                    if (venta.AbonoInicial > totalFinal)
+                        return BadRequest("El abono no puede ser mayor al total.");
+                }
+
+                decimal saldo = (venta.TipoVenta == "CONTADO")
+                    ? 0
+                    : totalFinal - venta.AbonoInicial;
+
+                // ======================================================
+                // 🔥 CREAR PEDIDO
+                // ======================================================
                 var pedido = new Pedido
                 {
                     Fecha = DateTime.Now,
-                    Estado = venta.AbonoInicial >= venta.TotalVenta ? "Pagado" : "Pendiente",
+                    Estado = saldo == 0 ? "PAGADO" : "PENDIENTE",
                     ID_Cliente = venta.ID_Cliente,
-                    Total = venta.Total,
-                    TotalVenta = venta.TotalVenta
+                    Total = totalBase,
+                    TotalIVA = totalIVA,
+                    TotalVenta = totalFinal,
+                    Saldo = saldo,
+                    TipoVenta = venta.TipoVenta
                 };
 
                 _context.Pedidos.Add(pedido);
                 await _context.SaveChangesAsync();
 
+                // ======================================================
+                // 🔥 DETALLES
+                // ======================================================
                 var detalles = new List<DetallePedido>();
 
-                foreach (var item in venta.Detalles)
+                foreach (var c in calculos)
                 {
-                    if (item.Cantidad <= 0) continue;
+                    var producto = productos[c.idProducto];
 
                     detalles.Add(new DetallePedido
                     {
                         ID_Pedido = pedido.ID_Pedido,
-                        ID_Producto = item.ID_Producto,
-                        Cantidad = item.Cantidad,
-                        PrecioVenta = item.PrecioVenta,
-                        PrecioBase = item.PrecioVenta,
-                        Subtotal = item.Cantidad * item.PrecioVenta,
-                        Cantidad_Despachada = 0
+                        ID_Producto = c.idProducto,
+                        Cantidad = c.cantidad,
+                        PrecioBase = c.precio,
+                        PrecioVenta = c.precio,
+                        Subtotal = c.subtotal,
+                        IVA_Porcentaje = c.ivaPorcentaje,
+                        IVA_Valor = c.iva,
+                        //Cantidad_Despachada = 0
                     });
                 }
 
                 _context.DetallePedidos.AddRange(detalles);
                 await _context.SaveChangesAsync();
 
-                var movimientos = detalles.Select(d => new MovimientoInventario
+                // ======================================================
+                // 🔥 ABONO
+                // ======================================================
+                if (venta.AbonoInicial > 0)
                 {
-                    ID_Producto = d.ID_Producto,
-                    TipoMovimiento = "SALIDA",
-                    Cantidad = d.Cantidad * -1,
-                    Fecha = DateTime.Now,
-                    TablaOrigen = "detalle_pedido",
-                    ID_Origen = d.ID_Detalle,
-                    Observacion = "Venta",
-                    Usuario = "Sistema"
-                });
+                    if (!venta.ID_MetodoPago.HasValue)
+                        return BadRequest("Debe seleccionar método de pago.");
 
-                _context.MovimientoInventarios.AddRange(movimientos);
-
-                if (venta.AbonoInicial > 0 && venta.ID_MetodoPago.HasValue)
-                {
                     _context.Abonos.Add(new Abono
                     {
                         ID_Pedido = pedido.ID_Pedido,
@@ -212,102 +360,386 @@ namespace InventarioWEB.Controllers
                     });
                 }
 
+                // ======================================================
+                // 🔥 GUARDAR
+                // ======================================================
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                return Ok(new { success = true });
+                // ======================================================
+                // 🔥 GENERAR URL DEL PDF (AQUÍ ESTÁ LO NUEVO)
+                // ======================================================
+                var urlPdf = Url.Action(
+                    "GenerarOrdenProduccionPDF",
+                    "Ventas",
+                    new { idPedido = pedido.ID_Pedido },
+                    Request.Scheme
+                );
+
+                // ======================================================
+                // ✅ RESPUESTA FINAL
+                // ======================================================
+                return Ok(new
+                {
+                    success = true,
+                    idPedido = pedido.ID_Pedido,
+                    estado = pedido.Estado,
+                    saldo = pedido.Saldo,
+                    totalVenta = pedido.TotalVenta,
+                    urlPdf = urlPdf // 🔥 CLAVE PARA WHATSAPP
+                });
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                return StatusCode(500, ex.Message);
+                return BadRequest(ex.InnerException?.Message ?? ex.Message);
             }
         }
 
+
         // ==========================================================
-        // 🔹 HISTORIAL
+        // 🔹 FILTROS BASE
         // ==========================================================
-        public async Task<IActionResult> Historial()
+        private async Task CargarFiltrosBaseAsync()
         {
-            var data = await _context.Pedidos
-                .Include(p => p.Cliente)
-                .Include(p => p.Abonos)
-                .Select(p => new VentaHistorialVM
+            ViewBag.Generos = await _context.Generos
+                .Select(g => new SelectListItem
                 {
-                    ID_Pedido = p.ID_Pedido,
-                    Cliente = p.Cliente.Nombre,
-                    Fecha = p.Fecha,
-                    TotalVenta = p.TotalVenta,
-                    TotalAbonado = p.Abonos.Sum(a => (decimal?)a.Monto) ?? 0,
-                    Saldo = p.TotalVenta - (p.Abonos.Sum(a => (decimal?)a.Monto) ?? 0)
-                })
-                .ToListAsync();
+                    Value = g.ID_Genero.ToString(),
+                    Text = g.DescripGenero
+                }).ToListAsync();
 
-            return View(data);
+            ViewBag.Telas = await _context.Telas
+                .Where(t => t.Activo)
+                .Select(t => new SelectListItem
+                {
+                    Value = t.ID_Telas.ToString(),
+                    Text = t.DescripTela
+                }).ToListAsync();
+
+            ViewBag.Colores = await _context.Colores
+                .Where(c => c.Activo)
+                .Select(c => new SelectListItem
+                {
+                    Value = c.ID_Color.ToString(),
+                    Text = c.Nombre
+                }).ToListAsync();
         }
 
-        // ==========================================================
-        // 🔹 REGISTRAR ABONO
-        // ==========================================================
-        [HttpPost]
-        public async Task<IActionResult> RegistrarAbono([FromBody] AbonoVM abonoVM)
+        [HttpGet]
+        public async Task<IActionResult> ObtenerOrdenProduccion(int idPedido)
         {
-            _context.Abonos.Add(new Abono
+            try
             {
-                ID_Pedido = abonoVM.ID_Pedido,
-                Fecha_Abono = DateTime.Now,
-                Monto = abonoVM.Monto,
-                ID_MetodoPago = abonoVM.ID_MetodoPago
-            });
+                // 🔍 PEDIDO
+                var pedido = await _context.Pedidos
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.ID_Pedido == idPedido);
 
-            await _context.SaveChangesAsync();
-            return Ok();
+                if (pedido == null)
+                {
+                    return Json(new { error = "Pedido no encontrado" });
+                }
+                var detalles = _context.DetallePedidos
+                       .Include(d => d.Producto).ThenInclude(p => p.Talla)
+                    .Include(d => d.Producto).ThenInclude(p => p.ColorNav)
+                    .Include(d => d.Producto).ThenInclude(p => p.Referencia)
+                    .Include(d => d.Producto).ThenInclude(p => p.Genero)   // 🔥 NUEVO
+                    .Include(d => d.Producto).ThenInclude(p => p.Tela)     // 🔥 NUEVO
+                    .Where(d => d.ID_Pedido == idPedido)
+                    .Select(d => new DetalleOrdenVM
+                    {
+                        ID_Producto = d.ID_Producto, // 🔥 IMPORTANTE
+                        Producto = d.Producto.Referencia != null
+                        ? d.Producto.Referencia.DescripReferencia
+                        : "N/A",
+
+                                            Color = !string.IsNullOrEmpty(d.Producto.ColorSnapshot)
+                        ? d.Producto.ColorSnapshot
+                        : (d.Producto.ColorNav != null ? d.Producto.ColorNav.Nombre : "N/A"),
+
+                                            Talla = d.Producto.Talla != null
+                        ? d.Producto.Talla.DescripTalla
+                        : "N/A",
+
+
+                        Cantidad = d.Cantidad
+                        /*
+                        Producto = d.Producto.Referencia.DescripReferencia,
+
+                        Color = !string.IsNullOrEmpty(d.Producto.ColorSnapshot)
+                            ? d.Producto.ColorSnapshot
+                            : d.Producto.ColorNav.Nombre,
+
+                        Talla = d.Producto.Talla.DescripTalla,
+                        */
+
+                    })
+                    .ToList();
+
+
+                // 🧾 ORDEN
+                var orden = new OrdenProduccionVM
+                {
+                    IdPedido = pedido.ID_Pedido,
+                    Fecha = pedido.Fecha.ToString("yyyy-MM-dd"),
+                    Estado = pedido.Estado ?? "",
+                    TipoVenta = pedido.TipoVenta ?? "",
+                    Detalles = detalles
+                };
+
+                return Json(orden);
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    error = "Error interno",
+                    detalle = ex.Message
+                });
+            }
+        }
+        [HttpGet]
+        public IActionResult GenerarOrdenProduccionPDF(int idPedido)
+        {
+            var pedido = _context.Pedidos
+                .FirstOrDefault(p => p.ID_Pedido == idPedido);
+
+            if (pedido == null)
+                return NotFound();
+
+            var detalles = _context.DetallePedidos
+                .Include(d => d.Producto).ThenInclude(p => p.Talla)
+                .Include(d => d.Producto).ThenInclude(p => p.ColorNav)
+                .Include(d => d.Producto).ThenInclude(p => p.Referencia)
+                .Where(d => d.ID_Pedido == idPedido)
+                .OrderBy(d => d.Producto.ID_Referencias)
+                .ThenBy(d => d.Producto.ID_Genero)
+                .ToList();
+
+            using (var stream = new MemoryStream())
+            {
+                try
+                {
+                    using (var writer = new PdfWriter(stream))
+                    using (var pdf = new PdfDocument(writer))
+                    using (var document = new Document(pdf))
+                    {
+                        // ==========================================
+                        // 🔥 RUTA LOGO
+                        // ==========================================
+                        var rutaLogo = Path.Combine(
+                            Directory.GetCurrentDirectory(),
+                            "wwwroot",
+                            "img",
+                            "Logo.jpg"
+                        );
+
+                        // ==========================================
+                        // 🔥 HEADER HORIZONTAL (MEJORADO)
+                        // ==========================================
+                        var headerTable = new Table(new float[] { 3, 1 }).UseAllAvailableWidth();
+
+                        // 🔹 TEXTO IZQUIERDA (MÁS COMPACTO)
+                        var headerText = new Paragraph()
+                            .Add(new Text("INDOMABLE\n").SetFontSize(18))
+                            .Add(new Text("ORDEN DE PRODUCCION").SetFontSize(12));
+
+                        var cellTexto = new Cell()
+                            .Add(headerText)
+                            .SetBorder(iText.Layout.Borders.Border.NO_BORDER)
+                            .SetVerticalAlignment(VerticalAlignment.MIDDLE);
+
+                        headerTable.AddCell(cellTexto);
+
+                        // 🔹 LOGO DERECHA (MÁS GRANDE)
+                        if (System.IO.File.Exists(rutaLogo))
+                        {
+                            try
+                            {
+                                var imageData = ImageDataFactory.Create(rutaLogo);
+
+                                var logo = new Image(imageData)
+                                    .ScaleToFit(140, 90) // 🔥 MÁS GRANDE
+                                    .SetHorizontalAlignment(HorizontalAlignment.RIGHT);
+
+                                var cellLogo = new Cell()
+                                    .Add(logo)
+                                    .SetBorder(iText.Layout.Borders.Border.NO_BORDER)
+                                    .SetTextAlignment(TextAlignment.RIGHT);
+
+                                headerTable.AddCell(cellLogo);
+                            }
+                            catch
+                            {
+                                headerTable.AddCell(new Cell().SetBorder(iText.Layout.Borders.Border.NO_BORDER));
+                            }
+                        }
+                        else
+                        {
+                            headerTable.AddCell(new Cell().SetBorder(iText.Layout.Borders.Border.NO_BORDER));
+                        }
+
+                        document.Add(headerTable);
+
+                        // ==========================================
+                        // 🔥 INFO PEDIDO EN UNA SOLA LÍNEA
+                        // ==========================================
+                        var infoPedido = new Paragraph(
+                            $"Pedido: {pedido.ID_Pedido}    " +
+                            $"Fecha: {pedido.Fecha:yyyy-MM-dd}    " +
+                            $"Estado: {pedido.Estado ?? "N/A"} - {pedido.TipoVenta ?? "N/A"}"
+                        )
+                        .SetFontSize(10); // 🔥 MÁS COMPACTO
+
+                        document.Add(infoPedido);
+
+                        document.Add(new Paragraph(" "));
+
+                        // ==========================================
+                        // 🔥 TABLA
+                        // ==========================================
+                        var table = new Table(new float[] { 2, 2, 2, 1, 1 }).UseAllAvailableWidth();
+
+                        table.AddHeaderCell("Tela");
+                        table.AddHeaderCell("Color");
+                        table.AddHeaderCell("Talla");
+                        table.AddHeaderCell("Docenas");
+                        table.AddHeaderCell("Ref");
+
+                        var generos = _context.Generos
+                            .ToDictionary(g => g.ID_Genero, g => g.DescripGenero ?? "N/A");
+
+                        var telas = _context.Telas
+                            .ToDictionary(t => t.ID_Telas, t => t.DescripTela ?? "N/A");
+
+                        string? productoActual = null;
+                        int subtotalProducto = 0;
+                        int totalGeneral = 0;
+
+                        var bold = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
+
+                        foreach (var d in detalles)
+                        {
+                            if (d.Producto == null)
+                                continue;
+
+                            var producto = d.Producto;
+
+                            var claveProducto = $"{producto.ID_Referencias}_{producto.ID_Genero}";
+
+                            // ==========================================
+                            // 🔥 CAMBIO DE PRODUCTO → IMPRIMIR SUBTOTAL
+                            // ==========================================
+                            if (productoActual != null && productoActual != claveProducto)
+                            {
+                                var subtotalCell = new Cell(1, 5)
+                                    .Add(new Paragraph($"TOTAL: {subtotalProducto} docenas").SetFont(bold));
+
+                                table.AddCell(subtotalCell);
+
+                                subtotalProducto = 0;
+                            }
+
+                            // ==========================================
+                            // 🔥 NUEVO PRODUCTO
+                            // ==========================================
+                            if (productoActual != claveProducto)
+                            {
+                                productoActual = claveProducto;
+
+                                var nombreProductoBase = producto.Referencia?.DescripReferencia ?? "N/A";
+
+                                var genero = generos.ContainsKey(producto.ID_Genero)
+                                    ? generos[producto.ID_Genero]
+                                    : "N/A";
+
+                                var nombreProducto = $"{nombreProductoBase} - {genero}";
+
+                                var cellProducto = new Cell(1, 5)
+                                    .Add(new Paragraph(nombreProducto).SetFont(bold));
+
+                                table.AddCell(cellProducto);
+                            }
+
+                            var color = !string.IsNullOrEmpty(producto.ColorSnapshot)
+                                ? producto.ColorSnapshot
+                                : (producto.ColorNav?.Nombre ?? "N/A");
+
+                            var tela = telas.ContainsKey(producto.ID_Telas)
+                                ? telas[producto.ID_Telas]
+                                : "N/A";
+
+                            var talla = producto.Talla?.DescripTalla ?? "N/A";
+
+                            table.AddCell(tela);
+                            table.AddCell(color);
+                            table.AddCell(talla);
+                            table.AddCell(d.Cantidad.ToString());
+                            table.AddCell("#" + d.ID_Producto);
+
+                            subtotalProducto += d.Cantidad;
+                            totalGeneral += d.Cantidad;
+                        }
+
+                        // ==========================================
+                        // 🔥 ÚLTIMO SUBTOTAL
+                        // ==========================================
+                        var ultimoSubtotal = new Cell(1, 5)
+                            .Add(new Paragraph($"TOTAL: {subtotalProducto} docenas").SetFont(bold));
+
+                        table.AddCell(ultimoSubtotal);
+
+                        // ==========================================
+                        // 🔥 TOTAL GENERAL
+                        // ==========================================
+                        var totalFinal = new Cell(1, 5)
+                            .Add(new Paragraph($"TOTAL GENERAL: {totalGeneral} docenas").SetFont(bold));
+
+                        table.AddCell(totalFinal);
+
+                        document.Add(table);
+
+                        // ==========================================
+                        // 🔥 OBSERVACIONES (MÁS COMPACTO)
+                        // ==========================================
+                        document.Add(new Paragraph(" "));
+                        document.Add(new Paragraph("Observaciones: _________________________________"));
+                        document.Add(new Paragraph(" "));
+
+                        // ==========================================
+                        // 🔥 FIRMAS EN UNA SOLA FILA (SIN SALTO)
+                        // ==========================================
+                        var firmasTable = new Table(new float[] { 1, 1 })
+                            .UseAllAvailableWidth()
+                            .SetKeepTogether(true); // 🔥 CLAVE
+
+                        firmasTable.AddCell(new Cell()
+                            .Add(new Paragraph("Elaboro (Ventas): ____________________"))
+                            .SetBorder(iText.Layout.Borders.Border.NO_BORDER)
+                            .SetPaddingTop(10));
+
+                        firmasTable.AddCell(new Cell()
+                            .Add(new Paragraph("Recibio (Produccion): ________________"))
+                            .SetBorder(iText.Layout.Borders.Border.NO_BORDER)
+                            .SetTextAlignment(TextAlignment.RIGHT)
+                            .SetPaddingTop(10));
+
+                        document.Add(firmasTable);
+
+                        document.Close();
+
+                    }
+
+                    return File(stream.ToArray(), "application/pdf", $"Orden_{idPedido}.pdf");
+                }
+                catch (Exception ex)
+                {
+                    return Content("Error generando PDF: " + ex.Message);
+                }
+            }
         }
 
-        
-
-// ==========================================================
-// 🔹 CARGAR FILTROS BASE
-// ==========================================================
-private async Task CargarFiltrosBaseAsync()
-    {
-        ViewBag.Generos = await _context.Generos
-            .Select(g => new SelectListItem
-            {
-                Value = g.ID_Genero.ToString(),   // ajusta si el nombre cambia
-                Text = g.DescripGenero                   // ajusta si el nombre cambia
-            })
-            .ToListAsync();
-
-        ViewBag.Telas = await _context.Telas
-            .Where(t => t.Activo)
-            .Select(t => new SelectListItem
-            {
-                Value = t.ID_Telas.ToString(),
-                Text = t.DescripTela
-            })
-            .ToListAsync();
-
-        ViewBag.Colores = await _context.Colores
-            .Where(c => c.Activo)
-            .Select(c => new SelectListItem
-            {
-                Value = c.ID_Color.ToString(),
-                Text = c.Nombre
-            })
-            .ToListAsync();
     }
 
-    /*
-    // ==========================================================
-    // 🔹 CARGAR FILTROS BASE
-    // ==========================================================
-    private async Task CargarFiltrosBaseAsync()
-    {
-        ViewBag.Generos = await _context.Generos.ToListAsync();
-        ViewBag.Telas = await _context.Telas.Where(t => t.Activo).ToListAsync();
-        ViewBag.Colores = await _context.Colores.Where(c => c.Activo).ToListAsync();
-    }
-    */
-}
 }

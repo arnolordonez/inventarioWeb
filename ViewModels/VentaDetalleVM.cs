@@ -43,7 +43,7 @@ namespace InventarioWEB.ViewModels
 
         public int Cantidad { get; set; }
 
-        public int Cantidad_Despachada { get; set; }
+       // public int Cantidad_Despachada { get; set; }
 
         public decimal PrecioVenta { get; set; }
 

@@ -31,6 +31,7 @@ namespace InventarioWEB.Data
         public DbSet<Despacho> Despachos { get; set; } = null!;
         public DbSet<DetalleDespacho> DetalleDespachos { get; set; } = null!;
         public DbSet<MovimientoInventario> MovimientoInventarios { get; set; } = null!;
+        public DbSet<EnvioWhatsApp> EnvioWhatsApp { get; set; }
 
         // PRODUCCIÓN
         public DbSet<Produccion> Producciones { get; set; } = null!;
@@ -75,6 +76,9 @@ namespace InventarioWEB.Data
             // ENUMS → STRING (CLAVE)
             // ==========================================================
 
+            modelBuilder.Entity<DetallePedido>()
+                .Ignore("Cantidad_Despachada");
+
             modelBuilder.Entity<Despacho>()
                 .Property(d => d.Tipo)
                 .HasConversion<string>();
@@ -82,6 +86,7 @@ namespace InventarioWEB.Data
             modelBuilder.Entity<Despacho>()
                 .Property(d => d.Estado)
                 .HasConversion<string>();
+
 
             modelBuilder.Entity<MovimientoInventario>()
                 .HasOne(m => m.Producto)

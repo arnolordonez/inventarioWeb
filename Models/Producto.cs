@@ -79,6 +79,7 @@ namespace InventarioWEB.Models
         [ForeignKey(nameof(ID_Genero))]
         public Genero? Genero { get; set; }
 
+
         [ForeignKey(nameof(ID_Referencias))]
         public Referencia? Referencia { get; set; }
 

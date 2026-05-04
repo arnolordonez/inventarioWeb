@@ -1,0 +1,48 @@
+﻿@{
+    ViewData["Title"] = "Historial de Envíos";
+}
+
+<h2>📊 Historial de Envíos WhatsApp</h2>
+
+<table class="table table-bordered table-striped">
+    <thead class="table-dark">
+        <tr>
+            <th>Pedido</th>
+            <th>Cliente</th>
+            <th>Teléfono</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Pedido</td>
+                <td>@item.Cliente</td>
+                <td>@item.Telefono</td>
+                <td>@item.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                <td>
+                    <span class="badge bg-success">@item.Estado</span>
+                </td>
+                <td>
+                    <button class="btn btn-primary btn-sm"
+                            onclick="reenviar('@item.Telefono', '@item.UrlPdf')">
+                        🔁 Reenviar
+                    </button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<script>
+    function reenviar(telefono, urlPdf) {
+
+        let mensaje = `Hola, aquí tienes nuevamente tu orden:\n${urlPdf}`;
+        let url = `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`;
+
+        window.open(url, '_blank');
+    }
+</script>

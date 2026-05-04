@@ -6,7 +6,6 @@
 
 <div class="container-fluid">
 
-    ```
     <!-- TITULO Y BOTON -->
     <div class="row mb-3">
 
@@ -24,7 +23,6 @@
 
     </div>
 
-
     <!-- MENSAJE DE EXITO -->
     @if (TempData["Success"] != null)
     {
@@ -40,83 +38,62 @@
         </div>
     }
 
-
     <!-- RESUMEN RAPIDO -->
     <div class="row mb-3">
 
         <div class="col-md-4">
-
             <div class="card border-0 shadow-sm">
-
                 <div class="card-body text-center">
 
                     <h6 class="text-muted">Producciones</h6>
 
                     <h3 class="fw-bold text-primary">
-                        @Model.Producciones.Count()
+                        @(Model.Producciones?.Count() ?? 0)
                     </h3>
 
                 </div>
-
             </div>
-
         </div>
 
-
         <div class="col-md-4">
-
             <div class="card border-0 shadow-sm">
-
                 <div class="card-body text-center">
 
                     <h6 class="text-muted">Artículos distintos</h6>
 
                     <h3 class="fw-bold text-success">
-
                         @(
-                            Model.Producciones
-                            .SelectMany(p => p.Detalles)
+                            (Model.Producciones ?? new List<InventarioWEB.Models.Produccion>())
+                            .SelectMany(p => p.Detalles ?? new List<InventarioWEB.Models.DetalleProduccion>())
                             .Select(d => d.ID_Producto)
                             .Distinct()
                             .Count()
                             )
-
                     </h3>
 
-                    
                 </div>
-
             </div>
-
         </div>
 
-
         <div class="col-md-4">
-
             <div class="card border-0 shadow-sm">
-
                 <div class="card-body text-center">
 
                     <h6 class="text-muted">Unidades producidas</h6>
-                    <h3 class="fw-bold text-dark">
 
+                    <h3 class="fw-bold text-dark">
                         @(
-                            Model.Producciones
-                            .SelectMany(p => p.Detalles)
+                            (Model.Producciones ?? new List<InventarioWEB.Models.Produccion>())
+                            .SelectMany(p => p.Detalles ?? new List<InventarioWEB.Models.DetalleProduccion>())
                             .Sum(d => d.Cantidad)
                             )
-
                     </h3>
-                                      
 
                 </div>
-
             </div>
-
         </div>
 
     </div>
-
 
     <!-- TABLA PRODUCCIONES -->
     <div class="card shadow-sm">
@@ -127,7 +104,7 @@
 
         <div class="card-body">
 
-            @if (!Model.Producciones.Any())
+            @if (Model.Producciones == null || !Model.Producciones.Any())
             {
                 <div class="alert alert-info">
                     No existen producciones registradas.
@@ -143,24 +120,13 @@
                         <thead class="table-light">
 
                             <tr>
-
                                 <th style="width:80px">ID</th>
                                 <th style="width:140px">Fecha</th>
                                 <th>Usuario</th>
                                 <th>Observación</th>
-
-                                <th class="text-center" style="width:110px">
-                                    Artículos
-                                </th>
-
-                                <th class="text-center" style="width:120px">
-                                    Unidades
-                                </th>
-
-                                <th class="text-center" style="width:140px">
-                                    Acción
-                                </th>
-
+                                <th class="text-center" style="width:110px">Artículos</th>
+                                <th class="text-center" style="width:120px">Unidades</th>
+                                <th class="text-center" style="width:140px">Acción</th>
                             </tr>
 
                         </thead>
@@ -169,26 +135,17 @@
 
                             @foreach (var p in Model.Producciones)
                             {
-
                                 var totalUnidades = p.Detalles?.Sum(d => d.Cantidad) ?? 0;
 
                                 <tr>
 
-                                    <td>
-                                        @p.ID_Produccion
-                                    </td>
+                                    <td>@p.ID_Produccion</td>
 
-                                    <td>
-                                        @p.FechaProduccion.ToString("dd/MM/yyyy")
-                                    </td>
+                                    <td>@p.FechaProduccion.ToString("dd/MM/yyyy")</td>
 
-                                    <td>
-                                        @p.Usuario
-                                    </td>
+                                    <td>@p.Usuario</td>
 
-                                    <td>
-                                        @p.Observacion
-                                    </td>
+                                    <td>@p.Observacion</td>
 
                                     <td class="text-center">
                                         @(p.Detalles?.Count ?? 0)
@@ -211,7 +168,6 @@
                                     </td>
 
                                 </tr>
-
                             }
 
                         </tbody>
@@ -219,7 +175,6 @@
                     </table>
 
                 </div>
-
 
                 <!-- PAGINACION -->
                 @if (Model.TotalPaginas > 1)
@@ -229,44 +184,30 @@
                         <ul class="pagination justify-content-center">
 
                             <li class="page-item @(Model.PaginaActual == 1 ? "disabled" : "")">
-
                                 <a class="page-link"
                                    asp-action="Index"
                                    asp-route-pagina="@(Model.PaginaActual - 1)">
-
                                     ⬅ Anterior
-
                                 </a>
-
                             </li>
 
                             @for (int i = 1; i <= Model.TotalPaginas; i++)
                             {
-
                                 <li class="page-item @(i == Model.PaginaActual ? "active" : "")">
-
                                     <a class="page-link"
                                        asp-action="Index"
                                        asp-route-pagina="@i">
-
                                         @i
-
                                     </a>
-
                                 </li>
-
                             }
 
                             <li class="page-item @(Model.PaginaActual == Model.TotalPaginas ? "disabled" : "")">
-
                                 <a class="page-link"
                                    asp-action="Index"
                                    asp-route-pagina="@(Model.PaginaActual + 1)">
-
                                     Siguiente ➡
-
                                 </a>
-
                             </li>
 
                         </ul>
@@ -279,6 +220,5 @@
         </div>
 
     </div>
-    ```
 
 </div>

@@ -9,10 +9,18 @@ namespace InventarioWEB.Services
     {
         private readonly MovimientoVentasDbContext _context;
 
-        public ProduccionService(MovimientoVentasDbContext context)
+
+        private readonly decimal _margenAdvertencia;
+        private readonly decimal _margenCritico;
+
+        public ProduccionService(MovimientoVentasDbContext context, IConfiguration config)
         {
             _context = context;
+
+            _margenAdvertencia = config.GetValue<decimal>("Produccion:MargenAdvertencia");
+            _margenCritico = config.GetValue<decimal>("Produccion:MargenCritico");
         }
+       
 
         // ============================================================
         // 🔍 BÚSQUEDA OPTIMIZADA DE PRODUCTOS PARA PRODUCCIÓN
@@ -188,7 +196,11 @@ namespace InventarioWEB.Services
 
                     var productos = await _context.Productos
                         .Where(p => productosIds.Contains(p.ID_Producto))
+                        .AsTracking() // 🔥 ESTO ES LO QUE FALTABA
                         .ToDictionaryAsync(p => p.ID_Producto);
+
+
+
                     if (productos.Count != productosIds.Count)
                     {
                         throw new Exception("Uno o más productos no existen.");
@@ -196,8 +208,12 @@ namespace InventarioWEB.Services
 
                     var detallesInsertar = new List<DetalleProduccion>();
 
+                    Console.WriteLine($"TOTAL DETALLES: {detalles.Count}");
+
                     foreach (var detalle in detalles)
                     {
+                        Console.WriteLine($"Procesando producto: {detalle.ID_Producto} | Cantidad: {detalle.Cantidad}");
+
                         if (!productos.TryGetValue(detalle.ID_Producto, out var producto))
                             throw new Exception($"Producto {detalle.ID_Producto} no existe.");
 
@@ -210,62 +226,80 @@ namespace InventarioWEB.Services
                         if (detalle.CostoUnitario <= 0)
                             throw new Exception("Costo unitario inválido.");
 
-                        var margenMinimo = producto.PrecioVTA * 0.90m;
+                        // ================================
+                        // 🔍 VALIDACIÓN DE MARGEN (NO BLOQUEANTE)
+                        // ================================
 
-                        if (detalle.CostoUnitario > margenMinimo)
+                        if (producto.PrecioVTA > 0)
                         {
-                            throw new Exception(
-                                $"El costo del producto '{producto.Nombre}' es demasiado alto respecto al precio de venta."
+                            var margen = (producto.PrecioVTA - detalle.CostoUnitario) / producto.PrecioVTA;
+
+                            if (margen < _margenAdvertencia)
+                            {
+                                Console.WriteLine(
+                                    $"[WARN] Margen bajo → Producto: {producto.Nombre} | Margen: {Math.Round(margen * 100, 2)}%"
+                                );
+                            }
+
+                            if (margen < _margenCritico)
+                            {
+                                Console.WriteLine(
+                                    $"[CRÍTICO] Margen muy bajo → Producto: {producto.Nombre} | Margen: {Math.Round(margen * 100, 2)}%"
+                                );
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine(
+                                $"[WARN] Producto sin precio de venta → {producto.Nombre}"
                             );
                         }
 
-                        // Validación lógica de negocio
-                        if (detalle.CostoUnitario >= producto.PrecioVTA)
+                        // ================================
+                        // 🔒 VALIDACIÓN CRÍTICA FINAL
+                        // ================================
+
+                        if (producto.PrecioVTA > 0 && detalle.CostoUnitario >= producto.PrecioVTA)
                         {
                             throw new Exception(
                                 $"El costo del producto '{producto.Nombre}' no puede ser mayor o igual al precio de venta."
                             );
                         }
-                        if (producto.PrecioVTA <= 0)
-                        {
-                            Console.WriteLine(
-                                $"ADVERTENCIA: El producto '{producto.Nombre}' no tiene precio de venta configurado."
-                            );
-                        }
-                        detalle.ID_Produccion = produccion.ID_Produccion;
+                    
+                    detalle.ID_Produccion = produccion.ID_Produccion;
 
                         detalle.PrecioVentaUnitario = producto.PrecioVTA;
                         detalle.IVA = producto.IVA_Porcentaje;
 
                         detalle.SubtotalCosto =
-                         Math.Round(detalle.Cantidad * detalle.CostoUnitario, 2, MidpointRounding.AwayFromZero);
-                       
+                            Math.Round(detalle.Cantidad * detalle.CostoUnitario, 2, MidpointRounding.AwayFromZero);
 
                         var baseVenta = detalle.Cantidad * detalle.PrecioVentaUnitario;
                         var ivaValor = (baseVenta * detalle.IVA) / 100;
 
                         detalle.SubtotalVenta =
-                           Math.Round(baseVenta + ivaValor, 2, MidpointRounding.AwayFromZero);
+                            Math.Round(baseVenta + ivaValor, 2, MidpointRounding.AwayFromZero);
 
-                        var nuevoStock = producto.Stock + detalle.Cantidad;
+                        var stockAnterior = producto.Stock;
+                        var nuevoStock = stockAnterior + detalle.Cantidad;
+                        producto.Stock = nuevoStock;
 
-                        // Protección de costo actual corrupto
                         decimal costoActual = producto.PrecioCosto;
 
-                        if (costoActual <= 0 || costoActual > 100000)
+                        if (costoActual <= 0)
                         {
+                            Console.WriteLine($"[WARN] Producto {producto.ID_Producto} sin costo previo.");
                             costoActual = detalle.CostoUnitario;
                         }
-
-                        // Si no hay stock previo, el costo queda igual al nuevo
-                        if (producto.Stock == 0)
+                                               
+                        if (stockAnterior == 0)
                         {
                             producto.PrecioCosto = detalle.CostoUnitario;
                         }
                         else
                         {
                             var nuevoCostoPromedio =
-                                ((producto.Stock * costoActual) +
+                                ((stockAnterior * costoActual) +
                                 (detalle.Cantidad * detalle.CostoUnitario))
                                 / nuevoStock;
 
@@ -273,18 +307,26 @@ namespace InventarioWEB.Services
                                 Math.Round(nuevoCostoPromedio, 2, MidpointRounding.AwayFromZero);
                         }
 
-                        producto.Stock = nuevoStock;
+                        Console.WriteLine($"ANTES SAVE → Producto: {producto.ID_Producto} | Stock BD: {stockAnterior}");
+                        Console.WriteLine($"DESPUÉS CALC → Stock NUEVO: {producto.Stock}");
+                        Console.WriteLine($"COSTO NUEVO → {producto.PrecioCosto}");
 
                         detallesInsertar.Add(detalle);
                     }
 
+                    // 🔥 AQUÍ ESTÁ LA CORRECCIÓN REAL
                     _context.DetalleProducciones.AddRange(detallesInsertar);
 
+                    // 🔥 ESTE ES EL QUE DISPARA EL UPDATE DE STOCK
                     await _context.SaveChangesAsync();
+
+                    // 🔥 CONFIRMAR TRANSACCIÓN
                     await transaction.CommitAsync();
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Console.WriteLine($"ERROR EN PRODUCCIÓN: {ex.Message}");
+
                     await transaction.RollbackAsync();
                     throw;
                 }
@@ -301,10 +343,12 @@ namespace InventarioWEB.Services
             var fin = inicio.AddDays(1);
 
             return await _context.DetalleProducciones
-                .AsNoTracking()
-                .Where(d => d.Produccion.FechaProduccion >= inicio &&
-                            d.Produccion.FechaProduccion < fin)
-                .Include(d => d.Producto)
+               .AsNoTracking()
+               .Where(d => d.Produccion != null &&
+                    d.Produccion.FechaProduccion >= inicio &&
+                    d.Produccion.FechaProduccion < fin)
+
+                .Include(d => d.Producto!)
                 .ThenInclude(p => p.Referencia)
                 .OrderByDescending(d => d.Produccion.FechaProduccion)
                 .ToListAsync();

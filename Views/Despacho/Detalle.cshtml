@@ -108,7 +108,8 @@
                     <th>Referencia</th>
                     <th>Producto</th>
                     <th>Talla</th>
-                    <th class="text-center">Cantidad</th>
+                    <th class="text-center">Cantidad (Docenas)</th>
+                   
                 </tr>
             </thead>
 
@@ -141,6 +142,7 @@
                             </td>
 
                             <td class="text-center fw-bold">
+
                                 @item.Cantidad_Despachada
                             </td>
 
@@ -166,9 +168,10 @@
                         @{
                             var total = Model.Detalles?.Sum(x => x.Cantidad_Despachada) ?? 0;
                         }
-
-                        @total
-
+                                            
+                        
+                        @total docenas
+                       
                     </td>
 
                 </tr>

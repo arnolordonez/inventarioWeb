@@ -5,6 +5,8 @@ using InventarioWEB.Models.DTO;
 using Microsoft.AspNetCore.Http;
 using System.Linq;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
+using InventarioWEB.ViewModels;
 
 namespace InventarioWEB.Controllers
 {
@@ -19,20 +21,52 @@ namespace InventarioWEB.Controllers
     /// Aunque no pertenece al módulo Productos, actúa de forma indirecta
     /// asegurando el acceso controlado a dicho módulo.
     /// </remarks>
+
     public class AutoController : Controller
     {
-        private readonly UsuariosDbContext _context;
+        // ==========================
+        // CONTEXTOS
+        // ==========================
+        private readonly UsuariosDbContext _usuariosContext;
+        private readonly MovimientoVentasDbContext _ventasContext;
 
-        /// <summary>
-        /// Inicializa una nueva instancia del controlador de autenticación.
-        /// </summary>
-        /// <param name="context">
-        /// Contexto de base de datos utilizado para acceder a la tabla Usuarios.
-        /// </param>
-        public AutoController(UsuariosDbContext context)
+        // ==========================
+        // CONSTRUCTOR
+        // ==========================
+        public AutoController(
+            UsuariosDbContext usuariosContext,
+            MovimientoVentasDbContext ventasContext)
+        {
+            _usuariosContext = usuariosContext;
+            _ventasContext = ventasContext;
+        }
+
+
+        /*
+        public class AutoController : Controller
+        {
+        private readonly MovimientoVentasDbContext _context;
+
+        public AutoController(MovimientoVentasDbContext context)
         {
             _context = context;
         }
+
+
+        private readonly UsuariosDbContext _context;
+
+            /// <summary>
+            /// Inicializa una nueva instancia del controlador de autenticación.
+            /// </summary>
+            /// <param name="context">
+            /// Contexto de base de datos utilizado para acceder a la tabla Usuarios.
+            /// </param>
+            public AutoController(UsuariosDbContext context)
+            {
+                _context = context;
+            }
+              */
+
 
         // ==========================================================
         // LOGIN (GET)
@@ -50,15 +84,17 @@ namespace InventarioWEB.Controllers
         [HttpGet]
         public IActionResult Login()
         {
-            ViewBag.Correos = _context.Usuarios
-                                      .Where(u => u.Activo)
-                                      .OrderByDescending(u => u.FechaCreacion)
-                                      .Select(u => u.Correo)
-                                      .Take(5)
-                                      .ToList();
+            ViewBag.Correos = _usuariosContext.Usuarios
+                .Where(u => u.Activo)
+                .OrderByDescending(u => u.FechaCreacion)
+                .Select(u => u.Correo)
+                .Take(5)
+                .ToList();
 
             return View(new LoginRequest());
         }
+
+
 
         // ==========================================================
         // LOGIN (POST)
@@ -83,7 +119,7 @@ namespace InventarioWEB.Controllers
         {
             if (!ModelState.IsValid) return View(request);
 
-            var usuario = _context.Usuarios.FirstOrDefault(u => u.Correo == request.Correo);
+            var usuario = _usuariosContext.Usuarios.FirstOrDefault(u => u.Correo == request.Correo);
             if (usuario != null && BCrypt.Net.BCrypt.Verify(request.Contrasena, usuario.HashContrasena))
             {
                 HttpContext.Session.SetString("UsuarioID", usuario.IdUsuario.ToString());
@@ -109,48 +145,93 @@ namespace InventarioWEB.Controllers
         /// <remarks>
         /// Requiere que la variable de sesión "UsuarioID" esté definida.
         /// </remarks>
-        public IActionResult Dashboard()
+        public async Task<IActionResult> Dashboard()
         {
             if (string.IsNullOrEmpty(HttpContext.Session.GetString("UsuarioID")))
                 return RedirectToAction("Login");
 
+            var hoy = DateTime.Today;
+
+            // ==========================
+            // 💰 VENTAS HOY
+            // ==========================
+
+            // Rango del día (correcto para EF + MySQL)
+            var inicioDia = DateTime.Today;
+            var finDia = inicioDia.AddDays(1);
+
+            // Obtener IDs de pedidos despachados hoy
+            var pedidosIds = await _ventasContext.Despachos
+                .Where(d => d.Estado == EstadoDespacho.Despachado
+                    && d.Fecha >= inicioDia
+                    && d.Fecha < finDia)
+                .Select(d => d.ID_Pedido)
+                .ToListAsync();
+
+            // Total de despachos
+            var totalDespachos = pedidosIds.Count;
+
+            // Suma de ventas
+            var ventasHoy = await _ventasContext.Pedidos
+                .Where(p => pedidosIds.Contains(p.ID_Pedido))
+                .SumAsync(p => (decimal?)p.TotalVenta) ?? 0;
+
+
+            // ==========================
+            // 📦 STOCK TOTAL
+            // ==========================
+            var stockTotal = await _ventasContext.Productos
+                .Where(p => p.Activo)
+                .SumAsync(p => (int?)p.Stock) ?? 0;
+
+
+            // ==========================
+            // ⚠ STOCK BAJO
+            // ==========================
+            var stockBajo = await _ventasContext.Productos
+                .Where(p => p.Activo && p.Stock <= 10)
+                .CountAsync();
+
+
+            // ==========================
+            // 🧵 PRODUCCIÓN ACTIVA
+            // ==========================
+            var produccionActiva = await _ventasContext.Producciones
+                .Where(p => p.Activo)
+                .CountAsync();
+
+
+            // ==========================
+            // 📊 VIEWMODEL
+            // ==========================
+            var model = new DashboardViewModel
+            {
+                VentasHoy = ventasHoy,
+                TotalDespachos = totalDespachos,
+                StockTotal = stockTotal,
+                StockBajo = stockBajo,
+                ProduccionActiva = produccionActiva
+            };
+
             ViewBag.NombreUsuario = HttpContext.Session.GetString("UsuarioNombre");
-            return View();
+
+            return View(model);
         }
+
 
         // ==========================================================
         // REGISTRO DE USUARIO
         // ==========================================================
 
-        /// <summary>
-        /// Muestra el formulario para registrar un nuevo usuario.
-        /// </summary>
-        /// <returns>
-        /// Retorna la vista Register.
-        /// </returns>
         [HttpGet]
         public IActionResult Register() => View();
 
-        /// <summary>
-        /// Registra un nuevo usuario en el sistema.
-        /// </summary>
-        /// <param name="request">
-        /// Modelo que contiene la información del usuario a registrar.
-        /// </param>
-        /// <returns>
-        /// Redirecciona a Login si el registro es exitoso;
-        /// en caso contrario retorna la vista con errores de validación.
-        /// </returns>
-        /// <remarks>
-        /// Se valida que el correo no exista previamente.
-        /// La contraseña es cifrada utilizando BCrypt antes de almacenarse.
-        /// </remarks>
         [HttpPost]
         public IActionResult Register(RegisterRequest request)
         {
             if (!ModelState.IsValid) return View(request);
 
-            if (_context.Usuarios.Any(u => u.Correo == request.Correo))
+            if (_usuariosContext.Usuarios.Any(u => u.Correo == request.Correo))
             {
                 ModelState.AddModelError("Correo", "El correo ya está registrado.");
                 return View(request);
@@ -169,70 +250,47 @@ namespace InventarioWEB.Controllers
                 FechaUltimaActualizacion = DateTime.Now
             };
 
-            _context.Usuarios.Add(nuevoUsuario);
-            _context.SaveChanges();
+            _usuariosContext.Usuarios.Add(nuevoUsuario);
+            _usuariosContext.SaveChanges();
 
             return RedirectToAction("Login");
         }
+
 
         // ==========================================================
         // LOGOUT
         // ==========================================================
 
-        /// <summary>
-        /// Finaliza la sesión activa del usuario.
-        /// </summary>
-        /// <returns>
-        /// Redirecciona a la vista Login.
-        /// </returns>
-        /// <remarks>
-        /// Elimina todas las variables almacenadas en la sesión HTTP.
-        /// </remarks>
         public IActionResult Logout()
         {
             HttpContext.Session.Clear();
             return RedirectToAction("Login");
         }
 
+
         // ==========================================================
         // FORGOT PASSWORD (GET)
         // ==========================================================
 
-        /// <summary>
-        /// Muestra el formulario para solicitar recuperación de contraseña.
-        /// </summary>
-        /// <returns>
-        /// Retorna la vista ForgotPassword.
-        /// </returns>
         [HttpGet]
         public IActionResult ForgotPassword()
         {
             return View(new ForgotPasswordRequest());
         }
 
+
         // ==========================================================
         // FORGOT PASSWORD (POST)
         // ==========================================================
 
-        /// <summary>
-        /// Genera un token temporal para el restablecimiento de contraseña.
-        /// </summary>
-        /// <param name="request">
-        /// Modelo que contiene el correo del usuario solicitante.
-        /// </param>
-        /// <returns>
-        /// Retorna la vista mostrando mensaje informativo o errores.
-        /// </returns>
-        /// <remarks>
-        /// En un entorno productivo el token debería enviarse por correo electrónico.
-        /// En esta implementación el token se almacena en sesión como ejemplo funcional.
-        /// </remarks>
         [HttpPost]
         public IActionResult ForgotPassword(ForgotPasswordRequest request)
         {
             if (!ModelState.IsValid) return View(request);
 
-            var usuario = _context.Usuarios.FirstOrDefault(u => u.Correo == request.Correo);
+            var usuario = _usuariosContext.Usuarios
+                .FirstOrDefault(u => u.Correo == request.Correo);
+
             if (usuario == null)
             {
                 ModelState.AddModelError("", "Correo no registrado.");
@@ -240,6 +298,7 @@ namespace InventarioWEB.Controllers
             }
 
             var token = Guid.NewGuid().ToString();
+
             HttpContext.Session.SetString("ResetToken", token);
             HttpContext.Session.SetString("ResetUserId", usuario.IdUsuario.ToString());
 
@@ -247,19 +306,11 @@ namespace InventarioWEB.Controllers
             return View(request);
         }
 
+
         // ==========================================================
         // RESET PASSWORD (GET)
         // ==========================================================
 
-        /// <summary>
-        /// Muestra el formulario para establecer una nueva contraseña.
-        /// </summary>
-        /// <param name="token">
-        /// Token de validación generado previamente.
-        /// </param>
-        /// <returns>
-        /// Retorna la vista ResetPassword con el token precargado.
-        /// </returns>
         [HttpGet]
         public IActionResult ResetPassword(string token)
         {
@@ -267,27 +318,15 @@ namespace InventarioWEB.Controllers
             {
                 Token = token ?? string.Empty
             };
+
             return View(model);
         }
+
 
         // ==========================================================
         // RESET PASSWORD (POST)
         // ==========================================================
 
-        /// <summary>
-        /// Actualiza la contraseña del usuario validando el token almacenado en sesión.
-        /// </summary>
-        /// <param name="request">
-        /// Modelo que contiene el token y la nueva contraseña.
-        /// </param>
-        /// <returns>
-        /// Redirecciona al Login si la actualización es exitosa;
-        /// en caso contrario retorna la vista con errores.
-        /// </returns>
-        /// <remarks>
-        /// Una vez validado el token, se actualiza el hash de la contraseña
-        /// y se eliminan los datos temporales de la sesión.
-        /// </remarks>
         [HttpPost]
         public IActionResult ResetPassword(ResetPasswordRequest request)
         {
@@ -303,7 +342,10 @@ namespace InventarioWEB.Controllers
             }
 
             int userId = int.Parse(userIdStr);
-            var usuario = _context.Usuarios.FirstOrDefault(u => u.IdUsuario == userId);
+
+            var usuario = _usuariosContext.Usuarios
+                .FirstOrDefault(u => u.IdUsuario == userId);
+
             if (usuario == null)
             {
                 ModelState.AddModelError("", "Usuario no encontrado.");
@@ -312,26 +354,27 @@ namespace InventarioWEB.Controllers
 
             usuario.HashContrasena = BCrypt.Net.BCrypt.HashPassword(request.NuevaContrasena.Trim());
             usuario.FechaUltimaActualizacion = DateTime.Now;
-            _context.SaveChanges();
+
+            _usuariosContext.SaveChanges();
 
             HttpContext.Session.Remove("ResetToken");
             HttpContext.Session.Remove("ResetUserId");
 
             ViewBag.Mensaje = "Contraseña actualizada con éxito. Puede iniciar sesión.";
+
             return RedirectToAction("Login");
         }
-    }
 
-    /// <summary>
-    /// Modelo utilizado para solicitar la recuperación de contraseña.
-    /// </summary>
-    public class ForgotPasswordRequest
-    {
-        /// <summary>
-        /// Correo electrónico del usuario que solicita el restablecimiento.
-        /// </summary>
-        [Required(ErrorMessage = "El correo es obligatorio.")]
-        [EmailAddress(ErrorMessage = "Formato de correo inválido.")]
-        public string Correo { get; set; } = string.Empty;
+
+        // ==========================================================
+        // MODELO FORGOT PASSWORD
+        // ==========================================================
+
+        public class ForgotPasswordRequest
+        {
+            [Required(ErrorMessage = "El correo es obligatorio.")]
+            [EmailAddress(ErrorMessage = "Formato de correo inválido.")]
+            public string Correo { get; set; } = string.Empty;
+        }
     }
 }

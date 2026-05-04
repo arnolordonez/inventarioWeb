@@ -1,60 +1,37 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
+﻿using InventarioWEB.Models;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
 
-namespace InventarioWEB.Models
+[Table("detalle_despacho")]
+[Index(nameof(ID_Despacho), nameof(ID_Detalle), IsUnique = true)]
+
+public class DetalleDespacho
 {
-    [Table("detalle_despacho")]
+    [Key]
+    [Column("ID_DetalleDespacho")]
+    public int ID_DetalleDespacho { get; set; }
 
-    // 🔥 Evita duplicar el mismo producto en un despacho
-    [Index(nameof(ID_Despacho), nameof(ID_Producto), IsUnique = true)]
+    [Required]
+    public int ID_Despacho { get; set; }
 
-    // 🔥 Índices para consultas rápidas
-    [Index(nameof(ID_Despacho))]
-    [Index(nameof(ID_Producto))]
+    [Required]
+    public int ID_Producto { get; set; }
 
-    public class DetalleDespacho
-    {
-        // =========================================
-        // 🔑 CLAVE PRIMARIA
-        // =========================================
+    // 🔥 FALTANTE CRÍTICO
+    [Required]
+    [Column("ID_Detalle")]
+    public int ID_Detalle { get; set; }
 
-        [Key]
-        [Column("ID_DetalleDespacho")]
-        public int ID_DetalleDespacho { get; set; }
+    [Required]
+    public int Cantidad_Despachada { get; set; }
 
+    [ForeignKey(nameof(ID_Despacho))]
+    public virtual Despacho Despacho { get; set; } = null!;
 
-        // =========================================
-        // 🔗 RELACIONES
-        // =========================================
+    [ForeignKey(nameof(ID_Producto))]
+    public virtual Producto Producto { get; set; } = null!;
 
-        [Required]
-        [Column("ID_Despacho")]
-        public int ID_Despacho { get; set; }
-
-        [Required]
-        [Column("ID_Producto")]
-        public int ID_Producto { get; set; }
-
-
-        // =========================================
-        // 📦 CANTIDAD DESPACHADA
-        // =========================================
-
-        [Required]
-        [Range(1, int.MaxValue, ErrorMessage = "La cantidad debe ser mayor que cero")]
-        [Column("Cantidad_Despachada")]
-        public int Cantidad_Despachada { get; set; }
-
-
-        // =========================================
-        // 🔗 NAVEGACIÓN
-        // =========================================
-
-        [ForeignKey(nameof(ID_Despacho))]
-        public virtual Despacho Despacho { get; set; } = null!;
-
-        [ForeignKey(nameof(ID_Producto))]
-        public virtual Producto Producto { get; set; } = null!;
-    }
+    [ForeignKey(nameof(ID_Detalle))]
+    public virtual DetallePedido DetallePedido { get; set; } = null!;
 }
