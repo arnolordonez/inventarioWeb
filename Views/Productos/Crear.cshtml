@@ -115,55 +115,97 @@
     <partial name="_ValidationScriptsPartial" />
 
     <script>
-        (function ensureJQuery(cb) {
-            if (window.jQuery) return cb();
-            var s = document.createElement('script');
-            s.src = 'https://code.jquery.com/jquery-3.6.0.min.js';
-            s.onload = cb;
-            document.head.appendChild(s);
-        })(function () {
+        $(function () {
 
+            // ==========================================
+            // FUNCIÓN AUXILIAR
+            // ==========================================
             function option(value, text) {
-                return `<option value="${value}">${text}</option>`;
+                if (!value || !text) return '';
+                return '<option value="' + value + '">' + text + '</option>';
             }
 
+            // ==========================================
             // REFERENCIAS POR GÉNERO
-            $("#GeneroSelect").on("change", function () {
-                const generoId = $(this).val();
+            // ==========================================
+            $("#GeneroSelect").change(function () {
 
-                $("#ReferenciaSelect").empty();
-                $("#TallaSelect").empty().append('<option value="">Seleccione referencia primero</option>');
+                var generoId = $(this).val();
+                console.log("🟢 Género:", generoId);
+
+                $("#ReferenciaSelect").html('');
+                $("#TallaSelect").html('<option value="">Seleccione referencia primero</option>');
 
                 if (!generoId) {
-                    $("#ReferenciaSelect").append('<option value="">Seleccione género primero</option>');
+                    $("#ReferenciaSelect").html('<option value="">Seleccione género primero</option>');
                     return;
                 }
 
-                $.getJSON(`/Productos/ReferenciasPorGenero/${generoId}`, function (data) {
-                    $("#ReferenciaSelect").append('<option value="">Seleccione</option>');
-                    $.each(data, function (_, item) {
-                        $("#ReferenciaSelect").append(option(item.ID_Referencias, item.DescripReferencia));
+                $.getJSON('/Productos/ReferenciasPorGenero/' + generoId)
+                    .done(function (data) {
+
+                        console.log("📦 DATA:", data);
+
+                        var html = '<option value="">Seleccione</option>';
+
+                        $.each(data, function (i, item) {
+
+                            console.log("➡️ Item:", item);
+
+                                html += option(
+                                       item.ID_Referencias,
+                                       item.DescripReferencia
+                                );
+
+                           
+                        });
+
+                        $("#ReferenciaSelect").html(html);
+                    })
+                    .fail(function (err) {
+                        console.error("❌ ERROR:", err);
                     });
-                });
             });
 
-            // TALLAS POR REFERENCIA
-            $("#ReferenciaSelect").on("change", function () {
-                const refId = $(this).val();
-                $("#TallaSelect").empty();
+          // ==========================================
+        // TALLAS POR GÉNERO (dependen de Género)
+        // ==========================================
+        $("#ReferenciaSelect").change(function () {
 
-                if (!refId) {
-                    $("#TallaSelect").append('<option value="">Seleccione referencia primero</option>');
-                    return;
-                }
+            var refId = $(this).val();
+            console.log("🟢 Referencia:", refId);
 
-                $.getJSON(`/Productos/TallasPorReferencia/${refId}`, function (data) {
-                    $("#TallaSelect").append('<option value="">Seleccione</option>');
-                    $.each(data, function (_, item) {
-                        $("#TallaSelect").append(option(item.ID_Tallas, item.DescripTalla));
-                    });
+            $("#TallaSelect").html('');
+
+            if (!refId) {
+                $("#TallaSelect").html('<option value="">Seleccione referencia primero</option>');
+                return;
+            }
+
+            const generoId = $("#GeneroSelect").val();
+
+            $.getJSON("/Productos/TallasPorGenero/" + generoId, function (data) {
+
+                console.log("📦 Tallas:", data);
+
+                var html = '<option value="">Seleccione</option>';
+
+                $.each(data, function (i, item) {
+
+                    html += option(
+                        item.iD_Tallas || item.ID_Tallas,
+                        item.descripTalla || item.DescripTalla
+                    );
+
                 });
+
+                $("#TallaSelect").html(html);
+
+            })
+            .fail(function (err) {
+                console.error("❌ ERROR Tallas:", err);
             });
+        });
 
         });
     </script>

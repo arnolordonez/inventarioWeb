@@ -53,9 +53,14 @@ builder.Services.AddScoped<ColorService>();
 // ==========================================================
 // SERVICIOS MVC + API
 // ==========================================================
+builder.Services.AddControllersWithViews()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = null;
+    });
 
-builder.Services.AddControllersWithViews(); // MVC
-builder.Services.AddControllers();          // API
+  //builder.Services.AddControllersWithViews(); // MVC
+  //builder.Services.AddControllers();          // API
 
 // ==========================================================
 // SWAGGER PARA DOCUMENTACIÓN DE API

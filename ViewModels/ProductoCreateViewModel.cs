@@ -31,16 +31,17 @@ namespace InventarioWEB.ViewModels
         // PRECIOS E INVENTARIO
         // ==========================================================
         [Required(ErrorMessage = "Ingrese el precio de costo.")]
-        [Range(typeof(decimal), "0.01", "999999999", ErrorMessage = "Precio inválido.")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Precio inválido.")]
         public decimal PrecioCosto { get; set; }
 
         [Required(ErrorMessage = "Ingrese el precio de venta.")]
-        [Range(typeof(decimal), "0.01", "999999999", ErrorMessage = "Precio inválido.")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Precio inválido.")]
         public decimal PrecioVTA { get; set; }
 
         [Required(ErrorMessage = "Ingrese el IVA.")]
-        [Range(typeof(decimal), "0", "100", ErrorMessage = "IVA inválido.")]
+        [Range(0, 100, ErrorMessage = "IVA inválido.")]
         public decimal IVA_Porcentaje { get; set; }
+
 
         [Required(ErrorMessage = "Ingrese el stock.")]
         [Range(0, 999999, ErrorMessage = "Stock inválido.")]

@@ -309,6 +309,41 @@ namespace InventarioWEB.Controllers
         }
 
         // ============================================================
+        // AJAX: REFERENCIAS POR GÉNERO
+        // ============================================================
+        [HttpGet]
+        public async Task<IActionResult> ReferenciasPorGenero(int id)
+        {
+            var referencias = await _context.Referencias
+                .Where(r => r.ID_Genero == id && r.Activo)
+                .Select(r => new
+                {
+                    r.ID_Referencias,
+                    r.DescripReferencia
+                })
+                .ToListAsync();
+
+            return Json(referencias);
+        }
+
+        // ============================================================
+        // AJAX: TALLAS POR REFERENCIA
+        // ============================================================
+        [HttpGet]
+        public async Task<IActionResult> TallasPorGenero(int id)
+        {
+            var tallas = await _context.Tallas
+                .Where(t => t.ID_Genero == id && t.Activo)
+                .Select(t => new
+                {
+                    t.ID_Tallas,
+                    t.DescripTalla
+                })
+                .ToListAsync();
+
+            return Json(tallas);
+        }
+        // ============================================================
         // MÉTODOS PRIVADOS DE APOYO
         // ============================================================
 
@@ -375,13 +410,9 @@ namespace InventarioWEB.Controllers
                 .Select(g => new SelectListItem { Value = g.ID_Genero.ToString(), Text = g.DescripGenero })
                 .ToListAsync();
 
-            model.ReferenciasLista = await _context.Referencias
-                .Select(r => new SelectListItem { Value = r.ID_Referencias.ToString(), Text = r.DescripReferencia })
-                .ToListAsync();
-
-            model.TallasLista = await _context.Tallas
-                .Select(t => new SelectListItem { Value = t.ID_Tallas.ToString(), Text = t.DescripTalla })
-                .ToListAsync();
+            // ❌ NO precargar dependientes
+            model.ReferenciasLista = new List<SelectListItem>();
+            model.TallasLista = new List<SelectListItem>();
         }
 
         /// <summary>
