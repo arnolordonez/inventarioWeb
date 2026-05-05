@@ -19,11 +19,13 @@
             <thead class="table-primary">
                 <tr>
                     <th>ID</th>
-                    <th>Producto</th>
+
                     <th>Referencia</th>
                     <th>Talla</th>
+                    <th>Género</th>
                     <th>Tela</th>
                     <th>Color</th>
+                    <th>Stock</th>
                     <th>Precio</th>
                     <th>IVA</th>
                     <th>Estado</th>
@@ -35,11 +37,17 @@
                 {
                     <tr class="@(p.Activo ? "" : "table-secondary")">
                         <td>@p.ID_Producto</td>
-                        <td>@(string.IsNullOrWhiteSpace(p.Nombre) ? "—" : p.Nombre)</td>
+
                         <td>@(p.Referencia ?? "—")</td>
                         <td>@(p.Talla ?? "—")</td>
+                        <td>@(p.Genero ?? "—")</td>
                         <td>@(p.Tela ?? "—")</td>
                         <td>@(p.Color ?? "—")</td>
+                        <td>
+                            <span class="badge @(p.Stock < 10 ? "bg-danger" : "bg-success")">
+                                @p.Stock
+                            </span>
+                        </td>
                         <td>@p.PrecioVTA.ToString("C2")</td>
                         <td>@($"{p.IVA_Porcentaje:0.##}%")</td>
                         <td>

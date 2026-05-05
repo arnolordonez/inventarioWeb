@@ -79,9 +79,11 @@ namespace InventarioWEB.Controllers
             if (!hayFiltros)
                 return View(model);
 
+           
             var query = _context.Productos
                 .AsNoTracking()
-                .Include(p => p.Referencia).ThenInclude(r => r.Genero)
+                .Include(p => p.Referencia!)
+                    .ThenInclude(r => r.Genero)
                 .Include(p => p.Talla)
                 .Include(p => p.Tela)
                 .Include(p => p.ColorNav)
@@ -132,15 +134,29 @@ namespace InventarioWEB.Controllers
                 .Select(p => new ProductosIndexItemViewModel
                 {
                     ID_Producto = p.ID_Producto,
+
+                    // 🔴 Ya NO mostrarás esto en la vista, pero puedes dejarlo si lo usas en otro lado
                     Nombre = p.Nombre ?? "—",
+
                     Referencia = p.Referencia != null ? p.Referencia.DescripReferencia : "—",
                     Talla = p.Talla != null ? p.Talla.DescripTalla : "—",
+
+                    // ✅ NUEVO: GENERO
+                    Genero = p.Referencia != null && p.Referencia.Genero != null
+                        ? p.Referencia.Genero.DescripGenero
+                    : "—",
+
                     Tela = p.Tela != null ? p.Tela.DescripTela : "—",
                     Color = p.ColorNav != null ? p.ColorNav.Nombre : "—",
+
+                    // ✅ NUEVO: STOCK
+                    Stock = p.Stock,
+
                     PrecioVTA = p.PrecioVTA,
                     IVA_Porcentaje = p.IVA_Porcentaje,
                     Activo = p.Activo
                 })
+
                 .ToListAsync();
 
             return View(model);
@@ -162,16 +178,17 @@ namespace InventarioWEB.Controllers
         {
             var producto = await _context.Productos
                 .AsNoTracking()
-                .Include(p => p.Referencia).ThenInclude(r => r.Genero)
+                .Include(p => p.Referencia!)
+                    .ThenInclude(r => r.Genero)
                 .Include(p => p.Talla)
                 .Include(p => p.Tela)
                 .Include(p => p.ColorNav)
                 .FirstOrDefaultAsync(p => p.ID_Producto == id);
 
-            if (producto == null)
-                return NotFound();
+                  if (producto == null)
+                       return NotFound();
 
-            return View(producto);
+                       return View(producto);
         }
 
         // ============================================================
@@ -189,49 +206,184 @@ namespace InventarioWEB.Controllers
         }
 
         /// <summary>
-        /// Registra un nuevo producto en el sistema.
+        /// Registra un nuevo producto en el sistema o actualiza uno existente.
         /// </summary>
         /// <param name="model">Modelo de creación.</param>
         /// <remarks>
-        /// Regla de negocio:
-        /// El precio de venta debe ser mayor que el precio de costo.
+        /// Reglas de negocio:
+        /// - El precio de venta debe ser mayor que el precio de costo.
+        /// - Si el producto ya existe (misma combinación), se actualiza.
+        /// - Si no existe, se crea.
         /// </remarks>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Crear(ProductoCreateViewModel model)
         {
-            if (!ModelState.IsValid)
+            try
             {
+                // ============================
+                // 🔹 VALIDACIONES INICIALES
+                // ============================
+                if (!ModelState.IsValid)
+                {
+                    await CargarListasCrear(model);
+                    return View(model);
+                }
+
+                if (model.PrecioCosto <= 0)
+                {
+                    ModelState.AddModelError(nameof(model.PrecioCosto),
+                        "El precio de costo debe ser mayor a 0.");
+                }
+
+                if (model.PrecioVTA <= model.PrecioCosto)
+                {
+                    ModelState.AddModelError(nameof(model.PrecioVTA),
+                        "El precio de venta debe ser mayor al costo.");
+                }
+
+                if (model.Stock < 0)
+                {
+                    ModelState.AddModelError(nameof(model.Stock),
+                        "El stock no puede ser negativo.");
+                }
+
+                if (model.IVA_Porcentaje < 0)
+                {
+                    ModelState.AddModelError(nameof(model.IVA_Porcentaje),
+                        "El IVA no puede ser negativo.");
+                }
+
+                if (!model.ID_Genero.HasValue)
+                {
+                    ModelState.AddModelError(nameof(model.ID_Genero),
+                        "Debe seleccionar un género.");
+                }
+
+                // Si hay errores acumulados
+                if (!ModelState.IsValid)
+                {
+                    await CargarListasCrear(model);
+                    return View(model);
+                }
+
+                // ============================
+                // 🔍 BUSCAR SI YA EXISTE
+                // ============================
+
+                // 🔹 valor seguro (ya validado previamente)
+                var idGenero = model.ID_Genero!.Value;
+
+                var productoExistente = await _context.Productos.FirstOrDefaultAsync(p =>
+                    p.ID_Referencias == model.ID_Referencias &&
+                    p.ID_Tallas == model.ID_Tallas &&
+                    p.ID_Genero == idGenero &&
+                    p.ID_Telas == model.ID_Telas &&
+                    p.ID_Color == model.ID_Color
+                );
+
+                // ============================
+                // 🔧 CONSTRUIR NOMBRE DINÁMICO
+                // ============================
+                var referencia = await _context.Referencias
+                    .Where(r => r.ID_Referencias == model.ID_Referencias)
+                    .Select(r => r.DescripReferencia)
+                    .FirstOrDefaultAsync();
+
+                var talla = await _context.Tallas
+                    .Where(t => t.ID_Tallas == model.ID_Tallas)
+                    .Select(t => t.DescripTalla)
+                    .FirstOrDefaultAsync();
+
+                var genero = await _context.Generos
+                    .Where(g => g.ID_Genero == model.ID_Genero.Value)
+                    .Select(g => g.DescripGenero)
+                    .FirstOrDefaultAsync();
+
+                var tela = await _context.Telas
+                    .Where(t => t.ID_Telas == model.ID_Telas)
+                    .Select(t => t.DescripTela)
+                    .FirstOrDefaultAsync();
+
+                var color = await _context.Colores
+                    .Where(c => c.ID_Color == model.ID_Color)
+                    .Select(c => c.Nombre)
+                    .FirstOrDefaultAsync();
+
+                var partes = new[] { referencia, talla, genero, tela, color }
+                    .Where(x => !string.IsNullOrWhiteSpace(x));
+
+                var nombreConstruido = string.Join(" ", partes);
+
+                // ============================
+                // 🔥 DECISIÓN: UPDATE vs INSERT
+                // ============================
+                if (productoExistente != null)
+                {
+                    // 🔄 ACTUALIZAR PRODUCTO EXISTENTE
+
+                    var stockAnterior = productoExistente.Stock;
+
+                    productoExistente.PrecioCosto = model.PrecioCosto;
+                    productoExistente.PrecioVTA = model.PrecioVTA;
+                    productoExistente.Stock += model.Stock; // 🔥 acumulación real
+                    productoExistente.IVA_Porcentaje = model.IVA_Porcentaje;
+                    productoExistente.Nombre = nombreConstruido;
+                    productoExistente.ColorSnapshot = color;
+
+                    // 🔹 Protección contra valores inválidos
+                    if (productoExistente.Stock < 0)
+                        productoExistente.Stock = 0;
+
+                    _context.Productos.Update(productoExistente);
+
+                    TempData["Success"] =
+                        $"Producto actualizado correctamente. Stock: {stockAnterior} → {productoExistente.Stock}";
+                }
+                else
+                {
+                    // 🆕 CREAR NUEVO PRODUCTO
+
+                    var producto = new Producto
+                    {
+                        Nombre = nombreConstruido,
+                        PrecioCosto = model.PrecioCosto,
+                        PrecioVTA = model.PrecioVTA,
+                        IVA_Porcentaje = model.IVA_Porcentaje,
+                        Stock = model.Stock < 0 ? 0 : model.Stock,
+
+                        ID_Genero = model.ID_Genero.Value,
+                        ID_Referencias = model.ID_Referencias,
+                        ID_Tallas = model.ID_Tallas,
+                        ID_Telas = model.ID_Telas,
+                        ID_Color = model.ID_Color,
+
+                        ColorSnapshot = color,
+                        Activo = true
+                    };
+
+                    await _context.Productos.AddAsync(producto);
+
+                    TempData["Success"] = "Producto creado correctamente.";
+                }
+
+                // ============================
+                // 💾 GUARDAR CAMBIOS
+                // ============================
+                await _context.SaveChangesAsync();
+
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                // 🔥 LOG (puedes conectar con ILogger después)
+                Console.WriteLine($"ERROR AL CREAR PRODUCTO: {ex.Message}");
+
+                TempData["Error"] = "Ocurrió un error al guardar el producto.";
+
                 await CargarListasCrear(model);
                 return View(model);
             }
-
-            if (model.PrecioVTA <= model.PrecioCosto)
-            {
-                ModelState.AddModelError(nameof(model.PrecioVTA),
-                    "El precio de venta debe ser mayor al costo.");
-                await CargarListasCrear(model);
-                return View(model);
-            }
-
-            _context.Productos.Add(new Producto
-            {
-                Nombre = model.Nombre!,
-                PrecioCosto = model.PrecioCosto,
-                PrecioVTA = model.PrecioVTA,
-                IVA_Porcentaje = model.IVA_Porcentaje,
-                Stock = model.Stock,
-                ID_Referencias = model.ID_Referencias,
-                ID_Tallas = model.ID_Tallas,
-                ID_Telas = model.ID_Telas,
-                ID_Color = model.ID_Color,
-                Activo = true
-            });
-
-            await _context.SaveChangesAsync();
-
-            TempData["Success"] = "Producto creado correctamente.";
-            return RedirectToAction(nameof(Index));
         }
 
         // ============================================================
