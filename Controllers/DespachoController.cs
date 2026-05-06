@@ -611,20 +611,187 @@ namespace InventarioWEB.Controllers
 
             document.Add(new Paragraph("\n"));
 
+
             // ======================================================
-            // 🔥 TOTALES
+            // 🔥 CONTEXTO DE FACTURA (CLARO Y PROFESIONAL)
             // ======================================================
+
+            var italicFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_OBLIQUE);
+            var boldFontSmall = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
+
+            var pedido = despacho.Pedido;
+
+            // 🔹 ENCABEZADO
             document.Add(
-                new Paragraph($"TOTAL: ${total:N0}")
-                    .SetFont(boldFont)
+                new Paragraph("Factura de despacho")
+                    .SetFont(italicFont)
+                    .SetFontSize(9)
+                    .SetTextAlignment(TextAlignment.RIGHT)
+            );
+
+            // 🔹 MENSAJE SEGÚN ESTADO
+            string mensajeDespacho = despacho.Tipo == TipoDespacho.Completo
+               ? "✔ Este despacho completa el pedido"
+               : "⚠ Despacho parcial - entrega en proceso";
+
+            document.Add(
+                new Paragraph(mensajeDespacho)
+                    .SetFont(boldFontSmall)
+                    .SetFontSize(9)
                     .SetTextAlignment(TextAlignment.RIGHT)
             );
 
             document.Add(new Paragraph("\n"));
 
+
+            // ======================================================
+            // 🔥 TOTALES DEL DESPACHO
+            // ======================================================
+
+            // IVA proporcional
+            decimal porcentajeIVA = pedido.Total > 0
+                ? (pedido.TotalIVA / pedido.Total)
+                : 0;
+
+            var iva = total * porcentajeIVA;
+            var totalFinal = total + iva;
+
+            // 🔹 RESUMEN DESPACHO
+            document.Add(new Paragraph("RESUMEN DEL DESPACHO")
+                .SetFont(boldFontSmall)
+                .SetFontSize(10)
+                .SetTextAlignment(TextAlignment.RIGHT));
+
+            document.Add(new Paragraph($"Subtotal: ${total:N0}")
+                .SetTextAlignment(TextAlignment.RIGHT));
+
+            document.Add(new Paragraph($"IVA ({porcentajeIVA:P0}): ${iva:N0}")
+                .SetTextAlignment(TextAlignment.RIGHT));
+
+            document.Add(new Paragraph($"Total del despacho: ${totalFinal:N0}")
+                .SetFont(boldFontSmall)
+                .SetFontSize(11)
+                .SetTextAlignment(TextAlignment.RIGHT));
+
+            // 🔹 NOTA DE PAGO
+            if (pedido.TipoVenta == "CONTADO" && pedido.Saldo == 0)
+            {
+                document.Add(
+                    new Paragraph("Pedido pagado anticipadamente")
+                        .SetFontSize(9)
+                        .SetTextAlignment(TextAlignment.RIGHT)
+                );
+            }
+
+            document.Add(new Paragraph("\n"));
+
+
+            // ======================================================
+            // 🔥 HISTÓRICO DE DESPACHOS
+            // ======================================================
+
+            var totalDespachadoPrevio = await _context.DetalleDespachos
+                .Join(_context.Despachos,
+                    dd => dd.ID_Despacho,
+                    d => d.ID_Despacho,
+                    (dd, d) => new { dd, d })
+                .Where(x => x.d.ID_Pedido == pedido.ID_Pedido
+                         && x.d.ID_Despacho != despacho.ID_Despacho)
+                .Join(_context.DetallePedidos,
+                    x => x.dd.ID_Detalle,
+                    dp => dp.ID_Detalle,
+                    (x, dp) => new
+                    {
+                        Cantidad = x.dd.Cantidad_Despachada,
+                        Precio = dp.PrecioVenta
+                    })
+                .SumAsync(x => x.Cantidad * x.Precio);
+
+            // convertir a total con IVA
+            var totalPrevioConIVA = totalDespachadoPrevio * (1 + porcentajeIVA);
+            var totalAcumulado = totalPrevioConIVA + totalFinal;
+
+            // 🔹 CALCULAR PENDIENTE
+            var pendiente = pedido.TotalVenta - totalAcumulado;
+
+
+            // ======================================================
+            // 🔥 ESTADO DEL PEDIDO (CLAVE)
+            // ======================================================
+
+            document.Add(new Paragraph("ESTADO DEL PEDIDO")
+                .SetFont(boldFontSmall)
+                .SetFontSize(10)
+                .SetTextAlignment(TextAlignment.RIGHT));
+
+            document.Add(new Paragraph($"Total del pedido: ${pedido.TotalVenta:N0}")
+                .SetTextAlignment(TextAlignment.RIGHT));
+
+            if (totalDespachadoPrevio == 0)
+            {
+                // 🟢 PRIMER DESPACHO (SIN REDUNDANCIA)
+                document.Add(new Paragraph("Inicio de despacho del pedido")
+                    .SetTextAlignment(TextAlignment.RIGHT));
+
+                document.Add(new Paragraph($"Total despachado: ${totalAcumulado:N0}")
+                    .SetTextAlignment(TextAlignment.RIGHT));
+            }
+            else
+            {
+                // 🟡 DESPACHOS POSTERIORES
+                document.Add(new Paragraph($"Despachado previamente: ${totalPrevioConIVA:N0}")
+                    .SetTextAlignment(TextAlignment.RIGHT));
+
+                document.Add(new Paragraph($"Despachado en este documento: ${totalFinal:N0}")
+                    .SetTextAlignment(TextAlignment.RIGHT));
+
+                document.Add(new Paragraph($"Total despachado: ${totalAcumulado:N0}")
+                    .SetTextAlignment(TextAlignment.RIGHT));
+            }
+
+
+            if (pendiente > 0)
+            {
+                document.Add(new Paragraph($"Pendiente por despachar: ${pendiente:N0}")
+                    .SetTextAlignment(TextAlignment.RIGHT));
+            }
+
+            // 🔹 ESTADO LOGÍSTICO
+            string estadoLogistico = pendiente == 0 ? "COMPLETO" : "PARCIAL";
+
+            document.Add(new Paragraph($"Estado del pedido: {estadoLogistico}")
+                .SetFont(boldFontSmall)
+                .SetTextAlignment(TextAlignment.RIGHT));
+
+            document.Add(new Paragraph("\n"));
+
+
+            // ======================================================
+            // 🔥 ESTADO DE PAGO (SEPARADO)
+            // ======================================================
+
+            document.Add(new Paragraph("ESTADO DE PAGO")
+                .SetFont(boldFontSmall)
+                .SetFontSize(10)
+                .SetTextAlignment(TextAlignment.RIGHT));
+
+            string estadoPago = pedido.Saldo == 0 ? "PAGADO" : "PENDIENTE";
+
+            document.Add(new Paragraph($"Tipo de venta: {pedido.TipoVenta}")
+                .SetTextAlignment(TextAlignment.RIGHT));
+
+            document.Add(new Paragraph($"Estado de pago: {estadoPago}")
+                .SetTextAlignment(TextAlignment.RIGHT));
+
+            document.Add(new Paragraph($"Saldo financiero: ${pedido.Saldo:N0}")
+                .SetTextAlignment(TextAlignment.RIGHT));
+
+
             // ======================================================
             // 🔥 FIRMA
             // ======================================================
+
+            document.Add(new Paragraph("\n"));
             document.Add(new Paragraph("____________________________"));
             document.Add(new Paragraph("Firma Responsable"));
 
