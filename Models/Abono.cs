@@ -6,7 +6,8 @@ using InventarioWEB;
 namespace InventarioWEB.Models
 {
     /// <summary>
-    /// Representa un abono (pago parcial o total) realizado a un pedido.
+    /// /// Representa el pago realizado a un pedido.
+    /// Puede corresponder a la cuota inicial o al pago final.
     /// </summary>
     [Table("abono")]
     public class Abono
@@ -23,7 +24,7 @@ namespace InventarioWEB.Models
 
         // Fecha en que se realizó el abono
         [Required]
-        public DateTime Fecha_Abono { get; set; }
+       public DateTime Fecha_Abono { get; set; } = DateTime.Now;
 
         // Monto del abono
         [Required]

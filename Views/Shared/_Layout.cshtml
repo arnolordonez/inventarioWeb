@@ -56,6 +56,9 @@
             padding-top: 70px;
             transition: left 0.3s ease;
             z-index: 1040;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-bottom: 120px; /* 🔥 CLAVE */
         }
 
             .sidebar.active {
@@ -99,9 +102,14 @@
             min-height: 100vh;
         }
 
-            .content.shift {
-                margin-left: 240px;
-            }
+        @@media (min-width: 992px) {
+            .content.shift
+
+        {
+            margin-left: 240px;
+        }
+
+        }
 
         footer {
             background-color: #1E3A8A;

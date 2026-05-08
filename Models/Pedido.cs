@@ -13,10 +13,20 @@ namespace InventarioWEB.Models
         [Required]
         public DateTime Fecha { get; set; } = DateTime.Now;
 
+        // =========================================================
+        // ESTADO OPERATIVO / LOGÍSTICO
+        // =========================================================
         [Required]
         [StringLength(50)]
-        public string Estado { get; set; } = "PENDIENTE";
+       public string Estado { get; set; } = "NO DESPACHADO";
 
+        // =========================================================
+        // ESTADO FINANCIERO
+        // =========================================================
+       [Required]
+       [StringLength(50)]
+        public string EstadoPago { get; set; } = "ABONADO";
+      
         [Column(TypeName = "decimal(10,2)")]
         public decimal Total { get; set; }
 
