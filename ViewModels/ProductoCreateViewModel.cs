@@ -10,7 +10,9 @@ namespace InventarioWEB.ViewModels
         // FILTRO PRINCIPAL (NO SE GUARDA EN BD)
         // ==========================================================
         // Sirve únicamente para filtrar Referencias, Tallas y Telas
+        [Required(ErrorMessage = "Seleccione un género.")]
         public int? ID_Genero { get; set; }
+       
 
         // ==========================================================
         // CLAVES FORÁNEAS (SE GUARDAN EN PRODUCTOS)

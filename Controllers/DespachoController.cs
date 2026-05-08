@@ -275,9 +275,9 @@ namespace InventarioWEB.Controllers
                 }
 
                 // =====================================================
-                // 🔥 VALIDACIÓN GLOBAL (ACUMULADA POR PRODUCTO)
                 // =====================================================
 
+                // 🔥 VALIDACIÓN GLOBAL (ACUMULADA POR PRODUCTO)
                 var agrupadoPorProducto = model.Tallas
                     .Where(t => t.Cantidad > 0)
                     .GroupBy(t => pedido.DetallePedidos

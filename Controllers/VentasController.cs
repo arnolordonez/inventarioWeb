@@ -286,15 +286,53 @@ namespace InventarioWEB.Controllers
                 if (totalFinal <= 0)
                     return BadRequest("El total de la venta no es válido.");
 
-                if (venta.TipoVenta != "CONTADO")
-                {
-                    if (venta.AbonoInicial < 0)
-                        return BadRequest("El abono no puede ser negativo.");
+                if (string.IsNullOrWhiteSpace(venta.TipoVenta))
+                    return BadRequest("El tipo de venta es obligatorio.");
 
-                    if (venta.AbonoInicial > totalFinal)
-                        return BadRequest("El abono no puede ser mayor al total.");
+                // ======================================================
+                // 🔥 VALIDAR TIPO CONTADO
+                // ======================================================
+                if (venta.TipoVenta == "CONTADO")
+                {
+                    // 🔥 EN CONTADO SIEMPRE SE PAGA TODO
+                    venta.AbonoInicial = totalFinal;
                 }
 
+                // ======================================================
+                // 🔥 VALIDAR TIPO CRÉDITO
+                // ======================================================
+                else if (venta.TipoVenta == "CREDITO")
+                {
+                    // 🔥 DEBE EXISTIR ABONO INICIAL
+                    if (venta.AbonoInicial <= 0)
+                        return BadRequest("Las ventas a crédito requieren abono inicial.");
+
+                    // 🔥 NO PUEDE SUPERAR EL TOTAL
+                    if (venta.AbonoInicial > totalFinal)
+                        return BadRequest("El abono no puede ser mayor al total.");
+
+                    // 🔥 SI PAGA TODO NO ES CRÉDITO
+                    if (venta.AbonoInicial == totalFinal)
+                        return BadRequest("Si paga el total la venta debe ser CONTADO.");
+                }
+
+                // ======================================================
+                // 🔥 TIPO DE VENTA INVÁLIDO
+                // ======================================================
+                else
+                {
+                    return BadRequest("Tipo de venta no válido.");
+                }
+
+                // ======================================================
+                // 🔥 VALIDACIÓN GENERAL
+                // ======================================================
+                if (venta.AbonoInicial < 0)
+                    return BadRequest("El abono no puede ser negativo.");
+
+                // ======================================================
+                // 🔥 SALDO
+                // ======================================================
                 decimal saldo = (venta.TipoVenta == "CONTADO")
                     ? 0
                     : totalFinal - venta.AbonoInicial;
@@ -304,8 +342,14 @@ namespace InventarioWEB.Controllers
                 // ======================================================
                 var pedido = new Pedido
                 {
+                   
                     Fecha = DateTime.Now,
-                    Estado = saldo == 0 ? "PAGADO" : "PENDIENTE",
+
+                    // 🔥 ESTADO OPERATIVO
+                    Estado = "NO DESPACHADO",
+
+                    // 🔥 ESTADO FINANCIERO
+                    EstadoPago = saldo == 0 ? "PAGADO" : "ABONADO",
                     ID_Cliente = venta.ID_Cliente,
                     Total = totalBase,
                     TotalIVA = totalIVA,
@@ -383,7 +427,7 @@ namespace InventarioWEB.Controllers
                 {
                     success = true,
                     idPedido = pedido.ID_Pedido,
-                    estado = pedido.Estado,
+                    estado = pedido.EstadoPago,
                     saldo = pedido.Saldo,
                     totalVenta = pedido.TotalVenta,
                     urlPdf = urlPdf // 🔥 CLAVE PARA WHATSAPP
@@ -483,7 +527,7 @@ namespace InventarioWEB.Controllers
                 {
                     IdPedido = pedido.ID_Pedido,
                     Fecha = pedido.Fecha.ToString("yyyy-MM-dd"),
-                    Estado = pedido.Estado ?? "",
+                    Estado = pedido.EstadoPago ?? "",
                     TipoVenta = pedido.TipoVenta ?? "",
                     Detalles = detalles
                 };
@@ -588,7 +632,7 @@ namespace InventarioWEB.Controllers
                         var infoPedido = new Paragraph(
                             $"Pedido: {pedido.ID_Pedido}    " +
                             $"Fecha: {pedido.Fecha:yyyy-MM-dd}    " +
-                            $"Estado: {pedido.Estado ?? "N/A"} - {pedido.TipoVenta ?? "N/A"}"
+                            $"Estado: {pedido.EstadoPago ?? "N/A"} - {pedido.TipoVenta ?? "N/A"}"
                         )
                         .SetFontSize(10); // 🔥 MÁS COMPACTO
 
