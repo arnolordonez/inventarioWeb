@@ -395,12 +395,21 @@ namespace InventarioWEB.Controllers
                     if (!venta.ID_MetodoPago.HasValue)
                         return BadRequest("Debe seleccionar método de pago.");
 
+                    var usuarioIdStr = HttpContext.Session.GetString("UsuarioID");
+
+                    if (string.IsNullOrEmpty(usuarioIdStr))
+                        return Unauthorized("La sesión del usuario expiró.");
+
+                    int idUsuario = int.Parse(usuarioIdStr);
+
                     _context.Abonos.Add(new Abono
                     {
                         ID_Pedido = pedido.ID_Pedido,
                         Fecha_Abono = DateTime.Now,
                         Monto = venta.AbonoInicial,
-                        ID_MetodoPago = venta.ID_MetodoPago.Value
+                        ID_MetodoPago = venta.ID_MetodoPago.Value,
+                        ID_Usuario = idUsuario
+                        
                     });
                 }
 

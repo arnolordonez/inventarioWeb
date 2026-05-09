@@ -43,9 +43,32 @@ namespace InventarioWEB.Controllers
             return View(despachos);
         }
 
+        
         // ==========================================================
         // SELECCIONAR PEDIDO
         // ==========================================================
+        public async Task<IActionResult> SeleccionarPedido()
+        {
+            // 🔥 SOLO PEDIDOS PAGADOS Y NO DESPACHADOS
+            var pedidos = await _context.Pedidos
+                .Include(p => p.Cliente)
+               .Where(p =>
+               
+                 p.Estado != "DESPACHADO"
+                 &&
+                 (
+                     p.EstadoPago == "PAGADO"
+                     || p.EstadoPago == "ABONADO"
+                 )
+ 
+               )
+                .OrderBy(p => p.ID_Pedido)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return View(pedidos);
+        }
+        /*
         public async Task<IActionResult> SeleccionarPedido()
         {
             // 🔥 SOLO PEDIDOS PENDIENTES
@@ -58,7 +81,7 @@ namespace InventarioWEB.Controllers
 
             return View(pedidos);
         }
-
+        */
         // ==========================================================
         // DETALLE
         // ==========================================================
@@ -153,6 +176,8 @@ namespace InventarioWEB.Controllers
 
             return View(vm);
         }
+
+        
         // ==========================================================
         // CREAR (POST)
         // ==========================================================
@@ -174,13 +199,89 @@ namespace InventarioWEB.Controllers
                 if (pedido == null)
                     throw new Exception("El pedido no existe");
 
-                // 🔥 CORREGIDO: permitir despachar pedidos PAGADOS y PENDIENTES
+                // =====================================================
+                // 🔥 VALIDACIÓN FINANCIERA DEL DESPACHO
+                // =====================================================
+
+                // 🔹 TOTAL ABONADO
+                decimal totalAbonado = await _context.Abonos
+                    .Where(a =>
+                        a.ID_Pedido == pedido.ID_Pedido
+                        && a.Activo
+                    )
+                    .SumAsync(a => (decimal?)a.Monto) ?? 0;
+
+
+                // 🔹 TOTAL YA DESPACHADO EN DINERO (SIN IVA)
+                decimal totalDespachadoBase = await _context.DetalleDespachos
+                    .Join(_context.Despachos,
+                        dd => dd.ID_Despacho,
+                        d => d.ID_Despacho,
+                        (dd, d) => new { dd, d })
+                    .Where(x => x.d.ID_Pedido == pedido.ID_Pedido)
+                    .Join(_context.DetallePedidos,
+                        x => x.dd.ID_Detalle,
+                        dp => dp.ID_Detalle,
+                        (x, dp) => new
+                        {
+                            Cantidad = x.dd.Cantidad_Despachada,
+                            Precio = dp.PrecioVenta
+                        })
+                    .SumAsync(x => x.Cantidad * x.Precio);
+
+                // 🔹 IVA PROPORCIONAL
+                decimal porcentajeIVA = pedido.Total > 0
+                    ? (pedido.TotalIVA / pedido.Total)
+                    : 0;
+
+                // 🔹 TOTAL YA DESPACHADO CON IVA
+                decimal totalDespachadoConIVA =
+                    totalDespachadoBase * (1 + porcentajeIVA);
+
+                // 🔹 TOTAL NUEVO DESPACHO (SIN IVA)
+                decimal totalNuevoDespacho = model.Tallas
+                    .Where(t => t.Cantidad > 0)
+                    .Join(
+                        pedido.DetallePedidos,
+                        t => t.ID_Detalle,
+                        dp => dp.ID_Detalle,
+                        (t, dp) => t.Cantidad * dp.PrecioVenta
+                    )
+                    .Sum();
+
+                // 🔹 TOTAL NUEVO DESPACHO CON IVA
+                decimal totalNuevoDespachoConIVA =
+                    totalNuevoDespacho * (1 + porcentajeIVA);
+
+                // 🔹 TOTAL ACUMULADO REAL
+                decimal totalAcumuladoDespacho =
+                    totalDespachadoConIVA + totalNuevoDespachoConIVA;
+
+                // 🚫 VALIDACIÓN FINANCIERA
+                if (pedido.TipoVenta == "CREDITO"
+                    && totalAcumuladoDespacho > totalAbonado)
+                {
+                    decimal disponible =
+                        totalAbonado - totalDespachadoConIVA;
+
+                    if (disponible < 0)
+                        disponible = 0;
+
+                    throw new Exception(
+                        $"El cliente solo tiene disponible para despacho: ${disponible:N0}. " +
+                        $"No puede despachar mercancía por ${totalNuevoDespachoConIVA:N0}."
+                    );
+                }
+
+                // 🔥 VALIDAR QUE EL PEDIDO NO ESTÉ COMPLETAMENTE DESPACHADO
                 if (pedido.Estado == "DESPACHADO")
                     throw new Exception("El pedido ya fue despachado completamente");
 
-                // 🔥 OPCIONAL (recomendado): validar estados válidos
-                if (pedido.Estado != "PENDIENTE" && pedido.Estado != "PAGADO")
-                    throw new Exception($"El pedido no puede ser despachado en estado: {pedido.Estado}");
+                // 🔥 SOLO SE PUEDEN DESPACHAR PEDIDOS NO DESPACHADOS
+                if (pedido.Estado != "NO DESPACHADO")
+                    throw new Exception(
+                        $"El pedido no puede despacharse en estado: {pedido.Estado}"
+                    );
 
                 if (model.Tallas == null || !model.Tallas.Any())
                     throw new Exception("No hay datos para despachar");
@@ -616,6 +717,16 @@ namespace InventarioWEB.Controllers
             // 🔥 CONTEXTO DE FACTURA (CLARO Y PROFESIONAL)
             // ======================================================
 
+            // ======================================================
+            // 🔥 CONTEXTO DE FACTURA
+            // ======================================================
+
+            var boldFontSmall = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
+
+            var pedido = despacho.Pedido;
+
+            document.Add(new Paragraph("\n"));
+            /*
             var italicFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_OBLIQUE);
             var boldFontSmall = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
 
@@ -642,7 +753,7 @@ namespace InventarioWEB.Controllers
             );
 
             document.Add(new Paragraph("\n"));
-
+            */
 
             // ======================================================
             // 🔥 TOTALES DEL DESPACHO
@@ -774,8 +885,7 @@ namespace InventarioWEB.Controllers
                 .SetFont(boldFontSmall)
                 .SetFontSize(10)
                 .SetTextAlignment(TextAlignment.RIGHT));
-
-            string estadoPago = pedido.Saldo == 0 ? "PAGADO" : "PENDIENTE";
+            string estadoPago = pedido.Saldo == 0 ? "PAGADO" : "ABONADO";
 
             document.Add(new Paragraph($"Tipo de venta: {pedido.TipoVenta}")
                 .SetTextAlignment(TextAlignment.RIGHT));
