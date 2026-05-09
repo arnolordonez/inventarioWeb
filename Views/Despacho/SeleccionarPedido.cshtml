@@ -7,7 +7,7 @@
 <h2 class="mb-4">📦 Seleccionar Pedido</h2>
 
 <div class="alert alert-info">
-    Selecciona un pedido <strong>PENDIENTE o PARCIAL</strong> para generar un despacho.
+    Selecciona un pedido disponible para generar un despacho.
 </div>
 
 <div class="card shadow-sm">
@@ -22,7 +22,9 @@
                         <th style="width:80px;">ID</th>
                         <th>Cliente</th>
                         <th style="width:140px;">Fecha</th>
-                        <th style="width:120px;">Estado</th>
+                        <th style="width:140px;">Estado</th>
+                        <th style="width:140px;">Tipo Venta</th>
+                        <th style="width:150px;">Estado Pago</th>
                         <th style="width:150px;">Total</th>
                         <th style="width:120px;">Acción</th>
                     </tr>
@@ -33,7 +35,7 @@
                     @if (Model == null || !Model.Any())
                     {
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">
+                            <td colspan="8" class="text-center text-muted py-4">
                                 No hay pedidos disponibles para despacho
                             </td>
                         </tr>
@@ -54,30 +56,26 @@
                                     @(item.Cliente != null
                                         ? item.Cliente.Nombre + " " + item.Cliente.Apellido
                                         : "Sin cliente")
-                                    
-                                  
                                 </td>
 
                                 <!-- FECHA -->
                                 <td class="text-center">
                                     @item.Fecha.ToString("dd/MM/yyyy")
-                                    
-                                   
                                 </td>
 
                                 <!-- ESTADO -->
                                 <td class="text-center">
 
-                                    @if (item.Estado == "PENDIENTE")
+                                    @if (item.Estado == "NO DESPACHADO")
                                     {
                                         <span class="badge bg-warning text-dark">
-                                            Pendiente
+                                            NO DESPACHADO
                                         </span>
                                     }
-                                    else if (item.Estado == "PARCIAL")
+                                    else if (item.Estado == "DESPACHADO")
                                     {
-                                        <span class="badge bg-info text-dark">
-                                            Parcial
+                                        <span class="badge bg-primary">
+                                            DESPACHADO
                                         </span>
                                     }
                                     else
@@ -89,14 +87,72 @@
 
                                 </td>
 
+                                <!-- TIPO VENTA -->
+                                <td class="text-center">
+
+                                    @if (item.TipoVenta == "CONTADO")
+                                    {
+                                        <span class="badge bg-success">
+                                            CONTADO
+                                        </span>
+                                    }
+                                    else if (item.TipoVenta == "CREDITO")
+                                    {
+                                        <span class="badge bg-danger">
+                                            CRÉDITO
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">
+                                            @item.TipoVenta
+                                        </span>
+                                    }
+
+                                </td>
+
+                                <!-- ESTADO PAGO -->
+                                <td class="text-center">
+
+                                    @if (item.EstadoPago == "PAGADO")
+                                    {
+                                        <span class="badge bg-success">
+                                            PAGADO
+                                        </span>
+                                    }
+                                    else if (item.EstadoPago == "ABONADO")
+                                    {
+                                        <span class="badge bg-info text-dark">
+                                            ABONADO
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">
+                                            @item.EstadoPago
+                                        </span>
+                                    }
+
+                                </td>
+
                                 <!-- TOTAL -->
                                 <td class="text-end">
                                     @item.TotalVenta.ToString("C")
                                     <br />
-                                    <small class="text-muted">
-                                        Total venta
-                                    </small>
-                                   
+
+                                    @if (item.TipoVenta == "CREDITO")
+                                    {
+                                        <small class="text-danger">
+                                            Saldo: @item.Saldo.ToString("C")
+                                        </small>
+                                    }
+                                    else
+                                    {
+                                        <small class="text-muted">
+                                            Venta pagada
+                                        </small>
+                                    }
+
                                 </td>
 
                                 <!-- ACCIÓN -->

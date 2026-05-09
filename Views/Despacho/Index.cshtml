@@ -26,6 +26,7 @@
                         <th>Estado Pedido</th>
                         <th>✔ Factura</th>
                         <th>✔ Despacho</th>
+                        <th>Tipo Venta</th>
                         <th>Fecha</th>
                         <th>Tipo</th>
                         <th>Estado</th>
@@ -38,7 +39,7 @@
                     @if (Model == null || !Model.Any())
                     {
                         <tr>
-                            <td colspan="9" class="text-center text-muted">
+                            <td colspan="10" class="text-center text-muted">
                                 No hay despachos
                             </td>
                         </tr>
@@ -61,17 +62,32 @@
                                 <td class="text-center">
                                     @if (item.Pedido != null)
                                     {
-                                        if (item.Pedido.Estado == "PENDIENTE")
+                                        if (item.Pedido.Estado == "NO DESPACHADO")
                                         {
-                                            <span class="badge bg-warning">PENDIENTE</span>
-                                        }
-                                        else if (item.Pedido.Estado == "PAGADO")
-                                        {
-                                            <span class="badge bg-success">PAGADO</span>
+                                            <span class="badge bg-warning text-dark">
+                                                NO DESPACHADO
+                                            </span>
                                         }
                                         else if (item.Pedido.Estado == "DESPACHADO")
                                         {
-                                            <span class="badge bg-primary">DESPACHADO</span>
+                                            <span class="badge bg-primary">
+                                                DESPACHADO
+                                            </span>
+                                        }
+
+                                        <br />
+
+                                        @if (item.Pedido.EstadoPago == "PAGADO")
+                                        {
+                                            <span class="badge bg-success">
+                                                PAGADO
+                                            </span>
+                                        }
+                                        else if (item.Pedido.EstadoPago == "ABONADO")
+                                        {
+                                            <span class="badge bg-info text-dark">
+                                                ABONADO
+                                            </span>
                                         }
                                     }
                                 </td>
@@ -92,11 +108,31 @@
                                 <td class="text-center">
                                     @if (item.Tipo == TipoDespacho.Completo)
                                     {
-                                        <span class="text-success fw-bold">✔ Completo</span>
+                                        <span class="text-success fw-bold">
+                                            ✔ Completo
+                                        </span>
                                     }
                                     else
                                     {
-                                        <span class="text-warning fw-bold">◑ Parcial</span>
+                                        <span class="text-warning fw-bold">
+                                            ◑ Parcial
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- 🔥 TIPO VENTA -->
+                                <td class="text-center">
+                                    @if (item.Pedido?.TipoVenta == "CONTADO")
+                                    {
+                                        <span class="badge bg-success">
+                                            CONTADO
+                                        </span>
+                                    }
+                                    else if (item.Pedido?.TipoVenta == "CREDITO")
+                                    {
+                                        <span class="badge bg-danger">
+                                            CRÉDITO
+                                        </span>
                                     }
                                 </td>
 
@@ -107,11 +143,15 @@
                                 <td class="text-center">
                                     @if (item.Tipo == TipoDespacho.Completo)
                                     {
-                                        <span class="badge bg-success">COMPLETO</span>
+                                        <span class="badge bg-success">
+                                            COMPLETO
+                                        </span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-warning text-dark">PARCIAL</span>
+                                        <span class="badge bg-warning text-dark">
+                                            PARCIAL
+                                        </span>
                                     }
                                 </td>
 
@@ -134,8 +174,15 @@
                                        target="_blank"
                                        class="btn btn-sm btn-success">
                                         🧾
-</a>
+                                    </a>
+
                                 </td>
+
+                            </tr>
+                        }
+                    }
+
+                </tbody>
 
                             </tr>
                         }
