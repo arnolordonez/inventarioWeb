@@ -8,6 +8,7 @@ namespace InventarioWEB.Models
     public class Abono
     {
         [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int ID_Abono { get; set; }
 
         // =====================================================
@@ -20,7 +21,7 @@ namespace InventarioWEB.Models
         public Pedido Pedido { get; set; } = null!;
 
         // =====================================================
-        // 🔹 FECHA
+        // 🔹 FECHA DEL ABONO
         // =====================================================
         [Required]
         public DateTime Fecha_Abono { get; set; } = DateTime.Now;
@@ -42,18 +43,29 @@ namespace InventarioWEB.Models
         public MetodoPago MetodoPago { get; set; } = null!;
 
         // =====================================================
-        // 🔹 ACTIVO
+        // 🔹 ESTADO LÓGICO
         // =====================================================
+        [Required]
         public bool Activo { get; set; } = true;
 
         // =====================================================
         // 🔹 USUARIO
         // =====================================================
-        [Required]
-        public int ID_Usuario { get; set; }
+        public int? ID_Usuario { get; set; }
 
         [ForeignKey(nameof(ID_Usuario))]
-        public Usuario Usuario { get; set; } = null!;
+        public Usuario? Usuario { get; set; }
 
+        // =====================================================
+        // 🔹 OBSERVACIONES
+        // =====================================================
+        [StringLength(255)]
+        public string? Observacion { get; set; }
+
+        // =====================================================
+        // 🔹 AUDITORÍA
+        // =====================================================
+        [Required]
+        public DateTime FechaRegistro { get; set; } = DateTime.Now;
     }
 }

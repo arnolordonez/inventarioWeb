@@ -43,7 +43,7 @@
     </div>
 
     <!-- ===================================================== -->
-    <!-- 🔹 CLIENTE SELECCIONADO -->
+    <!-- 🔹 CLIENTE -->
     <!-- ===================================================== -->
 
     <div class="card shadow-sm mb-4 d-none" id="cardCliente">
@@ -71,27 +71,28 @@
     </div>
 
     <!-- ===================================================== -->
-    <!-- 🔹 PEDIDOS PENDIENTES -->
+    <!-- 🔹 PEDIDOS -->
     <!-- ===================================================== -->
 
     <div class="card shadow-sm mb-4 d-none" id="cardPedidos">
         <div class="card-body">
 
             <h5 class="card-title mb-3">
-                Pedidos Pendientes
+                Pedidos con saldo pendiente
             </h5>
 
             <div class="table-responsive">
 
                 <table class="table table-bordered table-hover align-middle">
+
                     <thead class="table-light">
                         <tr>
                             <th>Pedido</th>
                             <th>Fecha</th>
-                            <th>Total</th>
+                            <th>Total Venta</th>
                             <th>Saldo</th>
                             <th>Tipo</th>
-                            <th>Estado</th>
+                            <th>Estado Pago</th>
                             <th style="width:120px;">Acción</th>
                         </tr>
                     </thead>
@@ -106,7 +107,7 @@
     </div>
 
     <!-- ===================================================== -->
-    <!-- 🔹 DETALLE PEDIDO -->
+    <!-- 🔹 DETALLE -->
     <!-- ===================================================== -->
 
     <div class="card shadow-sm mb-4 d-none" id="cardDetalle">
@@ -128,6 +129,7 @@
             <div class="table-responsive">
 
                 <table class="table table-striped table-bordered">
+
                     <thead class="table-light">
                         <tr>
                             <th>Producto</th>
@@ -176,6 +178,10 @@
 
                 <input type="hidden" id="ID_Pedido" />
 
+                <!-- =============================== -->
+                <!-- 🔹 SALDO -->
+                <!-- =============================== -->
+
                 <div class="mb-3">
 
                     <label class="form-label">
@@ -189,6 +195,10 @@
 
                 </div>
 
+                <!-- =============================== -->
+                <!-- 🔹 MONTO -->
+                <!-- =============================== -->
+
                 <div class="mb-3">
 
                     <label class="form-label">
@@ -198,9 +208,13 @@
                     <input type="number"
                            id="Monto"
                            class="form-control"
-                           readonly />
+                           min="1" />
 
                 </div>
+
+                <!-- =============================== -->
+                <!-- 🔹 MÉTODO -->
+                <!-- =============================== -->
 
                 <div class="mb-3">
 
@@ -208,11 +222,32 @@
                         Método de pago
                     </label>
 
-                    <select id="MetodoPago" class="form-select">
+                    <select id="MetodoPago"
+                            class="form-select">
+
                         <option value="">
                             Cargando...
                         </option>
+
                     </select>
+
+                </div>
+
+                <!-- =============================== -->
+                <!-- 🔹 OBSERVACIÓN -->
+                <!-- =============================== -->
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Observación
+                    </label>
+
+                    <textarea id="Observacion"
+                              class="form-control"
+                              rows="3"
+                              placeholder="Observación opcional">
+                    </textarea>
 
                 </div>
 
@@ -229,7 +264,9 @@
                 <button type="button"
                         class="btn btn-success"
                         onclick="guardarAbono()">
+
                     Guardar Abono
+
                 </button>
 
             </div>
@@ -260,7 +297,10 @@
                 return;
             }
 
-            const response = await fetch(`/Abonos/BuscarClientes?term=${encodeURIComponent(term)}`);
+            const response = await fetch(
+                `/Abonos/BuscarClientes?term=${encodeURIComponent(term)}`
+            );
+
             const data = await response.json();
 
             let html = '';
@@ -275,9 +315,7 @@
             }
             else {
 
-                html += `
-                    <div class="list-group">
-                `;
+                html += `<div class="list-group">`;
 
                 data.forEach(c => {
 
@@ -308,8 +346,11 @@
 
             clienteSeleccionado = cliente;
 
-            document.getElementById("clienteNombre").innerText = cliente.nombreCompleto;
-            document.getElementById("clienteCedula").innerText = cliente.cedula;
+            document.getElementById("clienteNombre").innerText =
+                cliente.nombreCompleto;
+
+            document.getElementById("clienteCedula").innerText =
+                cliente.cedula;
 
             document.getElementById("cardCliente")
                 .classList.remove("d-none");
@@ -325,7 +366,10 @@
 
         async function cargarPedidos(idCliente) {
 
-            const response = await fetch(`/Abonos/ObtenerPedidosPendientes?idCliente=${idCliente}`);
+            const response = await fetch(
+                `/Abonos/ObtenerPedidosPendientes?idCliente=${idCliente}`
+            );
+
             const data = await response.json();
 
             const tbody = document.getElementById("tbodyPedidos");
@@ -336,8 +380,11 @@
 
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="text-center text-muted">
+                        <td colspan="7"
+                            class="text-center text-muted">
+
                             El cliente no tiene pedidos pendientes.
+
                         </td>
                     </tr>
                 `;
@@ -348,23 +395,34 @@
 
                     tbody.innerHTML += `
                         <tr>
+
                             <td>${p.id_Pedido}</td>
+
                             <td>${p.fecha}</td>
-                            <td>$ ${Number(p.totalVenta).toLocaleString()}</td>
+
+                            <td>
+                                $ ${Number(p.totalVenta).toLocaleString()}
+                            </td>
+
                             <td class="fw-bold text-danger">
                                 $ ${Number(p.saldo).toLocaleString()}
                             </td>
+
                             <td>${p.tipoVenta}</td>
+
                             <td>${p.estadoPago}</td>
 
                             <td>
+
                                 <button class="btn btn-success btn-sm"
                                         onclick="abrirModalAbono(${p.id_Pedido}, ${p.saldo})">
 
                                     Abonar
 
                                 </button>
+
                             </td>
+
                         </tr>
                     `;
                 });
@@ -375,7 +433,7 @@
         }
 
         // =====================================================
-        // 🔹 ABRIR MODAL
+        // 🔹 MODAL
         // =====================================================
 
         async function abrirModalAbono(idPedido, saldo) {
@@ -384,7 +442,11 @@
 
             document.getElementById("saldoPendiente").value = saldo;
 
-            document.getElementById("Monto").value = saldo;
+            document.getElementById("Monto").value = "";
+
+            document.getElementById("Monto").max = saldo;
+
+            document.getElementById("Observacion").value = "";
 
             await cargarMetodosPago();
 
@@ -398,12 +460,15 @@
         }
 
         // =====================================================
-        // 🔹 MÉTODOS PAGO
+        // 🔹 MÉTODOS DE PAGO
         // =====================================================
 
         async function cargarMetodosPago() {
 
-            const response = await fetch('/Abonos/ObtenerMetodosPago');
+            const response = await fetch(
+                '/Abonos/ObtenerMetodosPago'
+            );
+
             const data = await response.json();
 
             const select = document.getElementById("MetodoPago");
@@ -430,7 +495,10 @@
 
         async function cargarDetallePedido(idPedido) {
 
-            const response = await fetch(`/Abonos/ObtenerDetallePedido?idPedido=${idPedido}`);
+            const response = await fetch(
+                `/Abonos/ObtenerDetallePedido?idPedido=${idPedido}`
+            );
+
             const data = await response.json();
 
             const tbody = document.getElementById("tbodyDetalle");
@@ -441,16 +509,25 @@
 
                 tbody.innerHTML += `
                     <tr>
+
                         <td>${d.producto}</td>
+
                         <td>${d.talla}</td>
+
                         <td>${d.color}</td>
+
                         <td>${d.cantidad}</td>
-                        <td>$ ${Number(d.subtotal).toLocaleString()}</td>
+
+                        <td>
+                            $ ${Number(d.subtotal).toLocaleString()}
+                        </td>
+
                     </tr>
                 `;
             });
 
-            document.getElementById("detallePedidoId").innerText = idPedido;
+            document.getElementById("detallePedidoId").innerText =
+                idPedido;
 
             document.getElementById("cardDetalle")
                 .classList.remove("d-none");
@@ -461,6 +538,10 @@
         // =====================================================
 
         async function guardarAbono() {
+
+            const saldo = parseFloat(
+                document.getElementById("saldoPendiente").value
+            );
 
             const data = {
 
@@ -474,14 +555,36 @@
 
                 ID_MetodoPago: parseInt(
                     document.getElementById("MetodoPago").value
-                )
+                ),
+
+                Observacion: document.getElementById("Observacion").value
             };
+
+            // ==========================================
+            // 🔥 VALIDACIONES
+            // ==========================================
+
+            if (!data.Monto || data.Monto <= 0) {
+
+                alert("Ingrese un monto válido.");
+                return;
+            }
+
+            if (data.Monto > saldo) {
+
+                alert("El monto no puede superar el saldo.");
+                return;
+            }
 
             if (!data.ID_MetodoPago) {
 
                 alert("Seleccione un método de pago.");
                 return;
             }
+
+            // ==========================================
+            // 🔥 ENVIAR
+            // ==========================================
 
             const response = await fetch('/Abonos/Crear', {
 
@@ -507,7 +610,19 @@
 
             alert(result.mensaje);
 
-            location.reload();
+            // ==========================================
+            // 🔥 CERRAR MODAL
+            // ==========================================
+
+            bootstrap.Modal.getInstance(
+                document.getElementById('modalAbono')
+            ).hide();
+
+            // ==========================================
+            // 🔥 RECARGAR PEDIDOS
+            // ==========================================
+
+            await cargarPedidos(clienteSeleccionado.id_Cliente);
         }
 
     </script>

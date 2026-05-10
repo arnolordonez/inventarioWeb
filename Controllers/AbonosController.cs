@@ -38,17 +38,25 @@ namespace InventarioWEB.Controllers
                 .AsNoTracking()
                 .Where(c => c.Activo);
 
+            // ======================================================
+            // 🔥 BÚSQUEDA POR CÉDULA
+            // ======================================================
             if (int.TryParse(term, out int idBusqueda))
             {
                 query = query.Where(c => c.ID_Cliente == idBusqueda);
             }
             else
             {
+                // ==================================================
+                // 🔥 BÚSQUEDA POR NOMBRE
+                // ==================================================
                 query = query.Where(c =>
-                    (c.Nombre ?? "").Contains(term) ||
-                    (c.Apellido ?? "").Contains(term) ||
-                    ((c.Nombre ?? "") + " " + (c.Apellido ?? ""))
-                        .Contains(term)
+                    (c.Nombre ?? "").ToLower().Contains(term) ||
+                    (c.Apellido ?? "").ToLower().Contains(term) ||
+                    (
+                        ((c.Nombre ?? "") + " " + (c.Apellido ?? ""))
+                        .ToLower()
+                    ).Contains(term)
                 );
             }
 
@@ -59,7 +67,8 @@ namespace InventarioWEB.Controllers
                 {
                     id_Cliente = c.ID_Cliente,
                     cedula = c.ID_Cliente,
-                    nombreCompleto = ((c.Nombre ?? "") + " " + (c.Apellido ?? "")).Trim()
+                    nombreCompleto =
+                        ((c.Nombre ?? "") + " " + (c.Apellido ?? "")).Trim()
                 })
                 .Take(10)
                 .ToListAsync();
@@ -68,7 +77,7 @@ namespace InventarioWEB.Controllers
         }
 
         // ==========================================================
-        // 🔹 OBTENER PEDIDOS PENDIENTES
+        // 🔹 OBTENER PEDIDOS CON SALDO
         // ==========================================================
         [HttpGet]
         public async Task<IActionResult> ObtenerPedidosPendientes(int idCliente)
@@ -88,7 +97,8 @@ namespace InventarioWEB.Controllers
                     totalVenta = p.TotalVenta,
                     saldo = p.Saldo,
                     tipoVenta = p.TipoVenta,
-                    estadoPago = p.EstadoPago
+                    estadoPago = p.EstadoPago,
+                    estado = p.Estado
                 })
                 .ToListAsync();
 
@@ -96,36 +106,38 @@ namespace InventarioWEB.Controllers
         }
 
         // ==========================================================
-        // 🔹 OBTENER MÉTODOS DE PAGO
+        // 🔹 MÉTODOS DE PAGO
         // ==========================================================
         [HttpGet]
         public async Task<IActionResult> ObtenerMetodosPago()
         {
             var data = await _context.MetodosPago
+                .AsNoTracking()
                 .Where(m => m.Activo)
+                .OrderBy(m => m.Nombre)
                 .Select(m => new
                 {
                     value = m.ID_MetodoPago,
                     text = m.Nombre
                 })
-                .OrderBy(m => m.text)
                 .ToListAsync();
 
             return Json(data);
         }
 
         // ==========================================================
-        // 🔹 REGISTRAR ABONO FINAL
+        // 🔹 REGISTRAR ABONO
         // ==========================================================
         [HttpPost]
-        public async Task<IActionResult> Crear([FromBody] AbonoVM model)
+        public async Task<IActionResult> RegistrarAbono([FromBody] AbonoVM model)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            using var transaction =
+                await _context.Database.BeginTransactionAsync();
 
             try
             {
                 // ==================================================
-                // 🔥 VALIDACIONES
+                // 🔥 VALIDAR MODELO
                 // ==================================================
 
                 if (model == null)
@@ -137,30 +149,65 @@ namespace InventarioWEB.Controllers
                 if (model.Monto <= 0)
                     return BadRequest("El monto debe ser mayor a cero.");
 
+                if (model.ID_MetodoPago <= 0)
+                    return BadRequest("Debe seleccionar método de pago.");
+
                 // ==================================================
-                // 🔍 PEDIDO
+                // 🔥 BUSCAR PEDIDO
                 // ==================================================
 
                 var pedido = await _context.Pedidos
-                    .FirstOrDefaultAsync(p => p.ID_Pedido == model.ID_Pedido);
+                    .FirstOrDefaultAsync(p =>
+                        p.ID_Pedido == model.ID_Pedido
+                    );
 
                 if (pedido == null)
                     return BadRequest("Pedido no encontrado.");
 
-                if (pedido.EstadoPago == "PAGADO")
-                    return BadRequest("El pedido ya está pagado.");
-
-                if (pedido.Saldo <= 0)
-                    return BadRequest("El pedido no tiene saldo pendiente.");
-
                 // ==================================================
-                // 🔥 SOLO PAGO TOTAL
+                // 🔥 VALIDAR ESTADO PEDIDO
                 // ==================================================
 
-                if (model.Monto != pedido.Saldo)
+                if (
+                    pedido.Estado == "ANULADO" ||
+                    pedido.Estado == "CANCELADO"
+                )
                 {
                     return BadRequest(
-                        $"Debe pagar el saldo exacto: {pedido.Saldo:N2}"
+                        $"No se pueden registrar abonos para pedidos en estado: {pedido.Estado}"
+                    );
+                }
+
+                // ==================================================
+                // 🔥 VALIDAR ESTADO PAGO
+                // ==================================================
+
+                if (pedido.EstadoPago == "PAGADO")
+                {
+                    return BadRequest(
+                        "El pedido ya se encuentra totalmente pagado."
+                    );
+                }
+
+                // ==================================================
+                // 🔥 VALIDAR SALDO
+                // ==================================================
+
+                if (pedido.Saldo <= 0)
+                {
+                    return BadRequest(
+                        "El pedido no tiene saldo pendiente."
+                    );
+                }
+
+                // ==================================================
+                // 🔥 VALIDAR SOBREPAGO
+                // ==================================================
+
+                if (model.Monto > pedido.Saldo)
+                {
+                    return BadRequest(
+                        $"El monto supera el saldo pendiente: {pedido.Saldo:N2}"
                     );
                 }
 
@@ -173,32 +220,78 @@ namespace InventarioWEB.Controllers
                     ID_Pedido = pedido.ID_Pedido,
                     Fecha_Abono = DateTime.Now,
                     Monto = model.Monto,
-                    ID_MetodoPago = model.ID_MetodoPago
+                    ID_MetodoPago = model.ID_MetodoPago,
+
+                    // ==============================================
+                    // 🔥 AUDITORÍA
+                    // ==============================================
+                    ID_Usuario = model.ID_Usuario,
+                    Observacion = model.Observacion ?? "",
+                    Activo = true,
+                    FechaRegistro = DateTime.Now
                 };
 
                 _context.Abonos.Add(abono);
 
                 // ==================================================
-                // 🔥 ACTUALIZAR PEDIDO
-                // ==================================================
-
-                pedido.Saldo = 0;
-                pedido.EstadoPago = "PAGADO";
-
-                // ==================================================
-                // 🔥 GUARDAR
+                // 🔥 GUARDAR ABONO
                 // ==================================================
 
                 await _context.SaveChangesAsync();
+
+                // ==================================================
+                // 🔥 RECALCULAR TOTAL ABONADO
+                // ==================================================
+
+                var totalAbonado = await _context.Abonos
+                    .Where(a =>
+                        a.ID_Pedido == pedido.ID_Pedido &&
+                        a.Activo
+                    )
+                    .SumAsync(a => (decimal?)a.Monto) ?? 0;
+
+                // ==================================================
+                // 🔥 RECALCULAR SALDO REAL
+                // ==================================================
+
+                pedido.Saldo = pedido.TotalVenta - totalAbonado;
+
+                // ==================================================
+                // 🔥 EVITAR DECIMALES NEGATIVOS
+                // ==================================================
+
+                if (pedido.Saldo < 0)
+                    pedido.Saldo = 0;
+
+                // ==================================================
+                // 🔥 ACTUALIZAR ESTADO FINANCIERO
+                // ==================================================
+
+                pedido.EstadoPago =
+                    pedido.Saldo <= 0
+                        ? "PAGADO"
+                        : "ABONADO";
+
+                // ==================================================
+                // 🔥 GUARDAR CAMBIOS
+                // ==================================================
+
+                await _context.SaveChangesAsync();
+
                 await transaction.CommitAsync();
+
+                // ==================================================
+                // 🔥 RESPUESTA
+                // ==================================================
 
                 return Ok(new
                 {
                     success = true,
                     mensaje = "Abono registrado correctamente.",
                     pedido = pedido.ID_Pedido,
-                    estado = pedido.EstadoPago,
-                    saldo = pedido.Saldo
+                    estadoPago = pedido.EstadoPago,
+                    saldo = pedido.Saldo,
+                    totalAbonado = totalAbonado
                 });
             }
             catch (Exception ex)
@@ -212,7 +305,7 @@ namespace InventarioWEB.Controllers
         }
 
         // ==========================================================
-        // 🔹 DETALLE DEL PEDIDO
+        // 🔹 DETALLE PEDIDO
         // ==========================================================
         [HttpGet]
         public async Task<IActionResult> ObtenerDetallePedido(int idPedido)
@@ -229,21 +322,25 @@ namespace InventarioWEB.Controllers
                 .Select(d => new
                 {
                     producto =
-                        (d.Producto.Referencia != null
+                        d.Producto.Referencia != null
                             ? d.Producto.Referencia.DescripReferencia
-                            : "N/A"),
+                            : "N/A",
 
                     talla =
-                        (d.Producto.Talla != null
+                        d.Producto.Talla != null
                             ? d.Producto.Talla.DescripTalla
-                            : "N/A"),
+                            : "N/A",
 
                     color =
-                        !string.IsNullOrEmpty(d.Producto.ColorSnapshot)
+                        !string.IsNullOrEmpty(
+                            d.Producto.ColorSnapshot
+                        )
                             ? d.Producto.ColorSnapshot
-                            : (d.Producto.ColorNav != null
-                                ? d.Producto.ColorNav.Nombre
-                                : "N/A"),
+                            : (
+                                d.Producto.ColorNav != null
+                                    ? d.Producto.ColorNav.Nombre
+                                    : "N/A"
+                            ),
 
                     cantidad = d.Cantidad,
                     subtotal = d.Subtotal
@@ -251,6 +348,47 @@ namespace InventarioWEB.Controllers
                 .ToListAsync();
 
             return Json(detalles);
+        }
+
+        // ==========================================================
+        // 🔹 HISTORIAL ABONOS POR PEDIDO
+        // ==========================================================
+        [HttpGet]
+        public async Task<IActionResult> ObtenerHistorialAbonos(int idPedido)
+        {
+            var abonos = await _context.Abonos
+                .AsNoTracking()
+                .Include(a => a.MetodoPago)
+                .Include(a => a.Usuario)
+                .Where(a =>
+                    a.ID_Pedido == idPedido &&
+                    a.Activo
+                )
+                .OrderByDescending(a => a.Fecha_Abono)
+                .Select(a => new
+                {
+                    id_Abono = a.ID_Abono,
+                    fecha = a.Fecha_Abono.ToString("yyyy-MM-dd HH:mm"),
+                    monto = a.Monto,
+
+                    metodoPago =
+                        a.MetodoPago != null
+                            ? a.MetodoPago.Nombre
+                            : "N/A",
+
+                    usuario =
+                        a.Usuario != null
+                            ? (
+                                (a.Usuario.Nombres ?? "") + " " +
+                                (a.Usuario.Apellidos ?? "")
+                            ).Trim()
+                            : "Sistema",
+
+                    observacion = a.Observacion ?? ""
+                })
+                .ToListAsync();
+
+            return Json(abonos);
         }
     }
 }
