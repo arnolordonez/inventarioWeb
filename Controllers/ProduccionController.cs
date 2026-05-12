@@ -22,45 +22,40 @@ namespace InventarioWEB.Controllers
         }
 
         // ==========================================================
-        // LISTADO DE PRODUCCIONES
+        // LISTADO DE PRODUCCIONES SEGUN PEDIDO
         // ==========================================================
-        public async Task<IActionResult> Index(int pagina = 1, int registrosPorPagina = 20)
+        public async Task<IActionResult> Index()
         {
-            await CargarFiltrosBaseAsync();
+            var pedidos =
+                await _produccionService
+                    .ObtenerDashboardPedidosProduccionAsync();
 
-            var query = _context.Producciones
-                .AsNoTracking()
-                .Include(p => p.Detalles)
-                    .ThenInclude(d => d.Producto)
-                .OrderByDescending(p => p.FechaProduccion)
-                .ThenByDescending(p => p.ID_Produccion);
-
-            var totalRegistros = await query.CountAsync();
-            var totalPaginas = (int)Math.Ceiling(totalRegistros / (double)registrosPorPagina);
-
-            if (pagina < 1) pagina = 1;
-            if (pagina > totalPaginas && totalPaginas > 0)
-                pagina = totalPaginas;
-
-            var producciones = await query
-                .Skip((pagina - 1) * registrosPorPagina)
-                .Take(registrosPorPagina)
-                .ToListAsync();
-
-            var model = new ProduccionViewModel
+            var model = new ProduccionPedidoDashboardVM
             {
-                Producciones = producciones,
-                PaginaActual = pagina,
-                TotalPaginas = totalPaginas
+                Pedidos = pedidos,
+
+                TotalPedidosPendientes =
+                 pedidos.Count(x => x.EstadoProduccion == "PENDIENTE"),
+
+                        TotalPedidosEnProduccion =
+                 pedidos.Count(x => x.EstadoProduccion == "EN PRODUCCIÓN"),
+
+                        TotalPedidosCompletados =
+                 pedidos.Count(x => x.EstadoProduccion == "COMPLETADO"),
+
+                        TotalUnidadesPendientes =
+                 pedidos.Sum(x => x.Pendiente),
+
+                        TotalUnidadesProducidas =
+                 pedidos.Sum(x => x.TotalProducido)
             };
 
             return View(model);
         }
-
         // ==========================================================
         // GET CREAR PRODUCCION
         // ==========================================================
-        public async Task<IActionResult> Crear()
+        public async Task<IActionResult> Crear(int? idPedido)
         {
             var model = new ProduccionCrearViewModel
             {
@@ -68,7 +63,67 @@ namespace InventarioWEB.Controllers
                 Detalles = new List<DetalleProduccionVM>()
             };
 
+            if (idPedido.HasValue)
+            {
+                var pedido = await _context.Pedidos
+                    .AsNoTracking()
+                    .Include(p => p.Cliente)
+                    .FirstOrDefaultAsync(p => p.ID_Pedido == idPedido.Value);
+
+                if (pedido != null)
+                {
+                    model.ID_Pedido = pedido.ID_Pedido;
+
+                    model.ID_Cliente = pedido.ID_Cliente;
+
+                    model.Cliente =
+                        pedido.Cliente != null
+                            ? pedido.Cliente.Nombre + " " + pedido.Cliente.Apellido
+                            : string.Empty;
+
+                    // =====================================================
+                    // ESTADOS
+                    // =====================================================
+
+                    model.Estado = pedido.Estado;
+
+                    model.EstadoPago = pedido.EstadoPago;
+
+                    // =====================================================
+                    // VENTA
+                    // =====================================================
+
+                    model.TipoVenta = pedido.TipoVenta;
+
+                    model.TotalPedido = pedido.Total;
+
+                    model.SaldoPendiente = pedido.Saldo;
+                }
+
+                  var detallesPedido =
+                      await _produccionService
+                      .ObtenerDetallePedidoParaProduccionAsync(idPedido.Value);
+
+                   model.Detalles = detallesPedido
+                    .Select(x => new DetalleProduccionVM
+                    {
+                        ID_Producto = x.ID_Producto,
+
+                        // 👇 IMPORTANTE: empieza en 0 (input del usuario)
+                        CantidadProducida = 0,
+
+                        // 👇 lo necesitas para validar luego
+                        CantidadPendiente = x.Pendiente,
+
+                        CostoUnitario = 0,
+
+                        ID_DetallePedido = x.ID_DetallePedido
+                    })
+                    .ToList();
+            }
+
             await CargarFiltrosBaseAsync();
+
             return View(model);
         }
 
@@ -80,7 +135,7 @@ namespace InventarioWEB.Controllers
         public async Task<IActionResult> Crear(ProduccionCrearViewModel model)
         {
             model.Detalles = model.Detalles?
-                .Where(d => d.ID_Producto > 0 && d.Cantidad > 0 && d.CostoUnitario > 0)
+                .Where(d => d.ID_Producto > 0 && d.CantidadProducida > 0 && d.CostoUnitario > 0)
                 .ToList() ?? new List<DetalleProduccionVM>();
 
             if (!model.Detalles.Any())
@@ -129,29 +184,75 @@ namespace InventarioWEB.Controllers
                 if (!productosDict.TryGetValue(d.ID_Producto, out var producto))
                     continue;
 
-                // Corrección de costo si viene multiplicado por 100 desde el frontend
+                // =====================================================
+                // NORMALIZAR CANTIDAD
+                // =====================================================
+
+                var cantidadProducida = d.CantidadProducida;
+
+                if (cantidadProducida <= 0)
+                    continue;
+
+                // =====================================================
+                // NORMALIZAR COSTO
+                // =====================================================
+
                 decimal costoUnitario = d.CostoUnitario;
 
-                if (costoUnitario > 10000) // evita guardar 240000 en lugar de 2400
+                // Evita guardar 240000 en lugar de 2400
+                if (costoUnitario > 10000)
                     costoUnitario = costoUnitario / 100;
 
-                costoUnitario = Math.Round(costoUnitario, 2, MidpointRounding.AwayFromZero);
+                costoUnitario =
+                    Math.Round(costoUnitario, 2, MidpointRounding.AwayFromZero);
 
-                var subtotalCosto = Math.Round(d.Cantidad * costoUnitario, 2, MidpointRounding.AwayFromZero);
-                var subtotalVenta = Math.Round(d.Cantidad * producto.PrecioVTA, 2, MidpointRounding.AwayFromZero);
+                // =====================================================
+                // CÁLCULOS
+                // =====================================================
+
+                var subtotalCosto =
+                    Math.Round(
+                        cantidadProducida * costoUnitario,
+                        2,
+                        MidpointRounding.AwayFromZero);
+
+                var subtotalVenta =
+                    Math.Round(
+                        cantidadProducida * producto.PrecioVTA,
+                        2,
+                        MidpointRounding.AwayFromZero);
+
+                // =====================================================
+                // DETALLE PRODUCCIÓN
+                // =====================================================
 
                 detalles.Add(new DetalleProduccion
                 {
                     ID_Producto = d.ID_Producto,
-                    Cantidad = d.Cantidad,
+
+                    ID_DetallePedido = d.ID_DetallePedido,
+
+                    CantidadProducida = cantidadProducida,
+
                     CostoUnitario = costoUnitario,
+
                     PrecioVentaUnitario = producto.PrecioVTA,
+
                     IVA = producto.IVA_Porcentaje,
+
                     SubtotalCosto = subtotalCosto,
-                    SubtotalVenta = subtotalVenta
+
+                    SubtotalVenta = subtotalVenta,
+
+                    EstadoProduccion = "PENDIENTE",
+
+                    FechaInicioProduccion = null,
+
+                    FechaFinProduccion = null,
+
+                    ObservacionProduccion = null
                 });
             }
-
             try
             {
                 await _produccionService
@@ -196,15 +297,38 @@ namespace InventarioWEB.Controllers
             var resultado = lista.Select(p => new
             {
                 idProducto = p.ID_Producto,
+
                 nombre = p.Nombre,
+
                 genero = p.Genero,
+
                 referencia = p.Referencia,
+
                 talla = p.Talla,
+
                 tela = p.Tela,
+
                 color = p.Color,
+
                 precioCosto = p.PrecioCosto,
+
                 precioVTA = p.PrecioVTA,
-                stock = p.Stock
+
+                stock = p.Stock,
+
+                // =========================================
+                // PRODUCCIÓN
+                // =========================================
+
+                cantidadPedido = p.CantidadPedido,
+
+                cantidadProducida = p.CantidadProducida,
+
+                cantidadPendiente = p.CantidadPendiente,
+
+                idDetallePedido = p.ID_DetallePedido,
+
+                iva = p.IVA
             });
 
             return Json(resultado);
@@ -277,7 +401,7 @@ namespace InventarioWEB.Controllers
                 {
                     ID_Producto = d.ID_Producto,
                     NombreProducto = p.Nombre,
-                    Cantidad = d.Cantidad,
+                    CantidadProducida = d.CantidadProducida,
                     CostoUnitario = d.CostoUnitario,
                     PrecioVentaUnitario = d.PrecioVentaUnitario,
                     IVA = d.IVA,
@@ -287,10 +411,19 @@ namespace InventarioWEB.Controllers
                 .AsNoTracking()
                 .ToListAsync();
 
+            var totalCantidad = detalles.Sum(x => x.CantidadProducida);
+            var totalCosto = detalles.Sum(x => x.SubtotalCosto);
+            var totalVenta = detalles.Sum(x => x.SubtotalVenta);
+
             var vm = new ReporteProduccionViewModel
             {
-                Produccion = produccion,
-                Detalles = detalles
+                Produccion = produccion ?? new Produccion(),
+                Detalles = detalles,
+
+                TotalCantidadProducida = totalCantidad,
+                TotalCosto = totalCosto,
+                TotalVenta = totalVenta,
+                MargenBrutoEstimado = totalVenta - totalCosto
             };
 
             return View("ReporteProduccionPdf", vm);

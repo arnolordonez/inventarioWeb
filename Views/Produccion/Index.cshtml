@@ -1,34 +1,51 @@
-﻿@model InventarioWEB.ViewModels.ProduccionViewModel
+﻿@model InventarioWEB.ViewModels.ProduccionPedidoDashboardVM
 
 @{
-    ViewData["Title"] = "Producciones Registradas";
+    ViewData["Title"] = "Producción por Pedidos";
 }
 
 <div class="container-fluid">
 
-    <!-- TITULO Y BOTON -->
+    <!-- ========================================= -->
+    <!-- HEADER -->
+    <!-- ========================================= -->
+
     <div class="row mb-3">
 
         <div class="col-md-6">
-            <h3 class="fw-bold text-primary">
-                🏭 Control de Producción
+
+            <h3 class="fw-bold text-primary mb-1">
+                🏭 Producción por Pedidos
             </h3>
+
+            <p class="text-muted mb-0">
+                Control operacional y seguimiento de pedidos en producción.
+            </p>
+
         </div>
 
         <div class="col-md-6 text-end">
-            <a asp-action="Crear" class="btn btn-success">
-                ➕ Nueva Producción
+
+            <a asp-action="Crear"
+               class="btn btn-success">
+
+                ➕ Registrar Producción
+
             </a>
+
         </div>
 
     </div>
 
-    <!-- MENSAJE DE EXITO -->
+    <!-- ========================================= -->
+    <!-- ALERTA -->
+    <!-- ========================================= -->
     @if (TempData["Success"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show">
+        <div class="alert alert-success alert-dismissible fade show shadow-sm">
 
-            <strong>✔</strong> @TempData["Success"]
+            <strong>✔</strong>
+            @TempData["Success"]
 
             <button type="button"
                     class="btn-close"
@@ -38,132 +55,436 @@
         </div>
     }
 
-    <!-- RESUMEN RAPIDO -->
-    <div class="row mb-3">
+    <!-- ========================================= -->
+    <!-- DASHBOARD -->
+    <!-- ========================================= -->
 
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm">
+    <div class="row mb-4">
+
+        <!-- PEDIDOS PENDIENTES -->
+
+        <div class="col-md-3 mb-3">
+
+            <div class="card border-0 shadow-sm h-100">
+
                 <div class="card-body text-center">
 
-                    <h6 class="text-muted">Producciones</h6>
+                    <div class="text-muted small mb-2">
+                        Pedidos pendientes
+                    </div>
 
-                    <h3 class="fw-bold text-primary">
-                        @(Model.Producciones?.Count() ?? 0)
-                    </h3>
+                    <h2 class="fw-bold text-danger mb-0">
+                        @Model.TotalPedidosPendientes
+                    </h2>
 
                 </div>
+
             </div>
+
         </div>
 
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm">
+        <!-- EN PRODUCCIÓN -->
+
+        <div class="col-md-3 mb-3">
+
+            <div class="card border-0 shadow-sm h-100">
+
                 <div class="card-body text-center">
 
-                    <h6 class="text-muted">Artículos distintos</h6>
+                    <div class="text-muted small mb-2">
+                        En producción
+                    </div>
 
-                    <h3 class="fw-bold text-success">
-                        @(
-                            (Model.Producciones ?? new List<InventarioWEB.Models.Produccion>())
-                            .SelectMany(p => p.Detalles ?? new List<InventarioWEB.Models.DetalleProduccion>())
-                            .Select(d => d.ID_Producto)
-                            .Distinct()
-                            .Count()
-                            )
-                    </h3>
+                    <h2 class="fw-bold text-warning mb-0">
+                        @Model.TotalPedidosEnProduccion
+                    </h2>
 
                 </div>
+
             </div>
+
         </div>
 
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm">
+        <!-- COMPLETADOS -->
+
+        <div class="col-md-3 mb-3">
+
+            <div class="card border-0 shadow-sm h-100">
+
                 <div class="card-body text-center">
 
-                    <h6 class="text-muted">Unidades producidas</h6>
+                    <div class="text-muted small mb-2">
+                        Completados
+                    </div>
 
-                    <h3 class="fw-bold text-dark">
-                        @(
-                            (Model.Producciones ?? new List<InventarioWEB.Models.Produccion>())
-                            .SelectMany(p => p.Detalles ?? new List<InventarioWEB.Models.DetalleProduccion>())
-                            .Sum(d => d.Cantidad)
-                            )
-                    </h3>
+                    <h2 class="fw-bold text-success mb-0">
+                        @Model.TotalPedidosCompletados
+                    </h2>
 
                 </div>
+
             </div>
+
+        </div>
+
+        <!-- UNIDADES PENDIENTES -->
+
+        <div class="col-md-3 mb-3">
+
+            <div class="card border-0 shadow-sm h-100">
+
+                <div class="card-body text-center">
+
+                    <div class="text-muted small mb-2">
+                        Unidades pendientes
+                    </div>
+
+                    <h2 class="fw-bold text-dark mb-0">
+                        @Model.TotalUnidadesPendientes
+                    </h2>
+
+                </div>
+
+            </div>
+
         </div>
 
     </div>
 
-    <!-- TABLA PRODUCCIONES -->
-    <div class="card shadow-sm">
+    <!-- ========================================= -->
+    <!-- TABLA -->
+    <!-- ========================================= -->
+
+    <div class="card shadow-sm border-0">
 
         <div class="card-header bg-light fw-bold">
-            📋 Historial de Producción
+
+            📋 Pedidos en Producción
+
         </div>
 
         <div class="card-body">
 
-            @if (Model.Producciones == null || !Model.Producciones.Any())
+            @if (Model.Pedidos == null || !Model.Pedidos.Any())
             {
-                <div class="alert alert-info">
-                    No existen producciones registradas.
+                <div class="alert alert-info mb-0">
+
+                    No existen pedidos pendientes de producción.
+
                 </div>
             }
             else
             {
-
                 <div class="table-responsive">
 
-                    <table class="table table-bordered table-sm table-hover align-middle">
+                    <table class="table table-bordered table-hover align-middle table-sm mb-0">
+
 
                         <thead class="table-light">
 
                             <tr>
-                                <th style="width:80px">ID</th>
-                                <th style="width:140px">Fecha</th>
-                                <th>Usuario</th>
-                                <th>Observación</th>
-                                <th class="text-center" style="width:110px">Artículos</th>
-                                <th class="text-center" style="width:120px">Unidades</th>
-                                <th class="text-center" style="width:140px">Acción</th>
+
+                                <!-- PEDIDO -->
+
+                                <th style="width:110px">
+                                    Pedido
+                                </th>
+
+                                <!-- CLIENTE -->
+
+                                <th>
+                                    Cliente
+                                </th>
+
+                                <!-- TIPO VENTA -->
+
+                                <th class="text-center" style="width:120px">
+                                    Venta
+                                </th>
+
+                                <!-- ESTADO PAGO -->
+
+                                <th class="text-center" style="width:140px">
+                                    Estado Pago
+                                </th>
+
+                                <!-- DESPACHO -->
+
+                                <th class="text-center" style="width:160px">
+                                    Despacho
+                                </th>
+
+                                <!-- SALDO -->
+
+                                <th class="text-end" style="width:140px">
+                                    Saldo
+                                </th>
+
+                                <!-- TOTAL PEDIDO -->
+
+                                <th class="text-center" style="width:120px">
+                                    Pedido
+                                </th>
+
+
+                                <!-- PRODUCCIÓN / PENDIENTE -->
+                                <th class="text-center" style="width:140px">
+                                    Producción<br />
+                                    <small class="text-muted">Pendiente</small>
+                                </th>
+                                
+                                <!-- AVANCE -->
+
+                                <th class="text-center" style="width:170px">
+                                    Avance
+                                </th>
+
+                                <!-- ESTADO PRODUCCIÓN -->
+
+                                <th class="text-center" style="width:160px">
+                                    Producción
+                                </th>
+
+                                <!-- ÚLTIMA PRODUCCIÓN -->
+
+                                <th class="text-center" style="width:140px">
+                                    Última Prod.
+                                </th>
+
+                                <!-- ACCIONES -->
+
+                                <th class="text-center" style="width:220px">
+                                    Acción
+                                </th>
+
                             </tr>
 
                         </thead>
 
                         <tbody>
 
-                            @foreach (var p in Model.Producciones)
+                            @foreach (var item in Model.Pedidos)
                             {
-                                var totalUnidades = p.Detalles?.Sum(d => d.Cantidad) ?? 0;
-
                                 <tr>
 
-                                    <td>@p.ID_Produccion</td>
+                                    <!-- PEDIDO -->
 
-                                    <td>@p.FechaProduccion.ToString("dd/MM/yyyy")</td>
+                                    <td>
 
-                                    <td>@p.Usuario</td>
+                                        <div class="fw-bold text-primary">
+                                            #@item.ID_Pedido
+                                        </div>
 
-                                    <td>@p.Observacion</td>
+                                        <small class="text-muted">
+                                            @item.FechaPedido.ToString("dd/MM/yyyy")
+                                        </small>
+
+                                    </td>
+
+                                    <!-- CLIENTE -->
+
+                                    <td>
+
+                                        <div class="fw-bold">
+                                            @item.Cliente
+                                        </div>
+
+                                        <small class="text-muted">
+                                            CC/NIT: @item.ID_Cliente
+                                        </small>
+
+                                    </td>
+
+                                    <!-- TIPO VENTA -->
 
                                     <td class="text-center">
-                                        @(p.Detalles?.Count ?? 0)
+
+                                        @if (item.TipoVenta == "CREDITO")
+                                        {
+                                            <span class="badge bg-warning text-dark">
+                                                CRÉDITO
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">
+                                                CONTADO
+                                            </span>
+                                        }
+
                                     </td>
+
+                                    <!-- ESTADO PAGO -->
+
+                                    <td class="text-center">
+
+                                        @if (item.EstadoPago == "PAGADO")
+                                        {
+                                            <span class="badge bg-success">
+                                                PAGADO
+                                            </span>
+                                        }
+                                        else if (item.EstadoPago == "ABONADO")
+                                        {
+                                            <span class="badge bg-warning text-dark">
+                                                ABONADO
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">
+                                                PENDIENTE
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                    <!-- ESTADO LOGÍSTICO -->
+
+                                    <td class="text-center">
+
+                                        @if (item.Estado == "DESPACHADO")
+                                        {
+                                            <span class="badge bg-success">
+                                                DESPACHADO
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">
+                                                NO DESPACHADO
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                    <!-- SALDO -->
+
+                                    <td class="text-end fw-bold">
+
+                                        @item.SaldoPendiente.ToString("C")
+
+                                    </td>
+
+                                    <!-- TOTAL PEDIDO -->
 
                                     <td class="text-center fw-bold">
-                                        @totalUnidades
+
+                                        @item.TotalPedido
+
                                     </td>
+
+
+                                    <!-- PRODUCCIÓN / PENDIENTE -->
+                                    <td class="text-center fw-bold">
+
+                                        <div class="text-success">
+                                            ✔ @item.TotalProducido
+                                        </div>
+
+                                        <div class="text-danger small">
+                                            ✖ @item.Pendiente
+                                        </div>
+
+                                    </td>
+                                                                       
+
+                                    <!-- AVANCE -->
+                                    <td>
+
+                                        <div class="position-relative">
+
+                                            <div class="progress" style="height:22px;">
+
+                                                <div class="progress-bar
+                                                @(item.PorcentajeProduccion >= 100
+                                                    ? "bg-success"
+                                                    : item.PorcentajeProduccion > 0
+                                                        ? "bg-warning"
+                                                        : "bg-danger")"
+                                                     role="progressbar"
+                                                     style="width:@item.PorcentajeProduccion%">
+                                                </div>
+
+                                            </div>
+
+                                            <!-- TEXTO SIEMPRE VISIBLE -->
+                                            <div class="position-absolute top-50 start-50 translate-middle fw-bold small">
+
+                                                @item.PorcentajeProduccion%
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+                                    <!-- ESTADO PRODUCCIÓN -->
 
                                     <td class="text-center">
 
-                                        <a asp-action="ReporteProduccionPdf"
-                                           asp-route-id="@p.ID_Produccion"
-                                           class="btn btn-sm btn-primary">
+                                        @switch (item.EstadoProduccion)
+                                        {
+                                            case "COMPLETADO":
 
-                                            📄 Reporte
+                                                <span class="badge bg-success">
+                                                    COMPLETADO
+                                                </span>
 
-                                        </a>
+                                                break;
+
+                                            case "EN PRODUCCIÓN":
+
+                                                <span class="badge bg-warning text-dark">
+                                                    EN PRODUCCIÓN
+                                                </span>
+
+                                                break;
+
+                                            default:
+
+                                                <span class="badge bg-danger">
+                                                    PENDIENTE
+                                                </span>
+
+                                                break;
+                                        }
+
+                                    </td>
+
+                                    <!-- ÚLTIMA PRODUCCIÓN -->
+
+                                    <td class="text-center">
+
+                                        @(item.UltimaProduccion.HasValue
+                                            ? item.UltimaProduccion.Value.ToString("dd/MM/yyyy")
+                                            : "-")
+
+                                    </td>
+
+                                    <!-- ACCIONES -->
+
+                                    <td class="text-center">
+
+                                        <div class="d-flex gap-1 justify-content-center flex-wrap">
+
+                                            <a asp-action="DetallePedidoProduccion"
+                                               asp-route-idPedido="@item.ID_Pedido"
+                                               class="btn btn-sm btn-outline-primary">
+
+                                                📂 Ver Pedido
+
+                                            </a>
+
+                                            <a asp-action="Crear"
+                                               asp-route-idPedido="@item.ID_Pedido"
+                                               class="btn btn-sm btn-success">
+
+                                                ➕ Producir
+
+                                            </a>
+
+                                        </div>
 
                                     </td>
 
@@ -171,43 +492,58 @@
                             }
 
                         </tbody>
+                                               
 
                     </table>
 
                 </div>
 
-                <!-- PAGINACION -->
+                <!-- ========================================= -->
+                <!-- PAGINACIÓN -->
+                <!-- ========================================= -->
                 @if (Model.TotalPaginas > 1)
                 {
-                    <nav>
+                    <nav class="mt-4">
 
-                        <ul class="pagination justify-content-center">
+                        <ul class="pagination justify-content-center flex-wrap">
 
-                            <li class="page-item @(Model.PaginaActual == 1 ? "disabled" : "")">
+                            <li class="page-item @(Model.TienePaginaAnterior ? "" : "disabled")">
+
                                 <a class="page-link"
                                    asp-action="Index"
                                    asp-route-pagina="@(Model.PaginaActual - 1)">
+
                                     ⬅ Anterior
+
                                 </a>
+
                             </li>
 
                             @for (int i = 1; i <= Model.TotalPaginas; i++)
                             {
                                 <li class="page-item @(i == Model.PaginaActual ? "active" : "")">
+
                                     <a class="page-link"
                                        asp-action="Index"
                                        asp-route-pagina="@i">
+
                                         @i
+
                                     </a>
+
                                 </li>
                             }
 
-                            <li class="page-item @(Model.PaginaActual == Model.TotalPaginas ? "disabled" : "")">
+                            <li class="page-item @(Model.TienePaginaSiguiente ? "" : "disabled")">
+
                                 <a class="page-link"
                                    asp-action="Index"
                                    asp-route-pagina="@(Model.PaginaActual + 1)">
+
                                     Siguiente ➡
+
                                 </a>
+
                             </li>
 
                         </ul>

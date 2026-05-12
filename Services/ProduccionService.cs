@@ -2,6 +2,7 @@
 using InventarioWEB.Data;
 using InventarioWEB.Models;
 using InventarioWEB.ViewModels;
+using InventarioWEB.DTO;
 
 namespace InventarioWEB.Services
 {
@@ -212,7 +213,7 @@ namespace InventarioWEB.Services
 
                     foreach (var detalle in detalles)
                     {
-                        Console.WriteLine($"Procesando producto: {detalle.ID_Producto} | Cantidad: {detalle.Cantidad}");
+                        Console.WriteLine($"Procesando producto: {detalle.ID_Producto} | Cantidad: {detalle.CantidadProducida}");
 
                         if (!productos.TryGetValue(detalle.ID_Producto, out var producto))
                             throw new Exception($"Producto {detalle.ID_Producto} no existe.");
@@ -220,7 +221,7 @@ namespace InventarioWEB.Services
                         if (!producto.Activo)
                             throw new Exception($"Producto {producto.Nombre} está inactivo.");
 
-                        if (detalle.Cantidad <= 0)
+                        if (detalle.CantidadProducida <= 0)
                             throw new Exception("Cantidad inválida.");
 
                         if (detalle.CostoUnitario <= 0)
@@ -272,16 +273,16 @@ namespace InventarioWEB.Services
                         detalle.IVA = producto.IVA_Porcentaje;
 
                         detalle.SubtotalCosto =
-                            Math.Round(detalle.Cantidad * detalle.CostoUnitario, 2, MidpointRounding.AwayFromZero);
+                            Math.Round(detalle.CantidadProducida * detalle.CostoUnitario, 2, MidpointRounding.AwayFromZero);
 
-                        var baseVenta = detalle.Cantidad * detalle.PrecioVentaUnitario;
+                        var baseVenta = detalle.CantidadProducida * detalle.PrecioVentaUnitario;
                         var ivaValor = (baseVenta * detalle.IVA) / 100;
 
                         detalle.SubtotalVenta =
                             Math.Round(baseVenta + ivaValor, 2, MidpointRounding.AwayFromZero);
 
                         var stockAnterior = producto.Stock;
-                        var nuevoStock = stockAnterior + detalle.Cantidad;
+                        var nuevoStock = stockAnterior + detalle.CantidadProducida;
                         producto.Stock = nuevoStock;
 
                         decimal costoActual = producto.PrecioCosto;
@@ -300,17 +301,25 @@ namespace InventarioWEB.Services
                         {
                             var nuevoCostoPromedio =
                                 ((stockAnterior * costoActual) +
-                                (detalle.Cantidad * detalle.CostoUnitario))
+                                (detalle.CantidadProducida * detalle.CostoUnitario))
                                 / nuevoStock;
 
                             producto.PrecioCosto =
                                 Math.Round(nuevoCostoPromedio, 2, MidpointRounding.AwayFromZero);
                         }
 
+                        // 🔒 VALIDACIÓN PRIMERO (ANTES DE PROCESAR)
+                        if (detalle.ID_DetallePedido <= 0)
+                        {
+                            throw new Exception("El detalle de producción no está vinculado a un detalle de pedido.");
+                        }
+
+                        // 🧠 LÓGICA DE NEGOCIO
                         Console.WriteLine($"ANTES SAVE → Producto: {producto.ID_Producto} | Stock BD: {stockAnterior}");
                         Console.WriteLine($"DESPUÉS CALC → Stock NUEVO: {producto.Stock}");
                         Console.WriteLine($"COSTO NUEVO → {producto.PrecioCosto}");
 
+                        // ✅ AGREGAR A LISTA
                         detallesInsertar.Add(detalle);
                     }
 
@@ -352,6 +361,299 @@ namespace InventarioWEB.Services
                 .ThenInclude(p => p.Referencia)
                 .OrderByDescending(d => d.Produccion.FechaProduccion)
                 .ToListAsync();
+        }
+        public async Task<List<PendienteProduccionVM>>
+           ObtenerPendientesProduccionAsync()
+        {
+            var data = await (
+                from dp in _context.DetallePedidos
+
+                join p in _context.Pedidos
+                    on dp.ID_Pedido equals p.ID_Pedido
+
+                join c in _context.Clientes
+                    on p.ID_Cliente equals c.ID_Cliente
+
+                join prod in _context.Productos
+                    on dp.ID_Producto equals prod.ID_Producto
+
+                join r in _context.Referencias
+                    on prod.ID_Referencias equals r.ID_Referencias
+
+                join t in _context.Tallas
+                    on prod.ID_Tallas equals t.ID_Tallas
+
+                join col in _context.Colores
+                    on prod.ID_Color equals col.ID_Color
+
+                let cantidadProducida =
+                    _context.DetalleProducciones
+                        .Where(x => x.ID_DetallePedido == dp.ID_Detalle)
+                        .Sum(x => (int?)x.CantidadProducida) ?? 0
+
+                let pendiente =
+                    dp.Cantidad - cantidadProducida
+
+                where pendiente > 0
+
+                orderby p.Fecha, p.ID_Pedido
+
+                select new PendienteProduccionVM
+                {
+                    // =====================================================
+                    // IDENTIFICADORES
+                    // =====================================================
+
+                    ID_DetallePedido = dp.ID_Detalle,
+
+                    ID_Pedido = p.ID_Pedido,
+
+                    ID_Producto = prod.ID_Producto,
+
+                    // =====================================================
+                    // PEDIDO
+                    // =====================================================
+
+                    FechaPedido = p.Fecha,
+
+                    // DESPACHADO / NO DESPACHADO
+                    Estado = p.Estado,
+
+                    // PAGADO / ABONADO
+                    EstadoPago = p.EstadoPago,
+
+                    // CONTADO / CREDITO
+                    TipoVenta = p.TipoVenta,
+
+                    Saldo = p.Saldo,
+
+                    TotalVenta = p.TotalVenta,
+
+                    // =====================================================
+                    // CLIENTE
+                    // =====================================================
+
+                    Cliente = c.Nombre + " " + c.Apellido,
+
+                    // =====================================================
+                    // PRODUCTO
+                    // =====================================================
+
+                    Producto = prod.Nombre,
+
+                    Referencia = r.DescripReferencia,
+
+                    Talla = t.DescripTalla,
+
+                    Color = col.Nombre,
+
+                    // =====================================================
+                    // CANTIDADES
+                    // =====================================================
+
+                    CantidadPedida = dp.Cantidad,
+
+                    CantidadProducida = cantidadProducida,
+
+                    CantidadPendiente = pendiente,
+
+                    // =====================================================
+                    // ESTADO PRODUCCIÓN
+                    // =====================================================
+
+                    EstadoProduccion =
+                        cantidadProducida <= 0
+                            ? "PENDIENTE"
+                            : cantidadProducida < dp.Cantidad
+                                ? "EN PRODUCCIÓN"
+                                : "COMPLETADO"
+                })
+                .AsNoTracking()
+                .ToListAsync();
+
+            return data;
+        }
+
+
+        // OBTENER PENDIENTE PRODUCCIÓN AGRUPADO POR PEDIDO
+        public async Task<List<DetallePedidoProduccionDTO>>
+    ObtenerDetallePedidoParaProduccionAsync(int idPedido)
+        {
+            if (idPedido <= 0)
+            {
+                return new List<DetallePedidoProduccionDTO>();
+            }
+
+            // =====================================================
+            // OBTENER DETALLES PEDIDO
+            // =====================================================
+
+            var detallesPedido = await _context.DetallePedidos
+                .Where(x => x.ID_Pedido == idPedido)
+                .Select(x => new
+                {
+                    x.ID_Detalle,
+                    x.ID_Producto,
+                    x.Cantidad
+                })
+                .ToListAsync();
+
+            // =====================================================
+            // OBTENER PRODUCCIÓN AGRUPADA
+            // =====================================================
+
+            var produccionAgrupada = await _context.DetalleProducciones
+                .GroupBy(x => x.ID_DetallePedido)
+                .Select(g => new
+                {
+                    ID_DetallePedido = g.Key,
+
+                    TotalProducido =
+                        g.Sum(x => x.CantidadProducida)
+                })
+                .ToListAsync();
+
+            // =====================================================
+            // MAPEO MANUAL SEGURO
+            // =====================================================
+
+            var result = detallesPedido
+                .Select(dp =>
+                {
+                    var produccion =
+                        produccionAgrupada
+                            .FirstOrDefault(x =>
+                                x.ID_DetallePedido == dp.ID_Detalle);
+
+                    int totalProducido =
+                        produccion?.TotalProducido ?? 0;
+
+                    int pendiente =
+                        dp.Cantidad - totalProducido;
+
+                    if (pendiente < 0)
+                    {
+                        pendiente = 0;
+                    }
+
+                    return new DetallePedidoProduccionDTO
+                    {
+                        ID_DetallePedido = dp.ID_Detalle,
+
+                        ID_Producto = dp.ID_Producto,
+
+                        CantidadPedida = dp.Cantidad,
+
+                        CantidadProducida = totalProducido,
+
+                        Pendiente = pendiente
+                    };
+                })
+                .ToList();
+
+            return result;
+        }
+
+        public async Task<List<ProduccionPedidoItemVM>>
+        ObtenerDashboardPedidosProduccionAsync()
+        {
+            var dashboard = await (
+                from p in _context.Pedidos
+
+                join c in _context.Clientes
+                    on p.ID_Cliente equals c.ID_Cliente
+
+                // =====================================================
+                // TOTAL PEDIDO
+                // =====================================================
+
+                let totalPedido =
+                    _context.DetallePedidos
+                        .Where(dp => dp.ID_Pedido == p.ID_Pedido)
+                        .Sum(dp => (int?)dp.Cantidad) ?? 0
+
+                // =====================================================
+                // TOTAL PRODUCIDO
+                // =====================================================
+
+                let totalProducido =
+                    (
+                        from prod in _context.DetalleProducciones
+
+                        join dp in _context.DetallePedidos
+                            on (int?)prod.ID_DetallePedido
+                            equals (int?)dp.ID_Detalle
+
+                        where dp.ID_Pedido == p.ID_Pedido
+
+                        select (int?)prod.CantidadProducida
+
+                    ).Sum() ?? 0
+
+                // =====================================================
+                // PENDIENTE
+                // =====================================================
+
+                let pendiente = totalPedido - totalProducido
+
+                where totalPedido > 0
+
+                select new ProduccionPedidoItemVM
+                {
+                    ID_Pedido = p.ID_Pedido,
+
+                    Cliente = c.Nombre + " " + c.Apellido,
+
+                    FechaPedido = p.Fecha,
+
+                    Estado = p.Estado,
+
+                    EstadoPago = p.EstadoPago,
+
+                    TipoVenta = p.TipoVenta,
+
+                    TotalVenta = p.TotalVenta,
+
+                    SaldoPendiente = p.Saldo,
+
+                    TotalPedido = totalPedido,
+
+                    TotalProducido = totalProducido,
+
+                    Pendiente = pendiente,
+
+                    // =================================================
+                    // PORCENTAJE
+                    // =================================================
+
+                    PorcentajeProduccion =
+                        totalPedido == 0
+                            ? 0
+                            : Math.Round(
+                                ((decimal)totalProducido / totalPedido) * 100,
+                                2
+                            ),
+
+                    // =================================================
+                    // ESTADO PRODUCCIÓN
+                    // =================================================
+
+                    EstadoProduccion =
+                        totalProducido == 0
+                            ? "PENDIENTE"
+
+                            : totalProducido < totalPedido
+                                ? "EN PRODUCCIÓN"
+
+                                : "COMPLETADO"
+                }
+
+            )
+            .OrderBy(x => x.FechaPedido)
+            .ThenBy(x => x.ID_Pedido)
+            .ToListAsync();
+
+            return dashboard;
         }
     }
 }

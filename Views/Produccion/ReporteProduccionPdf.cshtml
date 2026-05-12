@@ -4,11 +4,6 @@
     Layout = null;
 
     var fecha = DateTime.Now;
-
-    var totalCantidad = Model.Detalles.Sum(x => x.Cantidad);
-    var totalCosto = Model.Detalles.Sum(x => x.SubtotalCosto);
-    var totalVenta = Model.Detalles.Sum(x => x.SubtotalVenta);
-    var utilidad = totalVenta - totalCosto;
 }
 
 <!DOCTYPE html>
@@ -91,15 +86,12 @@
         <br />
 
         <strong>Fecha Producción:</strong> @Model.Produccion.FechaProduccion.ToString("dd/MM/yyyy")
-
         <br />
 
         <strong>Usuario:</strong> @Model.Produccion.Usuario
-
         <br />
 
         <strong>Observación:</strong> @Model.Produccion.Observacion
-
         <br />
 
         <strong>Fecha impresión:</strong> @fecha.ToString("dd/MM/yyyy HH:mm")
@@ -111,7 +103,6 @@
         <thead>
 
             <tr>
-
                 <th>Código</th>
                 <th>Producto</th>
                 <th>Cantidad</th>
@@ -120,7 +111,6 @@
                 <th>Subtotal Costo</th>
                 <th>Precio Venta</th>
                 <th>Subtotal Venta</th>
-
             </tr>
 
         </thead>
@@ -129,14 +119,13 @@
 
             @foreach (var d in Model.Detalles)
             {
-
                 <tr>
 
                     <td class="center">@d.ID_Producto</td>
 
                     <td>@d.NombreProducto</td>
 
-                    <td class="center">@d.Cantidad</td>
+                    <td class="center">@d.CantidadProducida</td>
 
                     <td class="right">@d.CostoUnitario.ToString("N2")</td>
 
@@ -149,7 +138,6 @@
                     <td class="right">@d.SubtotalVenta.ToString("N2")</td>
 
                 </tr>
-
             }
 
         </tbody>
@@ -158,26 +146,38 @@
 
             <tr>
 
-                <td colspan="2">TOTALES</td>
+                <td colspan="2">
+                    TOTALES
+                </td>
 
-                <td class="center">@totalCantidad</td>
+                <td class="center">
+                    @Model.TotalCantidadProducida
+                </td>
 
                 <td></td>
                 <td></td>
 
-                <td class="right">@totalCosto.ToString("N2")</td>
+                <td class="right">
+                    @Model.TotalCosto.ToString("N2")
+                </td>
 
                 <td></td>
 
-                <td class="right">@totalVenta.ToString("N2")</td>
+                <td class="right">
+                    @Model.TotalVenta.ToString("N2")
+                </td>
 
             </tr>
 
             <tr>
 
-                <td colspan="7">UTILIDAD ESTIMADA</td>
+                <td colspan="7">
+                    UTILIDAD ESTIMADA
+                </td>
 
-                <td class="right">@utilidad.ToString("N2")</td>
+                <td class="right">
+                    @Model.MargenBrutoEstimado.ToString("N2")
+                </td>
 
             </tr>
 
@@ -185,12 +185,9 @@
 
     </table>
 
-
     <div class="footer">
-
-        Sistema de Inventario y Producción
+        Sistema de Inventario y Producción<br />
         Confesiones Indomable © @DateTime.Now.Year
-
     </div>
 
 </body>
