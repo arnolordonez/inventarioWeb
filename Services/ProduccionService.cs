@@ -329,6 +329,12 @@ namespace InventarioWEB.Services
                     // 🔥 ESTE ES EL QUE DISPARA EL UPDATE DE STOCK
                     await _context.SaveChangesAsync();
 
+                    // =====================================================
+                    // ERP → GENERAR DESPACHO AUTOMÁTICO
+                    // =====================================================
+
+                    await GenerarDespachoPendienteERPAsync(detallesInsertar);
+
                     // 🔥 CONFIRMAR TRANSACCIÓN
                     await transaction.CommitAsync();
                 }
@@ -477,7 +483,7 @@ namespace InventarioWEB.Services
 
         // OBTENER PENDIENTE PRODUCCIÓN AGRUPADO POR PEDIDO
         public async Task<List<DetallePedidoProduccionDTO>>
-    ObtenerDetallePedidoParaProduccionAsync(int idPedido)
+            ObtenerDetallePedidoParaProduccionAsync(int idPedido)
         {
             if (idPedido <= 0)
             {
@@ -488,13 +494,63 @@ namespace InventarioWEB.Services
             // OBTENER DETALLES PEDIDO
             // =====================================================
 
-            var detallesPedido = await _context.DetallePedidos
-                .Where(x => x.ID_Pedido == idPedido)
-                .Select(x => new
+            var detallesPedido = await (
+                from dp in _context.DetallePedidos
+
+                join pr in _context.Productos
+                    on dp.ID_Producto equals pr.ID_Producto
+
+                where dp.ID_Pedido == idPedido
+
+                select new
                 {
-                    x.ID_Detalle,
-                    x.ID_Producto,
-                    x.Cantidad
+                    // =====================================================
+                    // IDS
+                    // =====================================================
+
+                    dp.ID_Detalle,
+
+                    dp.ID_Producto,
+
+                    // =====================================================
+                    // PRODUCTO
+                    // =====================================================
+
+                    Producto = pr.Nombre,
+
+                    Referencia = pr.Referencia != null
+                        ? pr.Referencia.DescripReferencia
+                        : string.Empty,
+
+                                        Talla = pr.Talla != null
+                        ? pr.Talla.DescripTalla
+                        : string.Empty,
+
+                                        Color = pr.ColorNav != null
+                        ? pr.ColorNav.Nombre
+                        : string.Empty,
+
+                    // =====================================================
+                    // INVENTARIO
+                    // =====================================================
+
+                    StockActual = pr.Stock,
+
+                    // =====================================================
+                    // PRECIOS
+                    // =====================================================
+
+                    PrecioCosto = pr.PrecioCosto,
+
+                    PrecioVTA = pr.PrecioVTA,
+
+                    IVA_Porcentaje = pr.IVA_Porcentaje,
+
+                    // =====================================================
+                    // CANTIDADES
+                    // =====================================================
+
+                    CantidadPedido = dp.Cantidad
                 })
                 .ToListAsync();
 
@@ -529,7 +585,7 @@ namespace InventarioWEB.Services
                         produccion?.TotalProducido ?? 0;
 
                     int pendiente =
-                        dp.Cantidad - totalProducido;
+                        dp.CantidadPedido - totalProducido;
 
                     if (pendiente < 0)
                     {
@@ -542,7 +598,31 @@ namespace InventarioWEB.Services
 
                         ID_Producto = dp.ID_Producto,
 
-                        CantidadPedida = dp.Cantidad,
+                        // =====================================================
+                        // PRODUCTO
+                        // =====================================================
+
+                        Producto = dp.Producto,
+
+                        Referencia = dp.Referencia,
+
+                        Talla = dp.Talla,
+
+                        Color = dp.Color,
+
+                        StockActual = dp.StockActual,
+
+                        PrecioCosto = dp.PrecioCosto,
+
+                        PrecioVTA = dp.PrecioVTA,
+
+                        IVA_Porcentaje = dp.IVA_Porcentaje,
+
+                        // =====================================================
+                        // CANTIDADES
+                        // =====================================================
+
+                        CantidadPedido = dp.CantidadPedido,
 
                         CantidadProducida = totalProducido,
 
@@ -553,7 +633,6 @@ namespace InventarioWEB.Services
 
             return result;
         }
-
         public async Task<List<ProduccionPedidoItemVM>>
         ObtenerDashboardPedidosProduccionAsync()
         {
@@ -654,6 +733,152 @@ namespace InventarioWEB.Services
             .ToListAsync();
 
             return dashboard;
+        }
+
+        // ============================================================
+        // ERP → GENERAR DESPACHO AUTOMÁTICO
+        // ============================================================
+
+        private async Task GenerarDespachoPendienteERPAsync(
+            List<DetalleProduccion> detallesProduccion)
+        {
+            if (detallesProduccion == null || !detallesProduccion.Any())
+                return;
+
+            // ========================================================
+            // AGRUPAR POR PEDIDO
+            // ========================================================
+
+            var detallesPedidoIds = detallesProduccion
+                .Select(x => x.ID_DetallePedido)
+                .Distinct()
+                .ToList();
+
+            var detallesPedido = await _context.DetallePedidos
+                .Where(x => detallesPedidoIds.Contains(x.ID_Detalle))
+                .ToListAsync();
+
+            var pedidosIds = detallesPedido
+                .Select(x => x.ID_Pedido)
+                .Distinct()
+                .ToList();
+
+            foreach (var idPedido in pedidosIds)
+            {
+                // ====================================================
+                // BUSCAR DESPACHO PENDIENTE
+                // ====================================================
+
+                var despacho = await _context.Despachos
+                    .Include(x => x.Detalles)
+                    .FirstOrDefaultAsync(x =>
+                        x.ID_Pedido == idPedido &&
+                        x.Estado == EstadoDespacho.Pendiente);
+
+                // ====================================================
+                // CREAR SI NO EXISTE
+                // ====================================================
+
+                if (despacho == null)
+                {
+                    despacho = new Despacho
+                    {
+                        ID_Pedido = idPedido,
+
+                        Fecha = DateTime.Now,
+
+                        Tipo = TipoDespacho.Parcial,
+
+                        Estado = EstadoDespacho.Pendiente,
+
+                        Observacion =
+                            "Generado automáticamente desde Producción ERP"
+                    };
+
+                    _context.Despachos.Add(despacho);
+
+                    await _context.SaveChangesAsync();
+                }
+
+                // ====================================================
+                // DETALLES DEL PEDIDO
+                // ====================================================
+
+                var detallesPedidoActual = detallesPedido
+                    .Where(x => x.ID_Pedido == idPedido)
+                    .ToList();
+
+                foreach (var dp in detallesPedidoActual)
+                {
+                    // =================================================
+                    // TOTAL PRODUCIDO
+                    // =================================================
+
+                    var totalProducido =
+                        await _context.DetalleProducciones
+                            .Where(x => x.ID_DetallePedido == dp.ID_Detalle)
+                            .SumAsync(x => (int?)x.CantidadProducida) ?? 0;
+
+                    // =================================================
+                    // TOTAL YA DESPACHADO
+                    // =================================================
+
+                    var totalDespachado =
+                        await _context.DetalleDespachos
+                            .Where(x => x.ID_Detalle == dp.ID_Detalle)
+                            .SumAsync(x => (int?)x.Cantidad_Despachada) ?? 0;
+
+                    // =================================================
+                    // DISPONIBLE PARA DESPACHO
+                    // =================================================
+
+                    var disponibleDespacho =
+                        totalProducido - totalDespachado;
+
+                    if (disponibleDespacho <= 0)
+                        continue;
+
+                    // =================================================
+                    // VALIDAR SI YA EXISTE
+                    // =================================================
+
+                    var detalleExistente =
+                        despacho.Detalles
+                            .FirstOrDefault(x =>
+                                x.ID_Detalle == dp.ID_Detalle);
+
+                    if (detalleExistente == null)
+                    {
+                        // =============================================
+                        // NUEVO DETALLE DESPACHO
+                        // =============================================
+
+                        var nuevoDetalle = new DetalleDespacho
+                        {
+                            ID_Despacho = despacho.ID_Despacho,
+
+                            ID_Producto = dp.ID_Producto,
+
+                            ID_Detalle = dp.ID_Detalle,
+
+                            Cantidad_Despachada = disponibleDespacho
+                        };
+
+                        _context.DetalleDespachos.Add(nuevoDetalle);
+                    }
+                    else
+                    {
+                        // =============================================
+                        // ACTUALIZAR DISPONIBLE
+                        // =============================================
+
+                        detalleExistente.Cantidad_Despachada =
+                            totalProducido;
+                    }
+                }
+            }
+
+            await _context.SaveChangesAsync();
         }
     }
 }

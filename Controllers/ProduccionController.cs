@@ -5,10 +5,12 @@ using InventarioWEB.Data;
 using InventarioWEB.Models;
 using InventarioWEB.Services;
 using InventarioWEB.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 
 namespace InventarioWEB.Controllers
 {
-    public class ProduccionController : Controller
+     [AllowAnonymous]
+    public class ProduccionController : Controller 
     {
         private readonly MovimientoVentasDbContext _context;
         private readonly ProduccionService _produccionService;
@@ -35,25 +37,26 @@ namespace InventarioWEB.Controllers
                 Pedidos = pedidos,
 
                 TotalPedidosPendientes =
-                 pedidos.Count(x => x.EstadoProduccion == "PENDIENTE"),
+                    pedidos.Count(x => x.EstadoProduccion == "PENDIENTE"),
 
-                        TotalPedidosEnProduccion =
-                 pedidos.Count(x => x.EstadoProduccion == "EN PRODUCCIÓN"),
+                TotalPedidosEnProduccion =
+                    pedidos.Count(x => x.EstadoProduccion == "EN PRODUCCIÓN"),
 
-                        TotalPedidosCompletados =
-                 pedidos.Count(x => x.EstadoProduccion == "COMPLETADO"),
+                TotalPedidosCompletados =
+                    pedidos.Count(x => x.EstadoProduccion == "COMPLETADO"),
 
-                        TotalUnidadesPendientes =
-                 pedidos.Sum(x => x.Pendiente),
+                TotalUnidadesPendientes =
+                    pedidos.Sum(x => x.Pendiente),
 
-                        TotalUnidadesProducidas =
-                 pedidos.Sum(x => x.TotalProducido)
+                TotalUnidadesProducidas =
+                    pedidos.Sum(x => x.TotalProducido)
             };
 
             return View(model);
         }
+
         // ==========================================================
-        // GET CREAR PRODUCCION
+        // GET CREAR PRODUCCION MANUAL
         // ==========================================================
         public async Task<IActionResult> Crear(int? idPedido)
         {
@@ -81,17 +84,9 @@ namespace InventarioWEB.Controllers
                             ? pedido.Cliente.Nombre + " " + pedido.Cliente.Apellido
                             : string.Empty;
 
-                    // =====================================================
-                    // ESTADOS
-                    // =====================================================
-
                     model.Estado = pedido.Estado;
 
                     model.EstadoPago = pedido.EstadoPago;
-
-                    // =====================================================
-                    // VENTA
-                    // =====================================================
 
                     model.TipoVenta = pedido.TipoVenta;
 
@@ -100,24 +95,60 @@ namespace InventarioWEB.Controllers
                     model.SaldoPendiente = pedido.Saldo;
                 }
 
-                  var detallesPedido =
-                      await _produccionService
-                      .ObtenerDetallePedidoParaProduccionAsync(idPedido.Value);
+                var detallesPedido =
+                    await _produccionService
+                        .ObtenerDetallePedidoParaProduccionAsync(idPedido.Value);
 
-                   model.Detalles = detallesPedido
+                model.Detalles = detallesPedido
                     .Select(x => new DetalleProduccionVM
                     {
+                        // =========================================
+                        // IDENTIFICADORES
+                        // =========================================
+
                         ID_Producto = x.ID_Producto,
 
-                        // 👇 IMPORTANTE: empieza en 0 (input del usuario)
-                        CantidadProducida = 0,
+                        ID_DetallePedido = x.ID_DetallePedido,
 
-                        // 👇 lo necesitas para validar luego
+                        // =========================================
+                        // INFORMACIÓN VISUAL ERP
+                        // =========================================
+
+                        NombreProducto = x.Producto,
+
+                        Referencia = x.Referencia,
+
+                        Talla = x.Talla,
+
+                        Color = x.Color,
+
+                        // =========================================
+                        // PRODUCCIÓN
+                        // =========================================
+
+                        CantidadPedido = x.CantidadPedido,
+
+                        CantidadProducidaActual = x.CantidadProducida,
+
                         CantidadPendiente = x.Pendiente,
 
-                        CostoUnitario = 0,
+                        StockActual = x.StockActual,
 
-                        ID_DetallePedido = x.ID_DetallePedido
+                        // =========================================
+                        // INPUTS USUARIO
+                        // =========================================
+
+                        CantidadProducida = 0,
+
+                        CostoUnitario = x.PrecioCosto,
+
+                        // =========================================
+                        // PRECIOS
+                        // =========================================
+
+                        PrecioVentaUnitario = x.PrecioVTA,
+
+                        IVA = x.IVA_Porcentaje
                     })
                     .ToList();
             }
@@ -125,6 +156,299 @@ namespace InventarioWEB.Controllers
             await CargarFiltrosBaseAsync();
 
             return View(model);
+        }
+
+        // ==========================================================
+        // GET CREAR PRODUCCIÓN ERP
+        // ==========================================================
+        [HttpGet]
+        public async Task<IActionResult> CrearERP(int idPedido)
+        {                   
+            var model = new ProduccionCrearViewModel
+            {
+                FechaProduccion = DateTime.Today,
+                Detalles = new List<DetalleProduccionVM>()
+            };
+
+            // =====================================================
+            // PEDIDO
+            // =====================================================
+
+            var pedido = await _context.Pedidos
+                .AsNoTracking()
+                .Include(p => p.Cliente)
+                .FirstOrDefaultAsync(p => p.ID_Pedido == idPedido);
+
+            if (pedido == null)
+            {
+                return NotFound();
+            }
+
+            model.ID_Pedido = pedido.ID_Pedido;
+
+            model.ID_Cliente = pedido.ID_Cliente;
+
+            model.Cliente =
+                pedido.Cliente != null
+                    ? pedido.Cliente.Nombre + " " + pedido.Cliente.Apellido
+                    : string.Empty;
+
+            model.Estado = pedido.Estado;
+
+            model.EstadoPago = pedido.EstadoPago;
+
+            model.TipoVenta = pedido.TipoVenta;
+
+            model.TotalPedido = pedido.Total;
+
+            model.SaldoPendiente = pedido.Saldo;
+
+            // =====================================================
+            // DETALLE ERP
+            // =====================================================
+
+            var detallesPedido =
+                await _produccionService
+                    .ObtenerDetallePedidoParaProduccionAsync(idPedido);
+
+            model.Detalles = detallesPedido
+                .Select(x => new DetalleProduccionVM
+                {
+                    // =========================================
+                    // IDENTIFICADORES
+                    // =========================================
+
+                    ID_Producto = x.ID_Producto,
+
+                    ID_DetallePedido = x.ID_DetallePedido,
+
+                    // =========================================
+                    // INFORMACIÓN VISUAL ERP
+                    // =========================================
+
+                    NombreProducto = x.Producto,
+
+                    Referencia = x.Referencia,
+
+                    Talla = x.Talla,
+
+                    Color = x.Color,
+
+                    // =========================================
+                    // PRODUCCIÓN
+                    // =========================================
+
+                    CantidadPedido = x.CantidadPedido,
+
+                    CantidadProducidaActual = x.CantidadProducida,
+
+                    CantidadPendiente = x.Pendiente,
+
+                    StockActual = x.StockActual,
+
+                    // =========================================
+                    // INPUTS USUARIO
+                    // =========================================
+
+                    CantidadProducida = 0,
+
+                    CostoUnitario = x.PrecioCosto > 0
+                    ? x.PrecioCosto
+                    : x.PrecioVTA,
+
+                    // =========================================
+                    // PRECIOS
+                    // =========================================
+
+                    PrecioVentaUnitario = x.PrecioVTA,
+
+                    IVA = x.IVA_Porcentaje
+                })
+                .ToList();
+
+            return View("CrearERP", model);
+        }
+
+        // ==========================================================
+        // POST CREAR PRODUCCIÓN ERP
+        // ==========================================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CrearERP(ProduccionCrearViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View("CrearERP", model);
+            }
+
+            using var transaction =
+                await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                // =====================================================
+                // FILTRAR SOLO ITEMS CON PRODUCCIÓN
+                // =====================================================
+
+                var itemsProduccion = model.Detalles
+                    .Where(x => x.CantidadProducida > 0)
+                    .ToList();
+
+                if (!itemsProduccion.Any())
+                {
+                    throw new Exception(
+                        "Debe ingresar al menos una cantidad a producir."
+                    );
+                }
+
+                // =====================================================
+                // CREAR UNA SOLA CABECERA PRODUCCIÓN ERP
+                // =====================================================
+
+                var produccion = new Produccion
+                {
+                    FechaProduccion = model.FechaProduccion,
+                    Observacion = "Producción ERP",
+                    Usuario = User?.Identity?.Name ?? "Sistema",
+                    Activo = true,
+                    FechaRegistro = DateTime.Now
+                };
+
+                _context.Producciones.Add(produccion);
+
+                await _context.SaveChangesAsync();
+
+                // =====================================================
+                // RECORRER DETALLES
+                // =====================================================
+
+                foreach (var item in itemsProduccion)
+                {
+                    // ================================================
+                    // VALIDAR PRODUCTO
+                    // ================================================
+
+                    var producto = await _context.Productos
+                        .FirstOrDefaultAsync(p =>
+                            p.ID_Producto == item.ID_Producto);
+
+                    if (producto == null)
+                    {
+                        throw new Exception(
+                            $"Producto no encontrado ID {item.ID_Producto}"
+                        );
+                    }
+
+                    // ================================================
+                    // VALIDAR PENDIENTE REAL DESDE BD
+                    // ================================================
+
+                    var detallePedido = await _context.DetallePedidos
+                        .FirstOrDefaultAsync(d =>
+                            d.ID_Detalle == item.ID_DetallePedido);
+
+                    if (detallePedido == null)
+                    {
+                        throw new Exception(
+                            $"Detalle pedido no encontrado para el producto {item.NombreProducto}"
+                        );
+                    }
+
+                    var totalProducido =
+                        await _context.DetalleProducciones
+                            .Where(x =>
+                                x.ID_DetallePedido == item.ID_DetallePedido)
+                            .SumAsync(x =>
+                                (int?)x.CantidadProducida) ?? 0;
+
+                    var pendienteReal =
+                        detallePedido.Cantidad - totalProducido;
+
+                    if (pendienteReal < 0)
+                    {
+                        pendienteReal = 0;
+                    }
+
+                    // ================================================
+                    // VALIDAR PENDIENTE
+                    // ================================================
+
+                    if (item.CantidadProducida > pendienteReal)
+                    {
+                        throw new Exception(
+                            $"La producción supera lo pendiente del producto {item.NombreProducto}. " +
+                            $"Pendiente actual: {pendienteReal}"
+                        );
+                    }
+
+                    // ================================================
+                    // CREAR DETALLE PRODUCCIÓN
+                    // ================================================
+
+                    var detalleProduccion = new DetalleProduccion
+                    {
+                        ID_Produccion = produccion.ID_Produccion,
+
+                        ID_Producto = item.ID_Producto,
+
+                        ID_DetallePedido = item.ID_DetallePedido,
+
+                        CantidadProducida = item.CantidadProducida,
+
+                        CostoUnitario = item.CostoUnitario,
+
+                        PrecioVentaUnitario = item.PrecioVentaUnitario,
+
+                        IVA = item.IVA,
+
+                        SubtotalCosto =
+                            item.CantidadProducida *
+                            item.CostoUnitario,
+
+                        SubtotalVenta =
+                            item.CantidadProducida *
+                            item.PrecioVentaUnitario,
+
+                        EstadoProduccion = "TERMINADO",
+
+                        FechaInicioProduccion = DateTime.Now,
+
+                        FechaFinProduccion = DateTime.Now,
+
+                        ObservacionProduccion = "Producción ERP"
+                    };
+
+                    _context.DetalleProducciones.Add(detalleProduccion);
+
+                    // ================================================
+                    // ACTUALIZAR INVENTARIO
+                    // ================================================
+
+                    producto.Stock += item.CantidadProducida;
+
+                    _context.Productos.Update(producto);
+                }
+                // =====================================================
+                // GUARDAR TODO
+                // =====================================================
+
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                TempData["Success"] =
+                    "Producción registrada correctamente.";
+
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+
+                ModelState.AddModelError("", ex.Message);
+
+                return View("CrearERP", model);
+            }
         }
 
         // ==========================================================

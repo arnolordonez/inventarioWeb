@@ -1,0 +1,373 @@
+﻿@model InventarioWEB.ViewModels.ProduccionCrearViewModel
+
+@{
+    ViewData["Title"] = "Producción ERP";
+}
+
+<form asp-action="CrearERP" method="post">
+
+    @Html.AntiForgeryToken()
+
+    <div class="container-fluid">
+
+        <!-- ========================================= -->
+        <!-- VALIDACIONES BACKEND -->
+        <!-- ========================================= -->
+
+        <div asp-validation-summary="All"
+             class="alert alert-danger mb-4">
+        </div>
+
+        <!-- ========================================= -->
+        <!-- HEADER ERP -->
+        <!-- ========================================= -->
+    <div class="row mb-4">
+
+        <div class="col-md-8">
+
+            <h3 class="fw-bold text-primary mb-1">
+
+                🏭 Producción ERP Pedido #@Model.ID_Pedido
+
+            </h3>
+
+            <p class="text-muted mb-0">
+
+                Flujo operacional:
+                Pedido → Producción → Inventario → Despacho
+
+            </p>
+
+        </div>
+
+        <div class="col-md-4 text-end">
+
+            <a asp-action="Index"
+               class="btn btn-outline-secondary">
+
+                ⬅ Volver
+
+            </a>
+
+        </div>
+
+    </div>
+
+    <!-- ========================================= -->
+    <!-- INFORMACIÓN PEDIDO -->
+    <!-- ========================================= -->
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-light fw-bold">
+
+            📋 Información del Pedido
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="row">
+
+                <div class="col-md-3 mb-3">
+
+                    <label class="form-label fw-bold">
+                        Cliente
+                    </label>
+
+                    <div>
+                        @Model.Cliente
+                    </div>
+
+                </div>
+
+                <div class="col-md-2 mb-3">
+
+                    <label class="form-label fw-bold">
+                        Estado Pago
+                    </label>
+
+                    <div>
+
+                        @if (Model.EstadoPago == "PAGADO")
+                        {
+                            <span class="badge bg-success">
+                                PAGADO
+                            </span>
+                        }
+                        else if (Model.EstadoPago == "ABONADO")
+                        {
+                            <span class="badge bg-warning text-dark">
+                                ABONADO
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">
+                                PENDIENTE
+                            </span>
+                        }
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-3 mb-3">
+
+                    <label class="form-label fw-bold">
+                        Estado Logístico
+                    </label>
+
+                    <div>
+
+                        @if (Model.Estado == "DESPACHADO")
+                        {
+                            <span class="badge bg-success">
+                                DESPACHADO
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">
+                                NO DESPACHADO
+                            </span>
+                        }
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-2 mb-3">
+
+                    <label class="form-label fw-bold">
+                        Tipo Venta
+                    </label>
+
+                    <div>
+                        @Model.TipoVenta
+                    </div>
+
+                </div>
+
+                <div class="col-md-2 mb-3">
+
+                    <label class="form-label fw-bold">
+                        Saldo
+                    </label>
+
+                    <div class="fw-bold text-danger">
+                        @Model.SaldoPendiente.ToString("C")
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ========================================= -->
+    <!-- TABLA ERP PRODUCCIÓN -->
+    <!-- ========================================= -->
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-header bg-light fw-bold">
+
+            📦 Productos Pendientes de Producción
+
+        </div>
+
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table table-bordered table-hover align-middle mb-0">
+
+                    <thead class="table-light">
+
+                        <tr>
+
+                            <th>
+                                Producto
+                            </th>
+
+                            <th class="text-center" style="width:120px">
+                                Pedido
+                            </th>
+
+                            <th class="text-center" style="width:120px">
+                                Producido
+                            </th>
+
+                            <th class="text-center" style="width:120px">
+                                Pendiente
+                            </th>
+
+                            <th class="text-center" style="width:120px">
+                                Stock
+                            </th>
+
+                            <th class="text-center" style="width:180px">
+                                Cantidad a producir
+                            </th>
+
+                            <th class="text-center" style="width:140px">
+                                Costo
+                            </th>
+
+                            <th class="text-center" style="width:140px">
+                                Venta
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @if (Model.Detalles != null && Model.Detalles.Any())
+                        {
+                            for (int i = 0; i < Model.Detalles.Count; i++)
+                            {
+                                <tr>
+
+                                    <!-- PRODUCTO -->
+                                    <td>
+
+                                        <div class="fw-bold">
+
+                                            @Model.Detalles[i].NombreProducto
+
+                                        </div>
+
+                                        <small class="text-muted d-block">
+                                            Código: @Model.Detalles[i].ID_Producto
+                                        </small>
+                                                                                
+                                        <!-- HIDDEN -->
+                                        <input type="hidden"
+                                               asp-for="Detalles[@i].ID_Producto" />
+
+                                        <input type="hidden"
+                                               asp-for="Detalles[@i].ID_DetallePedido" />
+
+                                        <input type="hidden"
+                                               asp-for="Detalles[@i].CantidadPedido" />
+
+                                        <input type="hidden"
+                                               asp-for="Detalles[@i].CantidadPendiente" />
+
+                                    </td>
+
+                                    <!-- PEDIDO -->
+                                    <td class="text-center fw-bold">
+
+                                        @Model.Detalles[i].CantidadPedido
+
+                                    </td>
+
+                                    <!-- PRODUCIDO -->
+                                    <td class="text-center text-success fw-bold">
+
+                                        @Model.Detalles[i].CantidadProducidaActual
+
+                                    </td>
+
+                                    <!-- PENDIENTE -->
+                                    <td class="text-center text-danger fw-bold">
+
+                                        @Model.Detalles[i].CantidadPendiente
+
+                                    </td>
+
+                                    <!-- STOCK -->
+                                    <td class="text-center fw-bold">
+
+                                        @Model.Detalles[i].StockActual
+
+                                    </td>
+
+                                    <!-- CANTIDAD PRODUCIR -->
+                                    <td>
+
+                                        <input asp-for="Detalles[@i].CantidadProducida"
+                                               type="number"
+                                               class="form-control text-center"
+                                               min="0"
+                                               max="@Model.Detalles[i].CantidadPendiente" />
+
+                                        <span asp-validation-for="Detalles[@i].CantidadProducida"
+                                              class="text-danger small">
+                                        </span>
+
+                                    </td>
+
+                                    <!-- COSTO -->
+                                    <td>
+
+                                        <input asp-for="Detalles[@i].CostoUnitario"
+                                               type="number"
+                                               step="0.01"
+                                               min="0"
+                                               class="form-control text-end" />
+
+                                        <span asp-validation-for="Detalles[@i].CostoUnitario"
+                                              class="text-danger small">
+                                        </span>
+
+                                    </td>
+
+                                    <!-- VENTA -->
+                                    <td class="text-end fw-bold text-primary">
+
+                                        @Model.Detalles[i].PrecioVentaUnitario.ToString("N0")
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+
+                                <td colspan="8"
+                                    class="text-center text-muted py-4">
+
+                                    No existen productos pendientes de producción.
+
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+    <!-- ========================================= -->
+    <!-- BOTÓN -->
+    <!-- ========================================= -->
+
+    <div class="mt-4 text-end">
+
+            <button type="submit"
+                    class="btn btn-success btn-lg">
+
+                💾 Registrar Producción ERP
+
+            </button>
+
+    </div>
+
+
+  </div>
+
+</form>

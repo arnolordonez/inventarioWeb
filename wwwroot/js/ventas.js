@@ -18,6 +18,8 @@ window.testJS = function () {
 let carrito = [];
 window.carrito = carrito;
 
+let ventaEnProceso = false;
+
 // ==========================================================
 // 🔹 CUANDO CARGA EL DOM
 // ==========================================================
@@ -674,33 +676,97 @@ $(function () {
     // ==========================================================
     window.guardarVenta = function () {
 
-        console.log("🔥 CLICK EN GUARDAR");
+        // ==========================================================
+        // 🔒 BLOQUEO ABSOLUTO DEL BOTÓN
+        // ==========================================================
+        const btn = $("#btnGuardarVenta");
+
+        // 🔥 SI YA ESTÁ EN PROCESO → NO HACER NADA
+        if (btn.data("procesando") === true) {
+
+            console.warn("⛔ Venta ya en proceso");
+
+            return;
+        }
+
+        // 🔥 MARCAR COMO PROCESANDO
+        btn.data("procesando", true);
+
+        // 🔒 DESACTIVAR BOTÓN
+        btn.prop("disabled", true);
+
+        // 🔥 CAMBIAR TEXTO BOTÓN
+        btn.html("⏳ Procesando...");
+
+        // 🔥 MOSTRAR OVERLAY
+        $("#overlayVenta").fadeIn(200);
+
+        console.log("🔥 INICIO GUARDADO");
 
         let cliente = $('#ID_Cliente').val();
         let metodoPago = $('#metodoPago').val();
         let tipoVenta = $('#tipoVenta').val();
         let abonoInput = $('#abonoInicial').val();
-
+                
         // ==========================================================
         // 🔴 VALIDACIONES
         // ==========================================================
         if (!cliente) {
-            $("#clienteError").text("Debe seleccionar un cliente").show();
+
+            // 🔓 LIBERAR BLOQUEO
+            btn.data("procesando", false);
+
+            btn.prop("disabled", false);
+
+            btn.html("💾 Guardar Venta");
+
+            // 🔥 OCULTAR OVERLAY
+            $("#overlayVenta").hide();
+
+            $("#clienteError")
+                .text("Debe seleccionar un cliente")
+                .show();
+
             return;
+
         } else {
+
             $("#clienteError").hide();
         }
 
         if (!carrito || carrito.length === 0) {
+
+            // 🔓 LIBERAR BLOQUEO
+            btn.data("procesando", false);
+
+            btn.prop("disabled", false);
+
+            btn.html("💾 Guardar Venta");
+
+            // 🔥 OCULTAR OVERLAY
+            $("#overlayVenta").hide();
+
             alert("Agregue productos");
+
             return;
         }
 
         if (tipoVenta !== "CONTADO" && !metodoPago) {
+
+            // 🔓 LIBERAR BLOQUEO
+            btn.data("procesando", false);
+
+            btn.prop("disabled", false);
+
+            btn.html("💾 Guardar Venta");
+
+            // 🔥 OCULTAR OVERLAY
+            $("#overlayVenta").hide();
+
             alert("Seleccione método de pago");
+
             return;
         }
-
         // ==========================================================
         // 🔥 TOTALES (MODELO ENTERO)
         // ==========================================================
@@ -743,28 +809,79 @@ $(function () {
             data: JSON.stringify(venta),
 
             beforeSend: function () {
+
                 console.log("🚀 Enviando venta al backend...");
             },
 
+            // ==========================================================
+            // ✅ SUCCESS
+            // ==========================================================
             success: function (res) {
+
                 console.log("✅ RESPUESTA OK:", res);
 
+                // ==========================================================
+                // ✅ VENTA EXITOSA
+                // ==========================================================
                 if (res.success) {
 
-                    // 🖨️ IMPRIMIR ORDEN DE PRODUCCIÓN
+                    $("#textoProceso")
+                        .text("Abriendo orden de producción...");
+
+                    // 🖨️ IMPRIMIR ORDEN
                     imprimirOrdenDesdeBD(res.idPedido);
 
                 } else {
-                    alert("Error al guardar la venta");
+
+                    // ==========================================================
+                    // 🔓 LIBERAR BLOQUEO
+                    // ==========================================================
+                    ventaEnProceso = false;
+
+                    $("#btnGuardarVenta")
+                        .prop("disabled", false)
+                        .html("💾 Guardar Venta");
+
+                    // 🔥 OCULTAR OVERLAY
+                    $("#overlayVenta").hide();
+
+                    // ==========================================================
+                    // ⚠️ RESPUESTA INVÁLIDA
+                    // ==========================================================
+                    let mensaje = res.message || "Error al guardar la venta";
+
+                    alert("⚠️ " + mensaje);
                 }
             },
 
+            // ==========================================================
+            // ❌ ERROR AJAX
+            // ==========================================================
             error: function (err) {
+
                 console.error("❌ ERROR:", err);
                 console.error("❌ RESPUESTA:", err.responseText);
 
-                alert("Error: " + err.responseText);
+                // ==========================================================
+                // 🔓 LIBERAR BLOQUEO
+                // ==========================================================
+                ventaEnProceso = false;
+
+                $("#btnGuardarVenta")
+                    .prop("disabled", false)
+                    .html("💾 Guardar Venta");
+
+                // 🔥 OCULTAR OVERLAY
+                $("#overlayVenta").hide();
+
+                // ==========================================================
+                // ⚠️ MENSAJE ERROR
+                // ==========================================================
+                let mensaje = err.responseText || "Ocurrió un error al procesar la venta.";
+
+                alert("❌ Error: " + mensaje);
             }
+
         });
     }
 

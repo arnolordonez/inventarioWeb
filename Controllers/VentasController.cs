@@ -14,9 +14,11 @@ using iText.IO.Image;
 using Microsoft.AspNetCore.Hosting;
 using iText.IO.Font.Constants;
 using iText.Kernel.Font;
+using Microsoft.AspNetCore.Authorization;
 
 namespace InventarioWEB.Controllers
 {
+    [AllowAnonymous]
     public class VentasController : Controller
     {
         private readonly MovimientoVentasDbContext _context;
@@ -256,7 +258,7 @@ namespace InventarioWEB.Controllers
                         throw new Exception($"Producto no existe (ID: {item.ID_Producto})");
 
                     var producto = productos[item.ID_Producto];
-
+                                       
                     decimal precio = producto.PrecioVTA;
                     decimal ivaPorcentaje = producto.IVA_Porcentaje;
 

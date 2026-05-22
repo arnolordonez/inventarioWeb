@@ -13,9 +13,11 @@ using Microsoft.AspNetCore.Hosting;
 using iText.IO.Image;
 using iText.Layout.Borders;
 using iText.Layout.Properties;
+using Microsoft.AspNetCore.Authorization;
 
 namespace InventarioWEB.Controllers
 {
+    [AllowAnonymous] // 🔥 IMPORTANTE: permite acceso sin login
     public class DespachoController : Controller
     {
         private readonly IWebHostEnvironment _env;
@@ -124,6 +126,32 @@ namespace InventarioWEB.Controllers
             // =====================================================
             // 🔥 FUENTE REAL: detalle_despacho (NO detalle_pedido)
             // =====================================================
+            // =====================================================
+            // 🔥 PRODUCCIÓN REAL DISPONIBLE PARA DESPACHO
+            // =====================================================
+
+            var produccionDisponible = await (
+                from dp in _context.DetalleProducciones
+
+                group dp by dp.ID_DetallePedido into g
+
+                select new
+                {
+                    ID_DetallePedido = g.Key,
+
+                    TotalProducido =
+                        g.Sum(x => x.CantidadProducida)
+                }
+            )
+           .ToDictionaryAsync(
+                x => x.ID_DetallePedido,
+                x => x.TotalProducido
+            );
+
+            // =====================================================
+            // 🔥 DESPACHADO REAL
+            // =====================================================
+
             var despachadoReal = await _context.DetalleDespachos
                 .Join(_context.Despachos,
                     dd => dd.ID_Despacho,
@@ -147,25 +175,51 @@ namespace InventarioWEB.Controllers
 
                 Tallas = pedido.DetallePedidos.Select(dp =>
                 {
-                    // 🔥 DESPACHADO REAL DESDE BD
-                    var yaDespachado = despachadoReal.ContainsKey(dp.ID_Detalle)
-                        ? despachadoReal[dp.ID_Detalle]
-                        : 0;
+                    // =====================================================
+                    // 🔥 DESPACHADO REAL
+                    // =====================================================
+
+                    var yaDespachado =
+                        despachadoReal.ContainsKey(dp.ID_Detalle)
+                            ? despachadoReal[dp.ID_Detalle]
+                            : 0;
+
+                    // =====================================================
+                    // 🔥 PRODUCCIÓN REAL
+                    // =====================================================
+
+                    var producido =
+                        produccionDisponible.ContainsKey(dp.ID_Detalle)
+                            ? produccionDisponible[dp.ID_Detalle]
+                            : 0;
+
+                    // =====================================================
+                    // 🔥 DISPONIBLE PARA DESPACHO
+                    // =====================================================
+
+                    var disponibleDespacho =
+                        producido - yaDespachado;
+
+                    if (disponibleDespacho < 0)
+                        disponibleDespacho = 0;
+
+                    // =====================================================
+                    // 🔥 VIEWMODEL
+                    // =====================================================
 
                     return new DespachoTallaItemVM
                     {
                         ID_Detalle = dp.ID_Detalle,
 
-                        // 🔥 CLAVE CRÍTICA PARA EL POST (NO SE PUEDE PERDER)
                         ID_Producto = dp.ID_Producto,
 
                         Talla = dp.Producto.Talla?.DescripTalla ?? "",
 
-                        // 🔥 DATOS BASE DEL PEDIDO
                         CantidadPedida = dp.Cantidad,
 
-                        // 🔥 YA DESPACHADO REAL (NO usar campo de detalle_pedido)
-                        CantidadDespachada = yaDespachado
+                        CantidadDespachada = yaDespachado,
+
+                        CantidadDisponible = disponibleDespacho
                     };
 
                 }).ToList(),
@@ -173,6 +227,16 @@ namespace InventarioWEB.Controllers
                 // 🔥 TOTAL ORIGINAL DEL PEDIDO
                 TotalDocenasPedido = pedido.DetallePedidos.Sum(x => x.Cantidad)
             };
+                    // =====================================================
+                    // 🔴 VALIDACIÓN: NO HAY PRODUCTOS DISPONIBLES
+                    // =====================================================
+
+                    var totalDisponible = vm.Tallas.Sum(t => t.CantidadDisponible);
+
+                    if (totalDisponible <= 0)
+                    {
+                        ViewBag.Mensaje = "No hay productos a despachar";
+                    }
 
             return View(vm);
         }
@@ -318,61 +382,119 @@ namespace InventarioWEB.Controllers
                     );
 
                 // =====================================================
+                // 🔥 PRODUCCIÓN REAL DISPONIBLE
+                // =====================================================
+
+                var produccionDisponible = await _context.DetalleProducciones
+                    .GroupBy(x => x.ID_DetallePedido)
+                    .Select(g => new
+                    {
+                        ID_DetallePedido = g.Key,
+                        TotalProducido = g.Sum(x => x.CantidadProducida)
+                    })
+                    .ToDictionaryAsync(
+                        x => x.ID_DetallePedido,
+                        x => x.TotalProducido
+                    );
+
+                // =====================================================
                 // 🔥 VALIDACIÓN POR ITEM
                 // =====================================================
                 foreach (var item in model.Tallas.Where(t => t.Cantidad > 0))
                 {
+                    // =================================================
+                    // 🔍 DETALLE PEDIDO
+                    // =================================================
+
                     var detalle = pedido.DetallePedidos
                         .FirstOrDefault(d => d.ID_Detalle == item.ID_Detalle);
 
                     if (detalle == null)
-                        throw new Exception("El detalle no pertenece al pedido");
+                    {
+                        throw new Exception(
+                            "El detalle no pertenece al pedido."
+                        );
+                    }
+
+                    // =================================================
+                    // 🔍 PRODUCTO
+                    // =================================================
 
                     if (!productos.TryGetValue(detalle.ID_Producto, out var producto))
-                        throw new Exception($"Producto inválido ID {detalle.ID_Producto}");
-
-                    var yaDespachado = despachadoReal.ContainsKey(detalle.ID_Detalle)
-                        ? despachadoReal[detalle.ID_Detalle]
-                        : 0;
-
-                    var pendiente = detalle.Cantidad - yaDespachado;
-
-                    if (pendiente < 0)
-                        pendiente = 0;
-
-                    // 🚫 EXCESO
-                    if (item.Cantidad > pendiente)
+                    {
                         throw new Exception(
-                        $"No puede despachar {item.Cantidad} docenas en la talla {item.Talla}. " +
-                        $"Pendiente real: {pendiente} docenas."
-                    );
-                    
-                    // 🚫 STOCK CERO
-                    if (producto.Stock <= 0)
-                        throw new Exception(
-                            $"El producto {producto.Nombre} (talla {item.Talla}) no tiene stock disponible."
+                            $"Producto inválido ID {detalle.ID_Producto}"
                         );
+                    }
 
-                    // 🚫 STOCK INSUFICIENTE
-                    if (producto.Stock < item.Cantidad)
+                    // =================================================
+                    // 🚚 YA DESPACHADO
+                    // =================================================
+
+                    var yaDespachado =
+                        despachadoReal.ContainsKey(detalle.ID_Detalle)
+                            ? despachadoReal[detalle.ID_Detalle]
+                            : 0;
+
+                    // =================================================
+                    // 🏭 PRODUCCIÓN REAL
+                    // =================================================
+
+                    var producido =
+                        produccionDisponible.ContainsKey(detalle.ID_Detalle)
+                            ? produccionDisponible[detalle.ID_Detalle]
+                            : 0;
+
+                    // =================================================
+                    // 📦 DISPONIBLE PARA DESPACHO
+                    // =================================================
+
+                    var disponibleProduccion =
+                        producido - yaDespachado;
+
+                    if (disponibleProduccion < 0)
+                    {
+                        disponibleProduccion = 0;
+                    }
+
+                    // =================================================
+                    // 🚫 VALIDAR PRODUCCIÓN DISPONIBLE
+                    // =================================================
+
+                    if (item.Cantidad > disponibleProduccion)
+                    {
                         throw new Exception(
-                              $"Stock insuficiente para {producto.Nombre} (talla {item.Talla}). " +
-                              $"Disponible: {producto.Stock} docenas, solicitado: {item.Cantidad}."
+                            $"No existe producción disponible para despachar " +
+                            $"en talla {item.Talla}. " +
+                            $"Disponible producción: {disponibleProduccion} docenas."
                         );
+                    }
 
-                    // 🚫 STOCK MÍNIMO
+                    // =================================================
+                    // 🚫 VALIDACIÓN STOCK FÍSICO
+                    // =================================================
+
+                    if (item.Cantidad > disponibleProduccion)
+                    {
+                        throw new Exception(
+                            $"No existe producción disponible para despachar " +
+                            $"en talla {item.Talla}. " +
+                            $"Disponible producción: {disponibleProduccion} docenas."
+                        );
+                    }
+                    // =================================================
+                    // ⚠️ STOCK BAJO
+                    // =================================================
 
                     if (producto.Stock < 10)
                     {
-                        ModelState.AddModelError("",
-                            $"⚠️ Stock bajo en {producto.Nombre} (talla {item.Talla}). Disponible: {producto.Stock}");
+                        ModelState.AddModelError(
+                            "",
+                            $"⚠️ Stock bajo en {producto.Nombre} " +
+                            $"(talla {item.Talla}). " +
+                            $"Disponible: {producto.Stock}"
+                        );
                     }
-
-                    //if (producto.Stock < 10)
-                    //  throw new Exception(
-                    //     $"Advertencia: el producto {producto.Nombre} (talla {item.Talla}) " +
-                    //   $"tiene stock crítico ({producto.Stock} docenas)."
-                    //   );
                 }
 
                 // =====================================================
@@ -726,35 +848,7 @@ namespace InventarioWEB.Controllers
             var pedido = despacho.Pedido;
 
             document.Add(new Paragraph("\n"));
-            /*
-            var italicFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_OBLIQUE);
-            var boldFontSmall = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
-
-            var pedido = despacho.Pedido;
-
-            // 🔹 ENCABEZADO
-            document.Add(
-                new Paragraph("Factura de despacho")
-                    .SetFont(italicFont)
-                    .SetFontSize(9)
-                    .SetTextAlignment(TextAlignment.RIGHT)
-            );
-
-            // 🔹 MENSAJE SEGÚN ESTADO
-            string mensajeDespacho = despacho.Tipo == TipoDespacho.Completo
-               ? "✔ Este despacho completa el pedido"
-               : "⚠ Despacho parcial - entrega en proceso";
-
-            document.Add(
-                new Paragraph(mensajeDespacho)
-                    .SetFont(boldFontSmall)
-                    .SetFontSize(9)
-                    .SetTextAlignment(TextAlignment.RIGHT)
-            );
-
-            document.Add(new Paragraph("\n"));
-            */
-
+            
             // ======================================================
             // 🔥 TOTALES DEL DESPACHO
             // ======================================================

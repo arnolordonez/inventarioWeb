@@ -19,7 +19,7 @@ var culture = new CultureInfo("en-US");
 CultureInfo.DefaultThreadCurrentCulture = culture;
 CultureInfo.DefaultThreadCurrentUICulture = culture;
 
-// ==========================================================
+// ========================================================== 
 // CONFIGURACIÓN DE CONEXIONES A MySQL
 // ==========================================================
 
@@ -63,14 +63,12 @@ builder.Services.AddScoped<ColorService>();
 // ==========================================================
 // SERVICIOS MVC + API
 // ==========================================================
+
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = null;
     });
-
-  //builder.Services.AddControllersWithViews(); // MVC
-  //builder.Services.AddControllers();          // API
 
 // ==========================================================
 // SWAGGER PARA DOCUMENTACIÓN DE API
@@ -90,13 +88,29 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
+
+    // 🔥 IMPORTANTE PARA HTTPS + SELENIUM
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
 
 // NECESARIO PARA USAR HttpContext EN EL LAYOUT
 builder.Services.AddHttpContextAccessor();
 
-var app = builder.Build();
+// ==========================================================
+// 🔥 CONFIGURACIÓN EXTRA PARA EVITAR ERRORES (CLAVE)
+// ==========================================================
 
+// Forzar HTTPS (evita errores de cookies y websocket)
+builder.Services.AddHttpsRedirection(options =>
+{
+    options.HttpsPort = 7084;
+});
+
+// Desactivar BrowserLink (aunque no aparezca en UI)
+builder.WebHost.UseSetting("browserLinkEnabled", "false");
+
+var app = builder.Build();
 // ==========================================================
 // PIPELINE DE LA APLICACIÓN
 // ==========================================================
