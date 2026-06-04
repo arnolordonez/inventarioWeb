@@ -1,4 +1,4 @@
-﻿@model InventarioWEB.ViewModels.ProduccionViewModel
+﻿@model InventarioWEB.ViewModels.ProduccionListadoViewModel
 
 @{
     ViewData["Title"] = "Producciones Registradas";
@@ -6,29 +6,46 @@
 
 <div class="container-fluid">
 
-    <!-- TITULO Y BOTON -->
+    <!-- ========================================= -->
+    <!-- HEADER -->
+    <!-- ========================================= -->
+
     <div class="row mb-3">
 
         <div class="col-md-6">
-            <h3 class="fw-bold text-primary">
+
+            <h3 class="fw-bold text-primary mb-1">
                 🏭 Control de Producción
             </h3>
+
+            <p class="text-muted mb-0">
+                Historial y trazabilidad de producciones registradas.
+            </p>
+
         </div>
 
         <div class="col-md-6 text-end">
-            <a asp-action="Crear" class="btn btn-success">
+
+            <a asp-action="Crear"
+               class="btn btn-success">
+
                 ➕ Nueva Producción
+
             </a>
+
         </div>
 
     </div>
 
-    <!-- MENSAJE DE EXITO -->
+    <!-- ========================================= -->
+    <!-- ALERTA ÉXITO -->
+    <!-- ========================================= -->
     @if (TempData["Success"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show">
+        <div class="alert alert-success alert-dismissible fade show shadow-sm">
 
-            <strong>✔</strong> @TempData["Success"]
+            <strong>✔</strong>
+            @TempData["Success"]
 
             <button type="button"
                     class="btn-close"
@@ -38,95 +55,170 @@
         </div>
     }
 
-    <!-- RESUMEN RAPIDO -->
-    <div class="row mb-3">
+    <!-- ========================================= -->
+    <!-- INDICADORES -->
+    <!-- ========================================= -->
 
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm">
+    <div class="row mb-4">
+
+        <!-- TOTAL PRODUCCIONES -->
+
+        <div class="col-md-4 mb-3">
+
+            <div class="card border-0 shadow-sm h-100">
+
                 <div class="card-body text-center">
 
-                    <h6 class="text-muted">Producciones</h6>
+                    <div class="text-muted small mb-2">
+                        Producciones registradas
+                    </div>
 
-                    <h3 class="fw-bold text-primary">
-                        @(Model.Producciones?.Count() ?? 0)
-                    </h3>
+                    <h2 class="fw-bold text-primary mb-0">
+                        @Model.TotalRegistros
+                    </h2>
 
                 </div>
+
             </div>
+
         </div>
 
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm">
+        <!-- ARTÍCULOS DISTINTOS -->
+
+        <div class="col-md-4 mb-3">
+
+            <div class="card border-0 shadow-sm h-100">
+
                 <div class="card-body text-center">
 
-                    <h6 class="text-muted">Artículos distintos</h6>
+                    <div class="text-muted small mb-2">
+                        Artículos distintos
+                    </div>
 
-                    <h3 class="fw-bold text-success">
-                        @(
-                            (Model.Producciones ?? new List<InventarioWEB.Models.Produccion>())
-                            .SelectMany(p => p.Detalles ?? new List<InventarioWEB.Models.DetalleProduccion>())
-                            .Select(d => d.ID_Producto)
-                            .Distinct()
-                            .Count()
-                            )
-                    </h3>
+                    <h2 class="fw-bold text-success mb-0">
+                        @Model.TotalArticulosDistintos
+                    </h2>
 
                 </div>
+
             </div>
+
         </div>
 
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm">
+        <!-- UNIDADES PRODUCIDAS -->
+
+        <div class="col-md-4 mb-3">
+
+            <div class="card border-0 shadow-sm h-100">
+
                 <div class="card-body text-center">
 
-                    <h6 class="text-muted">Unidades producidas</h6>
+                    <div class="text-muted small mb-2">
+                        Unidades producidas
+                    </div>
 
-                    <h3 class="fw-bold text-dark">
-                        @(
-                            (Model.Producciones ?? new List<InventarioWEB.Models.Produccion>())
-                            .SelectMany(p => p.Detalles ?? new List<InventarioWEB.Models.DetalleProduccion>())
-                            .Sum(d => d.Cantidad)
-                            )
-                    </h3>
+                    <h2 class="fw-bold text-dark mb-0">
+                        @Model.TotalUnidadesProducidas
+                    </h2>
 
                 </div>
+
             </div>
+
         </div>
 
     </div>
 
-    <!-- TABLA PRODUCCIONES -->
-    <div class="card shadow-sm">
+    <!-- ========================================= -->
+    <!-- TABLA -->
+    <!-- ========================================= -->
+
+    <div class="card shadow-sm border-0">
 
         <div class="card-header bg-light fw-bold">
+
             📋 Historial de Producción
+
         </div>
 
         <div class="card-body">
 
             @if (Model.Producciones == null || !Model.Producciones.Any())
             {
-                <div class="alert alert-info">
+                <div class="alert alert-info mb-0">
+
                     No existen producciones registradas.
+
                 </div>
             }
             else
             {
-
                 <div class="table-responsive">
 
-                    <table class="table table-bordered table-sm table-hover align-middle">
+                    <table class="table table-bordered table-hover table-sm align-middle mb-0">
 
                         <thead class="table-light">
 
                             <tr>
-                                <th style="width:80px">ID</th>
-                                <th style="width:140px">Fecha</th>
-                                <th>Usuario</th>
-                                <th>Observación</th>
-                                <th class="text-center" style="width:110px">Artículos</th>
-                                <th class="text-center" style="width:120px">Unidades</th>
-                                <th class="text-center" style="width:140px">Acción</th>
+
+                                <th style="width:80px">
+                                    ID
+                                </th>
+
+                                <th style="width:140px">
+                                    Fecha
+                                </th>
+
+                                <th style="width:180px">
+                                    Usuario
+                                </th>
+
+                                <th>
+                                    Observación
+                                </th>
+
+                                <th class="text-center"
+                                    style="width:110px">
+
+                                    Artículos
+
+                                </th>
+
+                                <th class="text-center"
+                                    style="width:120px">
+
+                                    Unidades
+
+                                </th>
+
+                                <th class="text-end"
+                                    style="width:130px">
+
+                                    Costo
+
+                                </th>
+
+                                <th class="text-end"
+                                    style="width:130px">
+
+                                    Venta
+
+                                </th>
+
+                                <th class="text-end"
+                                    style="width:130px">
+
+                                    Utilidad
+
+                                </th>
+
+                                <th class="text-center"
+                                    style="width:140px">
+
+                                    Acción
+
+                                </th>
+
                             </tr>
 
                         </thead>
@@ -135,25 +227,95 @@
 
                             @foreach (var p in Model.Producciones)
                             {
-                                var totalUnidades = p.Detalles?.Sum(d => d.Cantidad) ?? 0;
+                                var totalUnidades =
+                                p.Detalles?.Sum(d => d.CantidadProducida) ?? 0;
+
+                                var totalCosto =
+                                p.Detalles?.Sum(d => d.SubtotalCosto) ?? 0;
+
+                                var totalVenta =
+                                p.Detalles?.Sum(d => d.SubtotalVenta) ?? 0;
+
+                                var utilidad =
+                                totalVenta - totalCosto;
 
                                 <tr>
 
-                                    <td>@p.ID_Produccion</td>
+                                    <!-- ID -->
 
-                                    <td>@p.FechaProduccion.ToString("dd/MM/yyyy")</td>
+                                    <td>
 
-                                    <td>@p.Usuario</td>
+                                        @p.ID_Produccion
 
-                                    <td>@p.Observacion</td>
+                                    </td>
+
+                                    <!-- FECHA -->
+
+                                    <td>
+
+                                        @p.FechaProduccion.ToString("dd/MM/yyyy")
+
+                                    </td>
+
+                                    <!-- USUARIO -->
+
+                                    <td>
+
+                                        @p.Usuario
+
+                                    </td>
+
+                                    <!-- OBSERVACIÓN -->
+
+                                    <td>
+
+                                        @(string.IsNullOrWhiteSpace(p.Observacion)
+                                            ? "-"
+                                            : p.Observacion)
+
+                                    </td>
+
+                                    <!-- ARTÍCULOS -->
 
                                     <td class="text-center">
+
                                         @(p.Detalles?.Count ?? 0)
+
                                     </td>
 
+                                    <!-- UNIDADES -->
+
                                     <td class="text-center fw-bold">
+
                                         @totalUnidades
+
                                     </td>
+
+                                    <!-- COSTO -->
+
+                                    <td class="text-end">
+
+                                        @totalCosto.ToString("C")
+
+                                    </td>
+
+                                    <!-- VENTA -->
+
+                                    <td class="text-end">
+
+                                        @totalVenta.ToString("C")
+
+                                    </td>
+
+                                    <!-- UTILIDAD -->
+
+                                    <td class="text-end fw-bold">
+
+                                        @utilidad.ToString("C")
+
+                                    </td>
+
+                                    <!-- ACCIONES -->
 
                                     <td class="text-center">
 
@@ -176,38 +338,57 @@
 
                 </div>
 
-                <!-- PAGINACION -->
+                <!-- ========================================= -->
+                <!-- PAGINACIÓN -->
+                <!-- ========================================= -->
                 @if (Model.TotalPaginas > 1)
                 {
-                    <nav>
+                    <nav class="mt-4">
 
-                        <ul class="pagination justify-content-center">
+                        <ul class="pagination justify-content-center flex-wrap">
 
-                            <li class="page-item @(Model.PaginaActual == 1 ? "disabled" : "")">
+                            <!-- ANTERIOR -->
+
+                            <li class="page-item @(Model.TienePaginaAnterior ? "" : "disabled")">
+
                                 <a class="page-link"
                                    asp-action="Index"
                                    asp-route-pagina="@(Model.PaginaActual - 1)">
+
                                     ⬅ Anterior
+
                                 </a>
+
                             </li>
 
+                            <!-- NÚMEROS -->
                             @for (int i = 1; i <= Model.TotalPaginas; i++)
                             {
                                 <li class="page-item @(i == Model.PaginaActual ? "active" : "")">
+
                                     <a class="page-link"
                                        asp-action="Index"
                                        asp-route-pagina="@i">
+
                                         @i
+
                                     </a>
+
                                 </li>
                             }
 
-                            <li class="page-item @(Model.PaginaActual == Model.TotalPaginas ? "disabled" : "")">
+                            <!-- SIGUIENTE -->
+
+                            <li class="page-item @(Model.TienePaginaSiguiente ? "" : "disabled")">
+
                                 <a class="page-link"
                                    asp-action="Index"
                                    asp-route-pagina="@(Model.PaginaActual + 1)">
+
                                     Siguiente ➡
+
                                 </a>
+
                             </li>
 
                         </ul>

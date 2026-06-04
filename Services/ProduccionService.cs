@@ -212,7 +212,7 @@ namespace InventarioWEB.Services
 
                     foreach (var detalle in detalles)
                     {
-                        Console.WriteLine($"Procesando producto: {detalle.ID_Producto} | Cantidad: {detalle.Cantidad}");
+                        Console.WriteLine($"Procesando producto: {detalle.ID_Producto} | Cantidad: {detalle.CantidadProducida}");
 
                         if (!productos.TryGetValue(detalle.ID_Producto, out var producto))
                             throw new Exception($"Producto {detalle.ID_Producto} no existe.");
@@ -220,7 +220,7 @@ namespace InventarioWEB.Services
                         if (!producto.Activo)
                             throw new Exception($"Producto {producto.Nombre} está inactivo.");
 
-                        if (detalle.Cantidad <= 0)
+                        if (detalle.CantidadProducida <= 0)
                             throw new Exception("Cantidad inválida.");
 
                         if (detalle.CostoUnitario <= 0)
@@ -272,16 +272,16 @@ namespace InventarioWEB.Services
                         detalle.IVA = producto.IVA_Porcentaje;
 
                         detalle.SubtotalCosto =
-                            Math.Round(detalle.Cantidad * detalle.CostoUnitario, 2, MidpointRounding.AwayFromZero);
+                            Math.Round(detalle.CantidadProducida * detalle.CostoUnitario, 2, MidpointRounding.AwayFromZero);
 
-                        var baseVenta = detalle.Cantidad * detalle.PrecioVentaUnitario;
+                        var baseVenta = detalle.CantidadProducida * detalle.PrecioVentaUnitario;
                         var ivaValor = (baseVenta * detalle.IVA) / 100;
 
                         detalle.SubtotalVenta =
                             Math.Round(baseVenta + ivaValor, 2, MidpointRounding.AwayFromZero);
 
                         var stockAnterior = producto.Stock;
-                        var nuevoStock = stockAnterior + detalle.Cantidad;
+                        var nuevoStock = stockAnterior + detalle.CantidadProducida;
                         producto.Stock = nuevoStock;
 
                         decimal costoActual = producto.PrecioCosto;
@@ -300,7 +300,7 @@ namespace InventarioWEB.Services
                         {
                             var nuevoCostoPromedio =
                                 ((stockAnterior * costoActual) +
-                                (detalle.Cantidad * detalle.CostoUnitario))
+                                (detalle.CantidadProducida * detalle.CostoUnitario))
                                 / nuevoStock;
 
                             producto.PrecioCosto =
@@ -352,6 +352,74 @@ namespace InventarioWEB.Services
                 .ThenInclude(p => p.Referencia)
                 .OrderByDescending(d => d.Produccion.FechaProduccion)
                 .ToListAsync();
+        }
+        public async Task<List<PendienteProduccionVM>>
+ObtenerPendientesProduccionAsync()
+        {
+            var data = await (
+                from dp in _context.DetallePedidos
+
+                join p in _context.Pedidos
+                    on dp.ID_Pedido equals p.ID_Pedido
+
+                join c in _context.Clientes
+                    on p.ID_Cliente equals c.ID_Cliente
+
+                join prod in _context.Productos
+                    on dp.ID_Producto equals prod.ID_Producto
+
+                join r in _context.Referencias
+                    on prod.ID_Referencias equals r.ID_Referencias
+
+                join t in _context.Tallas
+                    on prod.ID_Tallas equals t.ID_Tallas
+
+                join col in _context.Colores
+                    on prod.ID_Color equals col.ID_Color
+
+                let cantidadProducida =
+                    _context.DetalleProducciones
+                        .Where(x => x.ID_DetallePedido == dp.ID_Detalle)
+                        .Sum(x => (int?)x.CantidadProducida) ?? 0
+
+                let pendiente =
+                    dp.Cantidad - cantidadProducida
+
+                where pendiente > 0
+
+                orderby p.Fecha, p.ID_Pedido
+
+                select new PendienteProduccionVM
+                {
+                    ID_DetallePedido = dp.ID_Detalle,
+                    ID_Pedido = p.ID_Pedido,
+                    ID_Producto = prod.ID_Producto,
+
+                    Cliente = c.Nombre + " " + c.Apellido,
+
+                    Producto = prod.Nombre,
+
+                    Referencia = r.DescripReferencia,
+
+                    Talla = t.DescripTalla,
+
+                    Color = col.Nombre,
+
+                    CantidadPedida = dp.Cantidad,
+
+                    CantidadProducida = cantidadProducida,
+
+                    CantidadPendiente = pendiente,
+
+                    EstadoProduccion =
+                        pendiente == dp.Cantidad
+                            ? "PENDIENTE"
+                            : "EN_PROCESO"
+                })
+                .AsNoTracking()
+                .ToListAsync();
+
+            return data;
         }
     }
 }

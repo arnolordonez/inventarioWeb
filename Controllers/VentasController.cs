@@ -14,6 +14,8 @@ using iText.IO.Image;
 using Microsoft.AspNetCore.Hosting;
 using iText.IO.Font.Constants;
 using iText.Kernel.Font;
+using InventarioWEB.Services;
+using iText.Commons.Actions.Contexts;
 
 namespace InventarioWEB.Controllers
 {
@@ -23,10 +25,13 @@ namespace InventarioWEB.Controllers
 
         private readonly IWebHostEnvironment _env;
 
-        public VentasController(MovimientoVentasDbContext context, IWebHostEnvironment env)
+        private readonly ReciboCajaService _reciboCajaService;
+
+        public VentasController(MovimientoVentasDbContext context, IWebHostEnvironment env, ReciboCajaService reciboCajaService)
         {
             _context = context;
             _env = env;
+            _reciboCajaService = reciboCajaService;
         }
        
 
@@ -361,6 +366,8 @@ namespace InventarioWEB.Controllers
                 _context.Pedidos.Add(pedido);
                 await _context.SaveChangesAsync();
 
+
+
                 // ======================================================
                 // 🔥 DETALLES
                 // ======================================================
@@ -383,46 +390,125 @@ namespace InventarioWEB.Controllers
                         //Cantidad_Despachada = 0
                     });
                 }
-
                 _context.DetallePedidos.AddRange(detalles);
                 await _context.SaveChangesAsync();
 
                 // ======================================================
                 // 🔥 ABONO
                 // ======================================================
+
+                Abono? abono = null;
+
                 if (venta.AbonoInicial > 0)
                 {
                     if (!venta.ID_MetodoPago.HasValue)
                         return BadRequest("Debe seleccionar método de pago.");
 
-                    var usuarioIdStr = HttpContext.Session.GetString("UsuarioID");
+                    /*
+                    var usuarioNombre =
+                      HttpContext.Session.GetString("UsuarioNombre");
+
+                                       
 
                     if (string.IsNullOrEmpty(usuarioIdStr))
                         return Unauthorized("La sesión del usuario expiró.");
 
                     int idUsuario = int.Parse(usuarioIdStr);
+                    */
 
-                    _context.Abonos.Add(new Abono
+
+                    var usuarioIdStr =
+                       HttpContext.Session.GetString("UsuarioID");
+
+                    var usuarioNombre =
+                        HttpContext.Session.GetString("UsuarioNombre");
+
+                    // ======================================================
+                    // 🔥 VALIDAR SESIÓN
+                    // ======================================================
+
+                    if (string.IsNullOrWhiteSpace(usuarioIdStr))
+                        return Unauthorized("La sesión del usuario expiró.");
+
+                    if (string.IsNullOrWhiteSpace(usuarioNombre))
+                        usuarioNombre = "Sistema";
+
+                    int idUsuario = int.Parse(usuarioIdStr);
+
+
+                  
+
+                    // ======================================================
+                    // 🔥 CREAR ABONO
+                    // ======================================================
+
+                    abono = new Abono
                     {
                         ID_Pedido = pedido.ID_Pedido,
                         Fecha_Abono = DateTime.Now,
                         Monto = venta.AbonoInicial,
                         ID_MetodoPago = venta.ID_MetodoPago.Value,
-                        ID_Usuario = idUsuario
-                        
-                    });
+                        ID_Usuario = idUsuario,
+                        UsuarioRegistro = usuarioNombre,
+                        Activo = true,
+                        FechaRegistro = DateTime.Now
+                    };
+
+                    _context.Abonos.Add(abono);
+
+                    // Genera ID_Abono en la base de datos
+                    await _context.SaveChangesAsync();
+                                     
+
+                    abono.NumeroRecibo =
+                        $"RC-{DateTime.Now:yyyy-MM}-{abono.ID_Abono:D6}";
+
+                    abono.RutaRecibo =
+                        $"ReciboCaja/{abono.NumeroRecibo}.pdf";
+
+                    await _context.SaveChangesAsync();
+                                        
+                    // ======================================================
+                    // 🔥 CONFIRMAR TRANSACCIÓN
+                    // ======================================================
+
+                    await transaction.CommitAsync();
                 }
 
+                
                 // ======================================================
-                // 🔥 GUARDAR
+                // 🔥 GENERAR RECIBO DE CAJA
                 // ======================================================
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+
+                // La venta ya fue confirmada y el abono ya existe.
+                // Si ocurre un error al generar el PDF, no debe afectar
+                // la transacción ya completada.
+
+                if (abono != null && abono.ID_Abono > 0)
+                {
+                    try
+                    {
+                        _reciboCajaService.GenerarPDF(abono.ID_Abono);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Registrar error para auditoría y soporte.
+                        // La venta NO debe fallar porque el PDF no se pudo generar.
+
+                        Console.WriteLine(
+                            $"Error generando recibo PDF para Abono {abono.ID_Abono}: {ex.Message}"
+                        );
+                    }
+                }
+
+
+
 
                 // ======================================================
-                // 🔥 GENERAR URL DEL PDF (AQUÍ ESTÁ LO NUEVO)
+                // 🔥 URL ORDEN DE PRODUCCIÓN
                 // ======================================================
-                var urlPdf = Url.Action(
+
+                var urlOrdenProduccion = Url.Action(
                     "GenerarOrdenProduccionPDF",
                     "Ventas",
                     new { idPedido = pedido.ID_Pedido },
@@ -430,8 +516,25 @@ namespace InventarioWEB.Controllers
                 );
 
                 // ======================================================
+                // 🔥 URL RECIBO DE CAJA
+                // ======================================================
+
+                string? urlReciboCaja = null;
+
+                if (abono != null)
+                {
+                    urlReciboCaja = Url.Action(
+                        "GenerarReciboCajaPDF",
+                        "Abonos",
+                        new { idAbono = abono.ID_Abono },
+                        Request.Scheme
+                    );
+                }
+
+                // ======================================================
                 // ✅ RESPUESTA FINAL
                 // ======================================================
+
                 return Ok(new
                 {
                     success = true,
@@ -439,7 +542,9 @@ namespace InventarioWEB.Controllers
                     estado = pedido.EstadoPago,
                     saldo = pedido.Saldo,
                     totalVenta = pedido.TotalVenta,
-                    urlPdf = urlPdf // 🔥 CLAVE PARA WHATSAPP
+
+                    urlOrdenProduccion,
+                    urlReciboCaja
                 });
             }
             catch (Exception ex)

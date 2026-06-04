@@ -749,12 +749,127 @@ $(function () {
             success: function (res) {
                 console.log("✅ RESPUESTA OK:", res);
 
+                // ==========================================================
+                // ✅ VENTA GUARDADA CORRECTAMENTE
+                // ==========================================================
                 if (res.success) {
 
-                    // 🖨️ IMPRIMIR ORDEN DE PRODUCCIÓN
-                    imprimirOrdenDesdeBD(res.idPedido);
+                    // ======================================================
+                    // 🔹 MOSTRAR DATOS RESUMEN DE LA VENTA
+                    // ======================================================
+                    // Se cargan los datos que verá el usuario
+                    // dentro del modal de confirmación.
+                    $('#lblPedido').text(res.idPedido);
 
+                    $('#lblEstado').text(res.estado);
+
+                    $('#lblTotal').text(
+                        Number(res.totalVenta).toLocaleString()
+                    );
+
+                    // ======================================================
+                    // 📄 VER ORDEN DE PRODUCCIÓN
+                    // ======================================================
+                    // Abre el PDF generado por el backend
+                    // en una nueva pestaña del navegador.
+                    $('#btnVerOrden').off().on('click', function () {
+
+                        window.open(
+                            res.urlOrdenProduccion,
+                            '_blank'
+                        );
+                    });
+
+                    // ======================================================
+                    // 🖨️ IMPRIMIR ORDEN DE PRODUCCIÓN
+                    // ======================================================
+                    // Abre el PDF y ejecuta automáticamente
+                    // el cuadro de impresión del navegador.
+                    $('#btnImprimirOrden').off().on('click', function () {
+
+                        let w = window.open(
+                            res.urlOrdenProduccion,
+                            '_blank'
+                        );
+
+                        w.onload = function () {
+                            w.print();
+                        };
+                    });
+
+                    // ======================================================
+                    // 🧾 RECIBO DE CAJA
+                    // ======================================================
+                    // Solo existe cuando la venta genera un abono:
+                    // - Venta de contado
+                    // - Crédito con cuota inicial
+                    if (res.urlReciboCaja) {
+
+                        // Mostrar botones
+                        $('#btnVerRecibo').show();
+                        $('#btnImprimirRecibo').show();
+
+                        // ==================================================
+                        // 👁️ VER RECIBO DE CAJA
+                        // ==================================================
+                        $('#btnVerRecibo').off().on('click', function () {
+
+                            window.open(
+                                res.urlReciboCaja,
+                                '_blank'
+                            );
+                        });
+
+                        // ==================================================
+                        // 🖨️ IMPRIMIR RECIBO DE CAJA
+                        // ==================================================
+                        $('#btnImprimirRecibo').off().on('click', function () {
+
+                            let w = window.open(
+                                res.urlReciboCaja,
+                                '_blank'
+                            );
+
+                            w.onload = function () {
+                                w.print();
+                            };
+                        });
+
+                    } else {
+
+                        // ==================================================
+                        // 🔹 OCULTAR BOTONES SI NO EXISTE RECIBO
+                        // ==================================================
+                        // Puede ocurrir si la venta aún no tiene abonos.
+                        $('#btnVerRecibo').hide();
+                        $('#btnImprimirRecibo').hide();
+                    }
+
+                    // ======================================================
+                    // 🎉 MOSTRAR MODAL DE VENTA EXITOSA
+                    // ======================================================
+                    // Desde aquí el usuario puede:
+                    // - Ver Orden de Producción
+                    // - Imprimir Orden de Producción
+                    // - Ver Recibo de Caja
+                    // - Imprimir Recibo de Caja
+                    let modal =
+                        new bootstrap.Modal(
+                            document.getElementById('modalVentaExitosa')
+                        );
+
+                    modal.show();
                 } else {
+
+                    // ======================================================
+                    // ❌ RESPUESTA FALLIDA DEL BACKEND
+                    // ======================================================
+                    // Aquí se captura cualquier respuesta donde success = false
+                    // o la operación no pudo completarse correctamente.
+
+                    console.warn("Respuesta del backend:", res);
+
+                    // 🔴 Feedback al usuario (UX básica actual)
                     alert("Error al guardar la venta");
                 }
             },

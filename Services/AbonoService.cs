@@ -58,6 +58,20 @@ namespace InventarioWEB.Services
             };
 
             _context.Abonos.Add(abono);
+            _context.SaveChanges(); // 🔥 necesario para obtener ID
+
+            // =====================================================
+            // 🔥 GENERAR RECIBO DE CAJA
+            // =====================================================
+
+            abono.NumeroRecibo = GenerarNumeroRecibo(abono.ID_Abono);
+            abono.RutaRecibo = GenerarRutaRecibo(abono.NumeroRecibo);
+
+            // =====================================================
+            // 🔥 ACTUALIZAR ABONO CON RC
+            // =====================================================
+
+            _context.Abonos.Update(abono);
             _context.SaveChanges();
         }
 
@@ -107,6 +121,16 @@ namespace InventarioWEB.Services
             abono.Activo = false;
 
             _context.SaveChanges();
+        }
+
+        private string GenerarNumeroRecibo(int idAbono)
+        {
+            return $"RC-{DateTime.Now:yyyy}-{idAbono:D6}";
+        }
+
+        private string GenerarRutaRecibo(string numeroRecibo)
+        {
+            return $"ReciboCaja/{numeroRecibo}.pdf";
         }
     }
 }

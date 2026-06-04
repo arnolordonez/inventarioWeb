@@ -52,10 +52,9 @@ namespace InventarioWEB.Models
         // 🔹 USUARIO
         // =====================================================
         public int? ID_Usuario { get; set; }
-
-        [ForeignKey(nameof(ID_Usuario))]
-        public Usuario? Usuario { get; set; }
-
+                
+        [StringLength(200)]
+        public string? UsuarioRegistro { get; set; }
         // =====================================================
         // 🔹 OBSERVACIONES
         // =====================================================
@@ -67,5 +66,15 @@ namespace InventarioWEB.Models
         // =====================================================
         [Required]
         public DateTime FechaRegistro { get; set; } = DateTime.Now;
+
+        // =====================================================
+        // 🔹 RECIBO DE CAJA
+        // =====================================================
+
+        [StringLength(20)]
+        public string? NumeroRecibo { get; set; }
+
+        [StringLength(500)]
+       public string? RutaRecibo { get; set; }
     }
 }

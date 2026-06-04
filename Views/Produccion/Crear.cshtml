@@ -1,22 +1,37 @@
-﻿@model InventarioWEB.ViewModels.ProduccionCrearViewModel
+﻿ @model InventarioWEB.ViewModels.ProduccionCrearViewModel
+
 @{
-    ViewData["Title"] = "Producción / Inventario";
+    ViewData["Title"] = "Producción Manual";
 }
-<form id="formProduccion" method="post" action="/Produccion/Crear">
-    @Html.AntiForgeryToken()
 
-    <div class="container-fluid">
+<div class="container-fluid">
 
-        <div class="row mb-3">
-            <div class="col-12">
-                <h3 class="fw-bold text-primary mb-1">🏭 Producción / Inventario</h3>
-                <p class="text-muted mb-0">
-                    Registro de producción e incremento de stock.
-                </p>
-            </div>
+    <!-- ========================================= -->
+    <!-- HEADER -->
+    <!-- ========================================= -->
+
+    <div class="row mb-3">
+
+        <div class="col-12">
+
+            <h3 class="fw-bold text-primary mb-1">
+                🏭 Producción Manual
+            </h3>
+
+            <p class="text-muted mb-0">
+                Registro manual de producción e incremento controlado de inventario.
+            </p>
+
         </div>
 
-        <!-- FILTROS -->
+    </div>
+
+    <!-- ========================================= -->
+    <!-- FILTROS -->
+    <!-- ========================================= -->
+
+    <form id="formFiltros">
+
         <div class="card shadow-sm mb-3">
 
             <div class="card-header bg-light fw-bold">
@@ -27,81 +42,222 @@
 
                 <div class="row g-2">
 
+                    <!-- CÓDIGO -->
+
                     <div class="col-md-2">
-                        <label class="form-label">Código</label>
+
+                        <label class="form-label">
+                            Código
+                        </label>
+
                         <input type="number"
                                class="form-control"
                                name="idProducto"
                                min="1" />
+
                     </div>
 
+                    <!-- GÉNERO -->
+
                     <div class="col-md-2">
-                        <label class="form-label">Género</label>
+
+                        <label class="form-label">
+                            Género
+                        </label>
+
                         <select class="form-select"
                                 id="filtroGenero"
                                 name="idGenero">
-                            <option value="">-- Seleccione --</option>
+
+                            <option value="">
+                                -- Seleccione --
+                            </option>
+
                             @foreach (var g in ViewBag.Generos as SelectList)
                             {
-                                <option value="@g.Value">@g.Text</option>
+                                <option value="@g.Value">
+                                    @g.Text
+                                </option>
                             }
+
                         </select>
+
                     </div>
 
+                    <!-- REFERENCIA -->
+
                     <div class="col-md-2">
-                        <label class="form-label">Referencia</label>
+
+                        <label class="form-label">
+                            Referencia
+                        </label>
+
                         <select class="form-select"
                                 id="filtroReferencia"
                                 name="idReferencia">
-                            <option value="">-- Todas --</option>
+
+                            <option value="">
+                                -- Todas --
+                            </option>
+
                         </select>
+
                     </div>
 
+                    <!-- TALLA -->
+
                     <div class="col-md-2">
-                        <label class="form-label">Talla</label>
+
+                        <label class="form-label">
+                            Talla
+                        </label>
+
                         <select class="form-select"
                                 id="filtroTalla"
                                 name="idTalla">
-                            <option value="">-- Todas --</option>
+
+                            <option value="">
+                                -- Todas --
+                            </option>
+
                         </select>
+
                     </div>
 
+                    <!-- TELA -->
+
                     <div class="col-md-2">
-                        <label class="form-label">Tela</label>
+
+                        <label class="form-label">
+                            Tela
+                        </label>
+
                         <select class="form-select"
                                 id="filtroTela"
                                 name="idTela">
-                            <option value="">-- Todas --</option>
+
+                            <option value="">
+                                -- Todas --
+                            </option>
+
                             @foreach (var t in ViewBag.Telas as SelectList)
                             {
-                                <option value="@t.Value">@t.Text</option>
+                                <option value="@t.Value">
+                                    @t.Text
+                                </option>
                             }
+
                         </select>
+
                     </div>
 
+                    <!-- COLOR -->
+
                     <div class="col-md-2">
-                        <label class="form-label">Color</label>
+
+                        <label class="form-label">
+                            Color
+                        </label>
+
                         <select class="form-select"
                                 id="filtroColor"
                                 name="idColor">
-                            <option value="">-- Todos --</option>
+
+                            <option value="">
+                                -- Todos --
+                            </option>
+
                             @foreach (var c in ViewBag.Colores as SelectList)
                             {
-                                <option value="@c.Value">@c.Text</option>
+                                <option value="@c.Value">
+                                    @c.Text
+                                </option>
                             }
+
                         </select>
+
                     </div>
 
                 </div>
 
+                <!-- BOTÓN BUSCAR -->
+
                 <div class="row mt-3">
+
                     <div class="col-md-3">
+
                         <button type="button"
                                 id="btnBuscarProduccion"
                                 class="btn btn-primary w-100">
-                            🔎 Buscar
+
+                            🔎 Buscar Productos
+
                         </button>
+
                     </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </form>
+
+    <!-- ========================================= -->
+    <!-- FORM PRODUCCIÓN -->
+    <!-- ========================================= -->
+
+    <form id="formProduccion"
+          method="post"
+          asp-action="Crear">
+
+        @Html.AntiForgeryToken()
+
+        <!-- DATOS PRODUCCIÓN -->
+
+        <div class="card shadow-sm mb-3">
+
+            <div class="card-header bg-light fw-bold">
+                📅 Datos Producción
+            </div>
+
+            <div class="card-body">
+
+                <div class="row">
+
+                    <div class="col-md-3">
+
+                        <label asp-for="FechaProduccion"
+                               class="form-label">
+                        </label>
+
+                        <input asp-for="FechaProduccion"
+                               type="date"
+                               class="form-control" />
+
+                        <span asp-validation-for="FechaProduccion"
+                              class="text-danger">
+                        </span>
+
+                    </div>
+
+                    <div class="col-md-9">
+
+                        <label asp-for="Observaciones"
+                               class="form-label">
+                        </label>
+
+                        <input asp-for="Observaciones"
+                               class="form-control"
+                               maxlength="500" />
+
+                        <span asp-validation-for="Observaciones"
+                              class="text-danger">
+                        </span>
+
+                    </div>
+
                 </div>
 
             </div>
@@ -109,6 +265,7 @@
         </div>
 
         <!-- RESULTADOS -->
+
         <div class="card shadow-sm">
 
             <div class="card-header bg-light fw-bold">
@@ -118,294 +275,566 @@
             <div class="card-body">
 
                 <div id="contenedorResultadosProduccion"
-                     class="table-responsive text-muted">
-                    Realiza una búsqueda para visualizar productos.
+                     class="table-responsive">
+
+                    <div class="text-muted">
+                        Realiza una búsqueda para visualizar productos.
+                    </div>
+
                 </div>
 
             </div>
 
         </div>
 
-        <!-- BOTÓN REGISTRAR -->
+        <!-- BOTÓN GUARDAR -->
+
         <div class="row mt-3">
 
             <div class="col-md-3">
 
                 <button type="submit"
+                        id="btnGuardarProduccion"
                         class="btn btn-success w-100">
+
                     💾 Registrar Producción
+
                 </button>
 
             </div>
 
         </div>
 
-    </div>
+    </form>
 
-</form>
+</div>
+
 @section Scripts {
+
+    <partial name="_ValidationScriptsPartial" />
 
     <script>
 
-        document.addEventListener("DOMContentLoaded",function(){
+        document.addEventListener("DOMContentLoaded", function () {
 
-            const filtroGenero = document.getElementById("filtroGenero");
-            const filtroReferencia = document.getElementById("filtroReferencia");
-            const filtroTalla = document.getElementById("filtroTalla");
-            const btnBuscar = document.getElementById("btnBuscarProduccion");
-            const contenedor = document.getElementById("contenedorResultadosProduccion");
-            const form = document.getElementById("formProduccion");
+            // =========================================
+            // ELEMENTOS
+            // =========================================
 
+            const filtroGenero =
+                document.getElementById("filtroGenero");
+
+            const filtroReferencia =
+                document.getElementById("filtroReferencia");
+
+            const filtroTalla =
+                document.getElementById("filtroTalla");
+
+            const btnBuscar =
+                document.getElementById("btnBuscarProduccion");
+
+            const contenedor =
+                document.getElementById("contenedorResultadosProduccion");
+
+            const formFiltros =
+                document.getElementById("formFiltros");
+
+            const formProduccion =
+                document.getElementById("formProduccion");
+
+            // =========================================
+            // INICIALIZACIÓN
+            // =========================================
 
             filtroReferencia.disabled = true;
             filtroTalla.disabled = true;
 
-            filtroGenero.addEventListener("change",async function(){
+            // =========================================
+            // CAMBIO GÉNERO
+            // =========================================
+
+            filtroGenero.addEventListener("change", async function () {
 
                 const idGenero = this.value;
 
-                filtroReferencia.innerHTML = `<option value="">-- Todas --</option>`;
-                filtroTalla.innerHTML = `<option value="">-- Todas --</option>`;
+                filtroReferencia.innerHTML =
+                    `<option value="">-- Todas --</option>`;
+
+                filtroTalla.innerHTML =
+                    `<option value="">-- Todas --</option>`;
 
                 filtroReferencia.disabled = true;
                 filtroTalla.disabled = true;
 
-                if(!idGenero) return;
+                if (!idGenero)
+                    return;
 
-                 try{
+                try {
 
-                        const resRef = await fetch(`/Produccion/ObtenerReferenciasPorGenero?idGenero=${idGenero}`);
-                        const referencias = await resRef.json();
+                    // =========================================
+                    // REFERENCIAS
+                    // =========================================
 
-                        referencias.forEach(r=>{
-                        const opt = document.createElement("option");
-                        opt.value = r.id;
-                        opt.textContent = r.descripcion;
-                        filtroReferencia.appendChild(opt);
-                        });
+                    const responseReferencia =
+                        await fetch(`/Produccion/ObtenerReferenciasPorGenero?idGenero=${idGenero}`);
 
-                        if(referencias.length>0) filtroReferencia.disabled=false;
+                    const referencias =
+                        await responseReferencia.json();
 
-                        const resTall = await fetch(`/Produccion/ObtenerTallasPorGenero?idGenero=${idGenero}`);
-                        const tallas = await resTall.json();
+                    referencias.forEach(r => {
 
-                        tallas.forEach(t=>{
-                        const opt = document.createElement("option");
-                        opt.value = t.id;
-                        opt.textContent = t.descripcion;
-                        filtroTalla.appendChild(opt);
-                        });
+                        const option =
+                            document.createElement("option");
 
-                        if(tallas.length>0) filtroTalla.disabled=false;
+                        option.value = r.id;
+                        option.textContent = r.descripcion;
 
-                 }
-                     catch(error){
-                        console.error(error);
-                        contenedor.innerHTML = `<div class="text-danger">Error cargando filtros</div>`;
-                     }
+                        filtroReferencia.appendChild(option);
+
+                    });
+
+                    if (referencias.length > 0)
+                        filtroReferencia.disabled = false;
+
+                    // =========================================
+                    // TALLAS
+                    // =========================================
+
+                    const responseTallas =
+                        await fetch(`/Produccion/ObtenerTallasPorGenero?idGenero=${idGenero}`);
+
+                    const tallas =
+                        await responseTallas.json();
+
+                    tallas.forEach(t => {
+
+                        const option =
+                            document.createElement("option");
+
+                        option.value = t.id;
+                        option.textContent = t.descripcion;
+
+                        filtroTalla.appendChild(option);
+
+                    });
+
+                    if (tallas.length > 0)
+                        filtroTalla.disabled = false;
+
+                }
+                catch (error) {
+
+                    console.error(error);
+
+                    contenedor.innerHTML = `
+                        <div class="alert alert-danger">
+                            Error cargando filtros.
+                        </div>
+                    `;
+                }
 
             });
-            btnBuscar.addEventListener("click",async function(){
 
-                    const formData = new FormData(form);
-                    const params = new URLSearchParams();
+            // =========================================
+            // BUSCAR PRODUCTOS
+            // =========================================
 
-                    for(let [key,value] of formData.entries()){
-                  if(value) params.append(key,value);
-                   }
+            btnBuscar.addEventListener("click", async function () {
 
-                    if(!params.toString()){
-                    contenedor.innerHTML = `<div class="text-muted">Seleccione al menos un criterio.</div>`;
+                const formData =
+                    new FormData(formFiltros);
+
+                const params =
+                    new URLSearchParams();
+
+                for (let [key, value] of formData.entries()) {
+
+                    if (value)
+                        params.append(key, value);
+
+                }
+
+                if (!params.toString()) {
+
+                    contenedor.innerHTML = `
+                        <div class="alert alert-warning">
+                            Seleccione al menos un criterio de búsqueda.
+                        </div>
+                    `;
+
                     return;
+                }
+
+                // =========================================
+                // LOADING
+                // =========================================
+
+                contenedor.innerHTML = `
+                    <div class="text-center p-4">
+
+                        <div class="spinner-border text-primary"
+                             role="status">
+                        </div>
+
+                        <div class="mt-2 text-muted">
+                            Consultando productos...
+                        </div>
+
+                    </div>
+                `;
+
+                try {
+
+                    const response =
+                        await fetch(`/Produccion/BuscarProductos?${params.toString()}`);
+
+                    if (!response.ok) {
+
+                        throw new Error("Error consultando productos.");
+
                     }
 
-                    contenedor.innerHTML = `Consultando productos...`;
+                    const data =
+                        await response.json();
 
-                try{
+                    if (!data || data.length === 0) {
 
-                    const r = await fetch(`/Produccion/BuscarProductos?${params.toString()}`);
-                    const data = await r.json();
+                        contenedor.innerHTML = `
+                            <div class="alert alert-warning">
+                                No se encontraron productos.
+                            </div>
+                        `;
 
-                    if(!data.length){
-                    contenedor.innerHTML = `No se encontraron productos`;
-                    return;
+                        return;
                     }
 
-                    indexDetalle = 0;
+                    // =========================================
+                    // TABLA
+                    // =========================================
 
                     contenedor.innerHTML = `
 
-                        <table class="table table-sm table-hover table-bordered align-middle">
+                        <table class="table table-bordered table-hover table-sm align-middle">
 
-                        <thead class="table-light">
+                            <thead class="table-light">
 
-                        <tr>
+                                <tr>
 
-                        <th style="width:80px">Código</th>
-                        <th style="width:180px">Tela</th>
-                        <th style="width:140px">Color</th>
-                        <th style="width:140px">Género</th>
-                        <th style="width:240px">Referencia</th>
-                        <th style="width:90px">Talla</th>
+                                    <th style="width:80px">
+                                        Código
+                                    </th>
 
-                        <th style="width:80px" class="text-center">Stock</th>
-                        <th style="width:70px" class="text-center">IVA</th>
+                                    <th style="width:180px">
+                                        Tela
+                                    </th>
 
-                        <th style="width:95px" class="text-end">Costo</th>
-                        <th style="width:100px" class="text-end">Precio</th>
+                                    <th style="width:140px">
+                                        Color
+                                    </th>
 
-                        <th style="width:70px" class="text-center">Cantidad</th>
+                                    <th style="width:140px">
+                                        Género
+                                    </th>
 
-                        <th style="width:110px" class="text-end">Subtotal</th>
-                       
+                                    <th style="width:240px">
+                                        Referencia
+                                    </th>
 
-                        </tr>
+                                    <th style="width:90px">
+                                        Talla
+                                    </th>
 
-                        </thead>
+                                    <th class="text-center">
+                                        Stock Actual
+                                    </th>
 
-                        <tbody>
+                                    <th class="text-center">
+                                        Stock Proyectado
+                                    </th>
 
-                       ${data.map((p,i)=>`
+                                    <th class="text-center">
+                                        IVA
+                                    </th>
 
-                        <tr>
+                                    <th class="text-end">
+                                        Costo
+                                    </th>
 
-                        <td>${p.idProducto}</td>
+                                    <th class="text-end">
+                                        Precio
+                                    </th>
 
-                        <td>${p.tela ?? ''}</td>
+                                    <th class="text-center">
+                                        Cantidad
+                                    </th>
 
-                        <td>${p.color ?? ''}</td>
+                                    <th class="text-end">
+                                        Subtotal
+                                    </th>
 
-                        <td>${p.genero ?? ''}</td>
+                                </tr>
 
-                        <td>${p.referencia ?? ''}</td>
+                            </thead>
 
-                        <td>${p.talla ?? ''}</td>
+                            <tbody>
 
-                        <td class="text-center stock">
-                            ${p.stock ?? 0}
-                            <input type="hidden" class="stock-original" value="${p.stock ?? 0}" />
-                        </td>
+                                ${data.map((p, i) => `
 
-                        <td class="text-center">
-                        ${p.iva ?? 0}
+                                    <tr>
 
-                        <input type="hidden"
-                        name="Detalles[${i}].IVA"
-                        value="${p.iva ?? 0}" />
-                        </td>
+                                        <!-- CÓDIGO -->
 
-                        <td style="width:95px">
+                                        <td>
+                                            ${p.idProducto}
+                                        </td>
 
-                        <input type="number"
-                        class="form-control form-control-sm costo text-end"
-                        style="width:85px"
-                        name="Detalles[${i}].CostoUnitario"
-                        value="${(p.precioCosto ?? 0).toFixed(2)}"
-                        step="0.01"
-                        min="0"
-                        lang="en"
-                        inputmode="decimal"
-                        oninput="calcularSubtotal(this)" />
+                                        <!-- TELA -->
 
-                        <input type="hidden"
-                        name="Detalles[${i}].ID_Producto"
-                        value="${p.idProducto}" />
+                                        <td>
+                                            ${p.tela ?? ""}
+                                        </td>
 
-                        </td>
+                                        <!-- COLOR -->
 
-                        <td class="text-end">
+                                        <td>
+                                            ${p.color ?? ""}
+                                        </td>
 
-                        ${Number(p.precioVTA ?? 0).toFixed(2)}
+                                        <!-- GÉNERO -->
 
-                        <input type="hidden"
-                        name="Detalles[${i}].PrecioVentaUnitario"
-                        value="${Number(p.precioVTA ?? 0).toFixed(2)}" />
+                                        <td>
+                                            ${p.genero ?? ""}
+                                        </td>
 
-                        </td>
+                                        <!-- REFERENCIA -->
 
-                        <td>
+                                        <td>
+                                            ${p.referencia ?? ""}
+                                        </td>
 
-                        <input type="number"
-                        class="form-control form-control-sm cantidad text-end"
-                        style="width:60px;padding:2px"
-                        name="Detalles[${i}].Cantidad"
-                        value="0"
-                        min="0"
-                        oninput="calcularSubtotal(this)" />
+                                        <!-- TALLA -->
 
-                        </td>
+                                        <td>
+                                            ${p.talla ?? ""}
+                                        </td>
 
-                        <td class="text-end subtotal">0.00</td>
+                                        <!-- STOCK ACTUAL -->
 
-                        
-                        </tr>
+                                        <td class="text-center">
 
-                       `).join("")}
+                                            ${p.stock ?? 0}
 
-                        </tbody>
+                                        </td>
+
+                                        <!-- STOCK PROYECTADO -->
+
+                                        <td class="text-center">
+
+                                            <span class="stock-valor">
+                                                ${p.stock ?? 0}
+                                            </span>
+
+                                            <input type="hidden"
+                                                   class="stock-original"
+                                                   value="${p.stock ?? 0}" />
+
+                                        </td>
+
+                                        <!-- IVA -->
+
+                                        <td class="text-center">
+
+                                            ${p.iva ?? 0}
+
+                                            <input type="hidden"
+                                                   name="Detalles[${i}].IVA"
+                                                   value="${p.iva ?? 0}" />
+
+                                        </td>
+
+                                        <!-- COSTO -->
+
+                                        <td>
+
+                                            <input type="number"
+                                                   class="form-control form-control-sm costo text-end"
+                                                   name="Detalles[${i}].CostoUnitario"
+                                                   value="${Number(p.precioCosto ?? 0).toFixed(2)}"
+                                                   step="0.01"
+                                                   min="0"
+                                                   inputmode="decimal"
+                                                   oninput="calcularSubtotal(this)" />
+
+                                            <input type="hidden"
+                                                   name="Detalles[${i}].ID_Producto"
+                                                   value="${p.idProducto}" />
+
+                                        </td>
+
+                                        <!-- PRECIO -->
+
+                                        <td class="text-end">
+
+                                            ${Number(p.precioVTA ?? 0).toFixed(2)}
+
+                                            <input type="hidden"
+                                                   name="Detalles[${i}].PrecioVentaUnitario"
+                                                   value="${Number(p.precioVTA ?? 0).toFixed(2)}" />
+
+                                        </td>
+
+                                        <!-- CANTIDAD -->
+
+                                        <td>
+
+                                            <input type="number"
+                                                   class="form-control form-control-sm cantidad text-end"
+                                                   name="Detalles[${i}].CantidadProducida"
+                                                   value="0"
+                                                   min="0"
+                                                   oninput="calcularSubtotal(this)" />
+
+                                        </td>
+
+                                        <!-- SUBTOTAL -->
+
+                                        <td class="text-end subtotal">
+
+                                            0.00
+
+                                        </td>
+
+                                    </tr>
+
+                                `).join("")}
+
+                            </tbody>
+
                         </table>
                     `;
 
                 }
-                  catch(error){
+                catch (error) {
+
                     console.error(error);
-                    contenedor.innerHTML = `<div class="text-danger">Error consultando datos</div>`;
-                  }
+
+                    contenedor.innerHTML = `
+                        <div class="alert alert-danger">
+                            Error consultando productos.
+                        </div>
+                    `;
+                }
+
+            });
+
+            // =========================================
+            // VALIDACIÓN SUBMIT
+            // =========================================
+
+            formProduccion.addEventListener("submit", function (e) {
+
+                const cantidades =
+                    document.querySelectorAll(".cantidad");
+
+                let existeCantidad =
+                    false;
+
+                cantidades.forEach(c => {
+
+                    const valor =
+                        parseFloat(c.value) || 0;
+
+                    if (valor > 0)
+                        existeCantidad = true;
+
+                });
+
+                if (!existeCantidad) {
+
+                    e.preventDefault();
+
+                    alert("Debe ingresar al menos una cantidad a producir.");
+
+                }
 
             });
 
         });
 
-               function calcularSubtotal(input){
+        // =========================================
+        // CALCULAR SUBTOTAL
+        // =========================================
 
-            const fila = input.closest("tr");
+        function calcularSubtotal(input) {
 
-            const costo = parseFloat(
-                fila.querySelector(".costo").value
-            ) || 0;
+            const fila =
+                input.closest("tr");
 
-            const cantidad = parseFloat(
-                fila.querySelector(".cantidad").value
-            ) || 0;
+            const costo =
+                parseFloat(
+                    fila.querySelector(".costo").value
+                ) || 0;
 
-            // 🔥 SUBTOTAL
-            const subtotal = Math.round((costo * cantidad) * 100) / 100;
-            fila.querySelector(".subtotal").innerText = subtotal.toFixed(2);
+            const cantidad =
+                parseFloat(
+                    fila.querySelector(".cantidad").value
+                ) || 0;
 
-            // 🔥 STOCK DINÁMICO
-            const stockOriginal = parseFloat(
-                fila.querySelector(".stock-original").value
-            ) || 0;
+            // =========================================
+            // VALIDACIÓN COSTO
+            // =========================================
 
-            const nuevoStock = stockOriginal + cantidad;
+            if (costo < 0) {
 
-            fila.querySelector(".stock").childNodes[0].nodeValue = nuevoStock;
-        }
+                alert("Costo inválido.");
 
-        function actualizarFila(btn){
+                fila.querySelector(".costo").value = 0;
 
-            const fila = btn.closest("tr");
-
-            const cantidad = parseFloat(
-            fila.querySelector(".cantidad").value
-            ) || 0;
-
-            if(cantidad <= 0){
-
-            alert("Debe ingresar una cantidad mayor a cero");
-
-            return;
+                return;
 
             }
 
-            fila.classList.add("table-success");
+            // =========================================
+            // VALIDACIÓN CANTIDAD
+            // =========================================
 
-            btn.innerText = "Listo";
-            btn.classList.remove("btn-primary");
-            btn.classList.add("btn-success");
+            if (cantidad < 0) {
+
+                alert("Cantidad inválida.");
+
+                fila.querySelector(".cantidad").value = 0;
+
+                return;
+
+            }
+
+            // =========================================
+            // SUBTOTAL
+            // =========================================
+
+            const subtotal =
+                Math.round((costo * cantidad) * 100) / 100;
+
+            fila.querySelector(".subtotal")
+                .innerText = subtotal.toFixed(2);
+
+            // =========================================
+            // STOCK PROYECTADO
+            // =========================================
+
+            const stockOriginal =
+                parseFloat(
+                    fila.querySelector(".stock-original").value
+                ) || 0;
+
+            const nuevoStock =
+                stockOriginal + cantidad;
+
+            fila.querySelector(".stock-valor")
+                .innerText = nuevoStock;
 
         }
 
     </script>
 
-}
+} 

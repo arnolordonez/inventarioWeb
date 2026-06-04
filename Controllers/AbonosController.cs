@@ -1,6 +1,11 @@
 ﻿using InventarioWEB.Data;
 using InventarioWEB.Models;
+using InventarioWEB.Services;
 using InventarioWEB.ViewModels;
+using iText.IO.Font.Constants;
+using iText.Kernel.Font;
+using iText.Layout.Element;
+using iText.Layout.Properties;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,10 +14,21 @@ namespace InventarioWEB.Controllers
     public class AbonosController : Controller
     {
         private readonly MovimientoVentasDbContext _context;
+        private readonly IWebHostEnvironment _env;
+        private readonly AbonoService _abonoService;
 
-        public AbonosController(MovimientoVentasDbContext context)
+        private readonly ReciboCajaService _reciboCajaService;
+
+        public AbonosController(
+            MovimientoVentasDbContext context,
+            IWebHostEnvironment env,
+            AbonoService abonoService,
+            ReciboCajaService reciboCajaService)
         {
             _context = context;
+            _env = env;
+            _abonoService = abonoService;
+            _reciboCajaService = reciboCajaService;
         }
 
         // ==========================================================
@@ -23,6 +39,38 @@ namespace InventarioWEB.Controllers
             return View();
         }
 
+
+        /*using InventarioWEB.Data;
+        using InventarioWEB.Models;
+        using InventarioWEB.ViewModels;
+        using iText.IO.Font.Constants;
+        using iText.Kernel.Font;
+        using iText.Layout.Element;
+        using iText.Layout.Properties;
+        using Microsoft.AspNetCore.Mvc;
+        using Microsoft.EntityFrameworkCore;
+
+        namespace InventarioWEB.Controllers
+        {
+            public class AbonosController : Controller
+            {
+                private readonly MovimientoVentasDbContext _context;
+                private readonly IWebHostEnvironment _env;
+
+                public AbonosController(MovimientoVentasDbContext context, IWebHostEnvironment env)
+                {
+                    _context = context;
+                    _env = env;
+                }
+
+                // ==========================================================
+                // 🔹 INDEX
+                // ==========================================================
+                public IActionResult Index()
+                {
+                    return View();
+                }
+                */
         // ==========================================================
         // 🔹 BUSCAR CLIENTES
         // ==========================================================
@@ -125,6 +173,170 @@ namespace InventarioWEB.Controllers
             return Json(data);
         }
 
+
+
+        /*
+
+        // ==========================================================
+        // 🔹 REGISTRAR ABONO
+        // ==========================================================
+        [HttpPost]
+        public async Task<IActionResult> RegistrarAbono([FromBody] AbonoVM model)
+        {
+            using var transaction =
+                await _context.Database.BeginTransactionAsync();
+            
+
+            try
+            {
+                // ==================================================
+                // 🔥 VALIDAR MODELO
+                // ==================================================
+
+                if (model == null)
+                    return BadRequest("Datos inválidos.");
+
+                if (model.ID_Pedido <= 0)
+                    return BadRequest("Pedido inválido.");
+
+                if (model.Monto <= 0)
+                    return BadRequest("El monto debe ser mayor a cero.");
+
+                if (model.ID_MetodoPago <= 0)
+                    return BadRequest("Debe seleccionar método de pago.");
+
+                // ==================================================
+                // 🔥 BUSCAR PEDIDO
+                // ==================================================
+
+                var pedido = await _context.Pedidos
+                    .FirstOrDefaultAsync(p =>
+                        p.ID_Pedido == model.ID_Pedido
+                    );
+
+                if (pedido == null)
+                    return BadRequest("Pedido no encontrado.");
+
+                // ==================================================
+                // 🔥 VALIDAR ESTADO PEDIDO
+                // ==================================================
+
+                if (
+                    pedido.Estado == "ANULADO" ||
+                    pedido.Estado == "CANCELADO"
+                )
+                {
+                    return BadRequest(
+                        $"No se pueden registrar abonos para pedidos en estado: {pedido.Estado}"
+                    );
+                }
+
+                // ==================================================
+                // 🔥 VALIDAR ESTADO PAGO
+                // ==================================================
+
+                if (pedido.EstadoPago == "PAGADO")
+                {
+                    return BadRequest(
+                        "El pedido ya se encuentra totalmente pagado."
+                    );
+                }
+
+                // ==================================================
+                // 🔥 VALIDAR SALDO
+                // ==================================================
+
+                if (pedido.Saldo <= 0)
+                {
+                    return BadRequest(
+                        "El pedido no tiene saldo pendiente."
+                    );
+                }
+
+                // ==================================================
+                // 🔥 VALIDAR SOBREPAGO
+                // ==================================================
+
+                if (model.Monto > pedido.Saldo)
+                {
+                    return BadRequest(
+                        $"El monto supera el saldo pendiente: {pedido.Saldo:N2}"
+                    );
+                }
+                            
+                // ==================================================
+                // 🔥 GUARDAR ABONO
+                // ==================================================
+
+                await _context.SaveChangesAsync();
+
+                // ==================================================
+                // 🔥 RECALCULAR TOTAL ABONADO
+                // ==================================================
+
+                var totalAbonado = await _context.Abonos
+                    .Where(a =>
+                        a.ID_Pedido == pedido.ID_Pedido &&
+                        a.Activo
+                    )
+                    .SumAsync(a => (decimal?)a.Monto) ?? 0;
+
+                // ==================================================
+                // 🔥 RECALCULAR SALDO REAL
+                // ==================================================
+
+                pedido.Saldo = pedido.TotalVenta - totalAbonado;
+
+                // ==================================================
+                // 🔥 EVITAR DECIMALES NEGATIVOS
+                // ==================================================
+
+                if (pedido.Saldo < 0)
+                    pedido.Saldo = 0;
+
+                // ==================================================
+                // 🔥 ACTUALIZAR ESTADO FINANCIERO
+                // ==================================================
+
+                pedido.EstadoPago =
+                    pedido.Saldo <= 0
+                        ? "PAGADO"
+                        : "ABONADO";
+
+                // ==================================================
+                // 🔥 GUARDAR CAMBIOS
+                // ==================================================
+
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                // ==================================================
+                // 🔥 RESPUESTA
+                // ==================================================
+
+                return Ok(new
+                {
+                    success = true,
+                    mensaje = "Abono registrado correctamente.",
+                    pedido = pedido.ID_Pedido,
+                    estadoPago = pedido.EstadoPago,
+                    saldo = pedido.Saldo,
+                    totalAbonado = totalAbonado
+                });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+
+                return BadRequest(
+                    ex.InnerException?.Message ?? ex.Message
+                );
+            }
+        }
+         */
+
+
         // ==========================================================
         // 🔹 REGISTRAR ABONO
         // ==========================================================
@@ -212,6 +424,21 @@ namespace InventarioWEB.Controllers
                 }
 
                 // ==================================================
+                // 🔥 OBTENER USUARIO LOGUEADO
+                // ==================================================
+
+                var usuarioIdStr =
+                    HttpContext.Session.GetString("UsuarioID");
+
+                if (string.IsNullOrEmpty(usuarioIdStr))
+                    return BadRequest("Sesión de usuario no válida.");
+
+                int usuarioId = int.Parse(usuarioIdStr);
+
+                var usuarioNombre =
+                 HttpContext.Session.GetString("UsuarioNombre");
+
+                // ==================================================
                 // 🔥 CREAR ABONO
                 // ==================================================
 
@@ -221,11 +448,8 @@ namespace InventarioWEB.Controllers
                     Fecha_Abono = DateTime.Now,
                     Monto = model.Monto,
                     ID_MetodoPago = model.ID_MetodoPago,
-
-                    // ==============================================
-                    // 🔥 AUDITORÍA
-                    // ==============================================
-                    ID_Usuario = model.ID_Usuario,
+                    ID_Usuario = usuarioId,
+                    UsuarioRegistro = usuarioNombre, // NUEVO
                     Observacion = model.Observacion ?? "",
                     Activo = true,
                     FechaRegistro = DateTime.Now
@@ -240,6 +464,18 @@ namespace InventarioWEB.Controllers
                 await _context.SaveChangesAsync();
 
                 // ==================================================
+                // 🔥 GENERAR NÚMERO DE RECIBO
+                // ==================================================
+
+                abono.NumeroRecibo =
+                    $"RC-{DateTime.Now:yyyy-MM}-{abono.ID_Abono:D6}";
+
+                abono.RutaRecibo =
+                    $"ReciboCaja/{abono.NumeroRecibo}.pdf";
+
+                await _context.SaveChangesAsync();
+
+                // ==================================================
                 // 🔥 RECALCULAR TOTAL ABONADO
                 // ==================================================
 
@@ -250,21 +486,18 @@ namespace InventarioWEB.Controllers
                     )
                     .SumAsync(a => (decimal?)a.Monto) ?? 0;
 
+                
                 // ==================================================
                 // 🔥 RECALCULAR SALDO REAL
                 // ==================================================
 
                 pedido.Saldo = pedido.TotalVenta - totalAbonado;
 
-                // ==================================================
-                // 🔥 EVITAR DECIMALES NEGATIVOS
-                // ==================================================
-
                 if (pedido.Saldo < 0)
                     pedido.Saldo = 0;
 
                 // ==================================================
-                // 🔥 ACTUALIZAR ESTADO FINANCIERO
+                // 🔥 ACTUALIZAR ESTADO PAGO
                 // ==================================================
 
                 pedido.EstadoPago =
@@ -272,22 +505,26 @@ namespace InventarioWEB.Controllers
                         ? "PAGADO"
                         : "ABONADO";
 
-                // ==================================================
-                // 🔥 GUARDAR CAMBIOS
-                // ==================================================
-
                 await _context.SaveChangesAsync();
 
                 await transaction.CommitAsync();
 
                 // ==================================================
-                // 🔥 RESPUESTA
+                // 🔥 GENERAR RECIBO DE CAJA PDF
                 // ==================================================
+
+                _reciboCajaService.GenerarPDF(abono.ID_Abono);
 
                 return Ok(new
                 {
                     success = true,
                     mensaje = "Abono registrado correctamente.",
+
+                    idAbono = abono.ID_Abono,
+
+                    urlPdf =
+                        $"/Abonos/GenerarReciboCajaPDF?idAbono={abono.ID_Abono}",
+
                     pedido = pedido.ID_Pedido,
                     estadoPago = pedido.EstadoPago,
                     saldo = pedido.Saldo,
@@ -303,7 +540,6 @@ namespace InventarioWEB.Controllers
                 );
             }
         }
-
         // ==========================================================
         // 🔹 DETALLE PEDIDO
         // ==========================================================
@@ -351,44 +587,147 @@ namespace InventarioWEB.Controllers
         }
 
         // ==========================================================
-        // 🔹 HISTORIAL ABONOS POR PEDIDO
+        // 🔹 RESUMEN FINANCIERO PEDIDO
         // ==========================================================
+        [HttpGet]
+        // ==========================================================
+        // 🔹 RESUMEN FINANCIERO PEDIDO
+        // ==========================================================
+        [HttpGet]
+        public async Task<IActionResult> ObtenerResumenPedido(int idPedido)
+        {
+            var pedido = await _context.Pedidos
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.ID_Pedido == idPedido);
+
+            if (pedido == null)
+                return NotFound();
+
+            var totalAbonado = await _context.Abonos
+                .Where(a =>
+                    a.ID_Pedido == idPedido &&
+                    a.Activo)
+                .SumAsync(a => (decimal?)a.Monto) ?? 0;
+                       
+            var saldoCalculado =
+               pedido.TotalVenta - totalAbonado;
+
+            if (saldoCalculado < 0)
+               saldoCalculado = 0;
+
+            return Json(new
+            {
+                totalVenta = pedido.TotalVenta,
+                totalAbonado = totalAbonado,
+                saldo = saldoCalculado,
+                estadoPago = pedido.EstadoPago
+            });
+                        
+        }
+
         [HttpGet]
         public async Task<IActionResult> ObtenerHistorialAbonos(int idPedido)
         {
-            var abonos = await _context.Abonos
+            var historial = await _context.Abonos
                 .AsNoTracking()
                 .Include(a => a.MetodoPago)
-                .Include(a => a.Usuario)
                 .Where(a =>
                     a.ID_Pedido == idPedido &&
-                    a.Activo
-                )
-                .OrderByDescending(a => a.Fecha_Abono)
+                    a.Activo)
+                .OrderByDescending(a => a.ID_Abono)
                 .Select(a => new
                 {
-                    id_Abono = a.ID_Abono,
-                    fecha = a.Fecha_Abono.ToString("yyyy-MM-dd HH:mm"),
-                    monto = a.Monto,
+                    idAbono = a.ID_Abono,
+
+                    numeroRecibo =
+                        a.NumeroRecibo,
+
+                    fecha =
+                        a.Fecha_Abono.ToString("yyyy-MM-dd"),
+
+                    monto =
+                        a.Monto,
 
                     metodoPago =
                         a.MetodoPago != null
                             ? a.MetodoPago.Nombre
-                            : "N/A",
+                            : "",
 
                     usuario =
-                        a.Usuario != null
-                            ? (
-                                (a.Usuario.Nombres ?? "") + " " +
-                                (a.Usuario.Apellidos ?? "")
-                            ).Trim()
-                            : "Sistema",
+                        a.UsuarioRegistro ?? "",
 
-                    observacion = a.Observacion ?? ""
+                    observacion =
+                        a.Observacion ?? "",
+
+                    urlPdf =
+                        $"/Abonos/GenerarReciboCajaPDF?idAbono={a.ID_Abono}"
                 })
                 .ToListAsync();
 
-            return Json(abonos);
+            return Json(historial);
         }
+
+        // ======================================================
+        // 🔥 VER / DESCARGAR RECIBO DE CAJA GENERADO
+        // ======================================================
+
+        [HttpGet]
+        public IActionResult GenerarReciboCajaPDF(int idAbono)
+        {
+            var abono = _context.Abonos
+                .FirstOrDefault(a => a.ID_Abono == idAbono);
+
+            if (abono == null)
+                return NotFound("Abono no encontrado");
+
+            // ======================================================
+            // 🔥 VALIDAR RUTA DEL PDF
+            // ======================================================
+
+            if (string.IsNullOrWhiteSpace(abono.RutaRecibo))
+                return NotFound("El recibo no tiene una ruta asociada.");
+
+            // ======================================================
+            // 🔥 OBTENER RUTA FÍSICA
+            // ======================================================
+
+            var rutaFisica = Path.Combine(
+                _env.WebRootPath,
+                abono.RutaRecibo.Replace("/", Path.DirectorySeparatorChar.ToString())
+            );
+
+            
+            // 🔥 VALIDAR EXISTENCIA DEL ARCHIVO
+            // ======================================================
+
+            if (!System.IO.File.Exists(rutaFisica))
+            {
+                // Intentar regenerar el PDF
+
+                _reciboCajaService.GenerarPDF(idAbono);
+
+                if (!System.IO.File.Exists(rutaFisica))
+                {
+                    return NotFound(
+                        $"No fue posible generar el PDF. Ruta esperada: {rutaFisica}"
+                    );
+                }
+            }
+
+            // if (!System.IO.File.Exists(rutaFisica))
+            //   return NotFound("El archivo PDF no existe.");
+
+            // ======================================================
+            // 🔥 MOSTRAR PDF
+            // ======================================================
+
+            return PhysicalFile(
+                rutaFisica,
+                "application/pdf",
+                Path.GetFileName(rutaFisica)
+            );
+        }
+
+
     }
 }

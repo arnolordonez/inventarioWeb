@@ -192,6 +192,129 @@
         💾 Guardar Venta
     </button>
 
+    <!-- 🔹 GENERAR MODAL PARA IMPRESIÓN DE ORDEN DE PRODUCCIÓN Y RC -->
+    <div class="modal fade"
+         id="modalVentaExitosa"
+         tabindex="-1">
+
+        <div class="modal-dialog modal-lg">
+
+            <div class="modal-content">
+
+                <!-- HEADER -->
+                <div class="modal-header bg-success text-white">
+
+                    <h5 class="modal-title">
+                        Venta registrada correctamente
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close btn-close-white"
+                            data-bs-dismiss="modal"></button>
+
+                </div>
+
+                <!-- BODY -->
+                <div class="modal-body">
+
+                    <!-- RESUMEN -->
+                    <div class="row mb-4 text-center">
+
+                        <div class="col-md-4">
+                            <strong>Pedido:</strong>
+                            <div id="lblPedido"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <strong>Estado:</strong>
+                            <div id="lblEstado"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <strong>Total:</strong>
+                            <div id="lblTotal"></div>
+                        </div>
+
+                    </div>
+
+                    <hr />
+
+                    <!-- ACCIONES PRINCIPALES -->
+                    <div class="row">
+
+                        <!-- PRODUCCIÓN -->
+                        <div class="col-md-6 text-center">
+
+                            <h6 class="mb-3">Producción</h6>
+
+                            <button id="btnVerOrden"
+                                    class="btn btn-primary w-100 mb-2">
+                                📄 Ver Orden Producción
+                            </button>
+
+                            <button id="btnImprimirOrden"
+                                    class="btn btn-outline-primary w-100">
+                                🖨 Imprimir Orden
+                            </button>
+
+                        </div>
+
+                        <!-- CAJA -->
+                        <div class="col-md-6 text-center">
+
+                            <h6 class="mb-3">Caja</h6>
+
+                            <button id="btnVerRecibo"
+                                    class="btn btn-success w-100 mb-2">
+                                🧾 Ver Recibo Caja
+                            </button>
+
+                            <button id="btnImprimirRecibo"
+                                    class="btn btn-outline-success w-100">
+                                🖨 Imprimir Recibo
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- FOOTER PRINCIPAL -->
+                <div class="modal-footer">
+
+                    <button class="btn btn-dark"
+                            onclick="location.reload()">
+                        Nueva Venta
+                    </button>
+
+                </div>
+
+                <!-- 🧠 FOOTER EMPRESARIAL ADICIONAL (MEJORA UX) -->
+                <div class="px-3 pb-3">
+
+                    <div class="d-flex justify-content-between align-items-center">
+
+                        <small class="text-muted">
+                            Sistema ERP de Ventas • Módulo de facturación
+                        </small>
+
+                        <div class="text-end">
+                            <span class="badge bg-success">
+                                Operación completada
+                            </span>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
 </div>
 
 @section Scripts {

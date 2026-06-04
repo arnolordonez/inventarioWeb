@@ -70,6 +70,126 @@
         </div>
     </div>
 
+
+    <!-- ===================================================== -->
+    <!-- 🔹 RESUMEN FINANCIERO DEL PEDIDO -->
+    <!-- ===================================================== -->
+    <!--
+        OBJETIVO:
+        Mostrar un resumen financiero consolidado del pedido
+        seleccionado antes del historial de abonos.
+
+        Este panel permite visualizar rápidamente:
+
+        - Total de la venta
+        - Total abonado por el cliente
+        - Saldo pendiente por cobrar
+        - Estado actual del pago (ABONADO / PAGADO)
+
+        Los valores se cargan dinámicamente desde:
+        AbonosController.ObtenerResumenPedido(idPedido)
+
+        Función Javascript:
+        cargarResumenPedido(idPedido)
+
+        Se visualiza al presionar el botón "Ver"
+        en la tabla de Pedidos con Saldo Pendiente.
+    -->
+    <div class="card shadow-sm mb-4 d-none"
+         id="cardResumenFinanciero">
+
+        <div class="card-body">
+
+            <h5 class="card-title mb-4">
+                Resumen Financiero del Pedido
+            </h5>
+
+            <div class="row">
+
+                <!-- ========================================= -->
+                <!-- 🔹 TOTAL VENTA -->
+                <!-- ========================================= -->
+                <div class="col-md-3 mb-3">
+
+                    <div class="border rounded p-3 text-center bg-light">
+
+                        <small class="text-muted">
+                            Total Venta
+                        </small>
+
+                        <h4 class="mt-2 mb-0 text-primary"
+                            id="lblTotalVenta">
+                            $0
+                        </h4>
+
+                    </div>
+
+                </div>
+
+                <!-- ========================================= -->
+                <!-- 🔹 TOTAL ABONADO -->
+                <!-- ========================================= -->
+                <div class="col-md-3 mb-3">
+
+                    <div class="border rounded p-3 text-center bg-light">
+
+                        <small class="text-muted">
+                            Total Abonado
+                        </small>
+
+                        <h4 class="mt-2 mb-0 text-success"
+                            id="lblTotalAbonado">
+                            $0
+                        </h4>
+
+                    </div>
+
+                </div>
+
+                <!-- ========================================= -->
+                <!-- 🔹 SALDO PENDIENTE -->
+                <!-- ========================================= -->
+                <div class="col-md-3 mb-3">
+
+                    <div class="border rounded p-3 text-center bg-light">
+
+                        <small class="text-muted">
+                            Saldo Pendiente
+                        </small>
+
+                        <div id="lblSaldoPendiente" class="mt-2">
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- ========================================= -->
+                <!-- 🔹 ESTADO DEL PAGO -->
+                <!-- ========================================= -->
+                <div class="col-md-3 mb-3">
+
+                    <div class="border rounded p-3 text-center bg-light">
+
+                        <small class="text-muted">
+                            Estado
+                        </small>
+
+                        <div id="lblEstadoPago" class="mt-2">
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
     <!-- ===================================================== -->
     <!-- 🔹 PEDIDOS -->
     <!-- ===================================================== -->
@@ -93,6 +213,7 @@
                             <th>Saldo</th>
                             <th>Tipo</th>
                             <th>Estado Pago</th>
+                            <th style="width:100px;">Ver</th>
                             <th style="width:120px;">Acción</th>
                         </tr>
                     </thead>
@@ -151,24 +272,96 @@
 
 </div>
 
+
+
+<!-- ===================================================== -->
+<!-- 🔹 HISTORIAL DE ABONOS -->
+<!-- ===================================================== -->
+
+<div class="card shadow-sm mb-4 d-none"
+     id="cardHistorialAbonos">
+
+    <div class="card-body">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+            <h5 class="card-title mb-0">
+                Historial de Abonos
+            </h5>
+
+            <div id="lblResumenAbonos"
+                 class="fw-bold text-success">
+            </div>
+
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table table-striped table-hover align-middle">
+
+                <thead class="table-light">                  
+
+                    <tr>
+                        <th style="width:160px;">RC</th>
+
+                        <th style="width:140px; white-space:nowrap;">
+                            Fecha
+                        </th>
+
+                        <th style="width:140px;">
+                            Monto
+                        </th>
+
+                        <th style="width:140px;">
+                            Método Pago
+                        </th>
+
+                        <th style="width:150px;">
+                            Usuario
+                        </th>
+
+                        <th style="min-width:250px;">
+                            Observación
+                        </th>
+
+                        <th style="width:140px;">
+                            Acciones
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody id="tbodyHistorialAbonos">
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
 <!-- ===================================================== -->
 <!-- 🔹 MODAL ABONO -->
 <!-- ===================================================== -->
 
 <div class="modal fade" id="modalAbono" tabindex="-1">
 
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
 
-        <div class="modal-content">
+        <div class="modal-content shadow-lg border-0">
 
-            <div class="modal-header">
+            <!-- =============================== -->
+            <!-- 🔹 CABECERA -->
+            <!-- =============================== -->
+            <div class="modal-header bg-success text-white">
 
-                <h5 class="modal-title">
-                    Registrar Abono
+                <h5 class="modal-title fw-bold">
+                    💰 Registrar Abono
                 </h5>
 
                 <button type="button"
-                        class="btn-close"
+                        class="btn-close btn-close-white"
                         data-bs-dismiss="modal">
                 </button>
 
@@ -179,54 +372,49 @@
                 <input type="hidden" id="ID_Pedido" />
 
                 <!-- =============================== -->
-                <!-- 🔹 SALDO -->
+                <!-- 🔹 SALDO PENDIENTE -->
                 <!-- =============================== -->
+                <div class="card border-danger bg-light mb-4">
 
-                <div class="mb-3">
+                    <div class="card-body text-center">
 
-                    <label class="form-label">
-                        Saldo pendiente
-                    </label>
+                        <small class="text-muted d-block mb-1">
+                            Saldo pendiente
+                        </small>
 
-                    <input type="text"
-                           id="saldoPendiente"
-                           class="form-control"
-                           readonly />
+                        <input type="text"
+                               id="saldoPendiente"
+                               class="form-control form-control-lg text-center fw-bold text-danger border-0 bg-transparent fs-4"
+                               readonly />
+
+                    </div>
 
                 </div>
 
                 <!-- =============================== -->
                 <!-- 🔹 MONTO -->
                 <!-- =============================== -->
-
-                <div class="mb-3">
-
-                    <label class="form-label">
-                        Monto a pagar
-                    </label>
-
-                    <input type="number"
-                           id="Monto"
-                           class="form-control"
-                           min="1" />
-
-                </div>
+                <input type="number"
+                       id="Monto"
+                       class="form-control form-control-lg"
+                       min="1"
+                       placeholder="Ingrese el valor del abono" />
+                
 
                 <!-- =============================== -->
-                <!-- 🔹 MÉTODO -->
+                <!-- 🔹 MÉTODO DE PAGO -->
                 <!-- =============================== -->
-
                 <div class="mb-3">
 
-                    <label class="form-label">
-                        Método de pago
+                    <label class="form-label fw-semibold">
+                        💳 Método de pago
                     </label>
 
                     <select id="MetodoPago"
                             class="form-select">
 
                         <option value="">
-                            Cargando...
+                            Seleccione un método de pago...
                         </option>
 
                     </select>
@@ -236,36 +424,39 @@
                 <!-- =============================== -->
                 <!-- 🔹 OBSERVACIÓN -->
                 <!-- =============================== -->
+                <div class="mb-2">
 
-                <div class="mb-3">
-
-                    <label class="form-label">
-                        Observación
+                    <label class="form-label fw-semibold">
+                        📝 Observación
                     </label>
 
                     <textarea id="Observacion"
                               class="form-control"
                               rows="3"
-                              placeholder="Observación opcional">
+                              placeholder="Ingrese una observación si es necesario (opcional)">
                     </textarea>
 
                 </div>
 
             </div>
 
+            <!-- =============================== -->
+            <!-- 🔹 PIE DEL MODAL -->
+            <!-- =============================== -->
             <div class="modal-footer">
-
                 <button type="button"
-                        class="btn btn-secondary"
+                        class="btn btn-outline-secondary"
                         data-bs-dismiss="modal">
-                    Cancelar
+
+                    Cerrar
+
                 </button>
 
                 <button type="button"
-                        class="btn btn-success"
+                        class="btn btn-success px-4"
                         onclick="guardarAbono()">
 
-                    Guardar Abono
+                    💾 Guardar Abono
 
                 </button>
 
@@ -276,7 +467,6 @@
     </div>
 
 </div>
-
 @section Scripts {
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -389,50 +579,75 @@
                     </tr>
                 `;
             }
-            else {
+              else {
 
-                data.forEach(p => {
+                  data.forEach(p => {
 
-                    tbody.innerHTML += `
-                        <tr>
+                  tbody.innerHTML += `
+                    <tr>
 
-                            <td>${p.id_Pedido}</td>
+                        <td>${p.id_Pedido}</td>
 
-                            <td>${p.fecha}</td>
+                        <td>${p.fecha}</td>
 
-                            <td>
-                                $ ${Number(p.totalVenta).toLocaleString()}
-                            </td>
+                        <td>
+                            $ ${Number(p.totalVenta).toLocaleString()}
+                        </td>
 
-                            <td class="fw-bold text-danger">
-                                $ ${Number(p.saldo).toLocaleString()}
-                            </td>
+                        <td class="fw-bold text-danger">
+                            $ ${Number(p.saldo).toLocaleString()}
+                        </td>
 
-                            <td>${p.tipoVenta}</td>
+                        <td>${p.tipoVenta}</td>
 
-                            <td>${p.estadoPago}</td>
+                        <td>${p.estadoPago}</td>
 
-                            <td>
+                        <td>
 
-                                <button class="btn btn-success btn-sm"
-                                        onclick="abrirModalAbono(${p.id_Pedido}, ${p.saldo})">
+                            <button class="btn btn-info btn-sm"
+                                    onclick="verPedido(${p.id_Pedido})">
 
-                                    Abonar
+                                Ver
 
-                                </button>
+                            </button>
 
-                            </td>
+                        </td>
 
-                        </tr>
-                    `;
-                });
-            }
+                        <td>
+
+                            <button class="btn btn-success btn-sm"
+                                    onclick="abrirModalAbono(${p.id_Pedido}, ${p.saldo})">
+
+                                Abonar
+
+                            </button>
+
+                        </td>
+
+                    </tr>
+                  `;
+          });
+             }
 
             document.getElementById("cardPedidos")
                 .classList.remove("d-none");
         }
 
+
         // =====================================================
+        // 🔹 VER PEDIDO
+        // =====================================================
+
+        async function verPedido(idPedido) {
+
+            await cargarDetallePedido(idPedido);
+
+            await cargarResumenPedido(idPedido);
+
+            await cargarHistorialAbonos(idPedido);
+        }
+
+              // =====================================================
         // 🔹 MODAL
         // =====================================================
 
@@ -440,7 +655,8 @@
 
             document.getElementById("ID_Pedido").value = idPedido;
 
-            document.getElementById("saldoPendiente").value = saldo;
+               document.getElementById("saldoPendiente").value =
+        "$ " + Number(saldo).toLocaleString('es-CO');
 
             document.getElementById("Monto").value = "";
 
@@ -450,14 +666,13 @@
 
             await cargarMetodosPago();
 
-            await cargarDetallePedido(idPedido);
-
             const modal = new bootstrap.Modal(
                 document.getElementById('modalAbono')
             );
 
             modal.show();
         }
+              
 
         // =====================================================
         // 🔹 MÉTODOS DE PAGO
@@ -533,6 +748,219 @@
                 .classList.remove("d-none");
         }
 
+
+                // =====================================================
+        // 🔹 RESUMEN FINANCIERO
+        // =====================================================
+
+        async function cargarResumenPedido(idPedido) {
+
+            const response = await fetch(
+                `/Abonos/ObtenerResumenPedido?idPedido=${idPedido}`
+            );
+
+            const data = await response.json();
+
+            document.getElementById("lblTotalVenta").innerText =
+                "$ " + Number(data.totalVenta).toLocaleString();
+
+            document.getElementById("lblTotalAbonado").innerText =
+                "$ " + Number(data.totalAbonado).toLocaleString();
+
+
+                  let saldoHtml = '';
+
+            if (Number(data.saldo) <= 0) {
+
+                saldoHtml = `
+                    <span class="badge bg-success fs-6">
+                        $ ${Number(data.saldo).toLocaleString()}
+                    </span>
+                `;
+            }
+            else {
+
+                saldoHtml = `
+                    <span class="badge bg-danger fs-6">
+                        $ ${Number(data.saldo).toLocaleString()}
+                    </span>
+                `;
+            }
+
+          document.getElementById("lblSaldoPendiente").innerHTML =
+            saldoHtml;
+
+
+
+            let badgeEstado = '';
+
+            switch (data.estadoPago) {
+
+                case 'PAGADO':
+
+                    badgeEstado = `
+                        <span class="badge bg-success fs-6">
+                            PAGADO
+                        </span>
+                    `;
+                    break;
+
+                case 'ABONADO':
+
+                    badgeEstado = `
+                        <span class="badge bg-warning text-dark fs-6">
+                            ABONADO
+                        </span>
+                    `;
+                    break;
+
+                default:
+
+                    badgeEstado = `
+                        <span class="badge bg-danger fs-6">
+                            PENDIENTE
+                        </span>
+                    `;
+                    break;
+            }
+
+            document.getElementById("lblEstadoPago").innerHTML =
+                badgeEstado;
+
+            document.getElementById("cardResumenFinanciero")
+                .classList.remove("d-none");
+        }
+
+        // =====================================================
+        // 🔹 HISTORIAL ABONOS
+        // =====================================================
+
+        async function cargarHistorialAbonos(idPedido) {
+
+            const response = await fetch(
+                `/Abonos/ObtenerHistorialAbonos?idPedido=${idPedido}`
+            );
+
+            const data = await response.json();
+
+            const tbody =
+                document.getElementById("tbodyHistorialAbonos");
+
+            tbody.innerHTML = "";
+
+            if (data.length === 0) {
+
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7"
+                            class="text-center text-muted">
+
+                            No existen abonos registrados.
+
+                        </td>
+                    </tr>
+                `;
+            }
+            else {
+
+                data.forEach(x => {
+
+                    tbody.innerHTML += `
+                        <tr>
+
+                            <td>
+                                <span class="badge bg-success">
+                                    ${x.numeroRecibo}
+                                </span>
+                            </td>
+
+
+                            <td style="white-space: nowrap;">
+                                ${x.fecha}
+                            </td>
+                            
+                            <td class="fw-bold text-success">
+                                $ ${Number(x.monto).toLocaleString()}
+                            </td>
+
+                            <td>${x.metodoPago}</td>
+
+                             <td>
+                                <span class="badge bg-info text-dark">
+                                    ${x.usuario ?? ''}
+                                </span>
+                            </td>                           
+
+                            <td>${x.observacion ?? ''}</td>
+
+                            <td>
+
+                                <button
+                                    class="btn btn-sm btn-primary"
+                                    onclick="window.open('${x.urlPdf}','_blank')">
+
+                                    PDF
+
+                                </button>
+
+                                <button
+                                    class="btn btn-sm btn-secondary"
+                                    onclick="imprimirPDF('${x.urlPdf}')">
+
+                                    Imprimir
+
+                                </button>
+
+                            </td>
+
+                        </tr>
+                    `;
+                });
+            }
+
+               const totalAbonado = data.reduce(
+                (total, item) => total + Number(item.monto),
+                    0
+               );
+
+              document.getElementById("lblResumenAbonos").innerHTML =
+                `
+                <span class="badge bg-primary">
+                    ${data.length} Abonos
+                </span>
+
+                <span class="badge bg-success">
+                    $ ${totalAbonado.toLocaleString('es-CO')}
+                </span>
+             `;
+
+                     document.getElementById("lblResumenAbonos").innerHTML =
+        `
+                    <span class="badge bg-primary">
+                        ${data.length} Abonos
+                    </span>
+
+                    <span class="badge bg-success">
+                        $ ${totalAbonado.toLocaleString('es-CO')}
+                    </span>
+                `;
+
+            // Mostrar tarjeta
+            document.getElementById("cardHistorialAbonos")
+                .classList.remove("d-none");
+        }
+
+        // ================FUNCIÓN IMPRIMIR=====================================
+
+                function imprimirPDF(url) {
+
+            const ventana = window.open(url, "_blank");
+
+            ventana.onload = function () {
+                ventana.print();
+            };
+        }
+
         // =====================================================
         // 🔹 GUARDAR ABONO
         // =====================================================
@@ -549,9 +977,12 @@
                     document.getElementById("ID_Pedido").value
                 ),
 
-                Monto: parseFloat(
-                    document.getElementById("Monto").value
-                ),
+               Monto: parseFloat(
+                  document.getElementById("Monto").value
+                .replace(/\$/g, "")
+                .replace(/\./g, "")
+                .replace(/\s/g, "")
+               ),
 
                 ID_MetodoPago: parseInt(
                     document.getElementById("MetodoPago").value
@@ -582,11 +1013,14 @@
                 return;
             }
 
-            // ==========================================
-            // 🔥 ENVIAR
-            // ==========================================
 
-            const response = await fetch('/Abonos/Crear', {
+        // ==========================================
+        // 🔥 ENVIAR
+        // ==========================================
+
+        try {
+
+            const response = await fetch('/Abonos/RegistrarAbono', {
 
                 method: 'POST',
 
@@ -608,8 +1042,48 @@
 
             const result = await response.json();
 
-            alert(result.mensaje);
+            console.log(result);
 
+            if (result.urlPdf) {
+
+                window.open(result.urlPdf, '_blank');
+            }
+
+        }
+        catch (error) {
+
+            console.error(error);
+
+            alert("Ocurrió un error al registrar el abono.");
+        }
+            /*
+            // ==========================================
+            // 🔥 ENVIAR
+            // ==========================================
+                       
+            const response = await fetch('/Abonos/RegistrarAbono', {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+
+                const error = await response.text();
+
+                alert(error);
+
+                return;
+            }
+
+            const result = await response.json();
+
+            alert(result.mensaje);
+            */
             // ==========================================
             // 🔥 CERRAR MODAL
             // ==========================================
@@ -622,7 +1096,13 @@
             // 🔥 RECARGAR PEDIDOS
             // ==========================================
 
-            await cargarPedidos(clienteSeleccionado.id_Cliente);
+            const idPedido =
+             parseInt(document.getElementById("ID_Pedido").value);
+
+             await cargarPedidos(clienteSeleccionado.id_Cliente);
+
+             await verPedido(idPedido);
+
         }
 
     </script>

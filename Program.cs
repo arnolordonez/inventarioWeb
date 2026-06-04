@@ -6,8 +6,18 @@ using InventarioWEB.Mongo;
 using InventarioWEB.Mongo.Context;
 using InventarioWEB.Mongo.Services;
 using Microsoft.Extensions.Options;
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ==========================================================
+// CULTURA GLOBAL (IMPORTANTE PARA DECIMALES)
+// ==========================================================
+
+var culture = new CultureInfo("en-US");
+
+CultureInfo.DefaultThreadCurrentCulture = culture;
+CultureInfo.DefaultThreadCurrentUICulture = culture;
 
 // ==========================================================
 // CONFIGURACIÓN DE CONEXIONES A MySQL
@@ -34,6 +44,8 @@ builder.Services.AddDbContext<MovimientoVentasDbContext>(options =>
 // ==========================================================
 
 builder.Services.AddScoped<ProduccionService>();
+builder.Services.AddScoped<AbonoService>();// Línea que se incluyó para registrar el servicio de AbonoService
+builder.Services.AddScoped<ReciboCajaService>();
 
 // ==========================================================
 // CONFIGURACIÓN MONGODB

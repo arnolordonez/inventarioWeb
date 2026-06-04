@@ -24,4 +24,8 @@
     <PackageReference Include="X.PagedList.Mvc.Core" Version="8.0.6" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\ReciboCaja\" />
+  </ItemGroup>
+
 </Project>
