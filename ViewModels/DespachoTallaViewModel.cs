@@ -107,6 +107,9 @@ namespace InventarioWEB.ViewModels
 
         public int CantidadDespachada { get; set; }
 
+        // 🔥 NUEVO → PRODUCCIÓN DISPONIBLE REAL
+        public int CantidadDisponible { get; set; }
+
         // 🔥 CALCULADO CORRECTO
         public int CantidadPendiente =>
             Math.Max(0, CantidadPedida - CantidadDespachada);
