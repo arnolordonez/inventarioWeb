@@ -1,7 +1,7 @@
-﻿@model InventarioWEB.ViewModels.ProduccionListadoViewModel
+﻿@model InventarioWEB.ViewModels.ProduccionPedidoDashboardVM
 
 @{
-    ViewData["Title"] = "Producciones Registradas";
+    ViewData["Title"] = "Producción por Pedidos";
 }
 
 <div class="container-fluid">
@@ -15,11 +15,11 @@
         <div class="col-md-6">
 
             <h3 class="fw-bold text-primary mb-1">
-                🏭 Control de Producción
+                🏭 Producción por Pedidos
             </h3>
 
             <p class="text-muted mb-0">
-                Historial y trazabilidad de producciones registradas.
+                Control operacional y seguimiento de pedidos en producción.
             </p>
 
         </div>
@@ -29,7 +29,7 @@
             <a asp-action="Crear"
                class="btn btn-success">
 
-                ➕ Nueva Producción
+                ➕ Registrar Producción
 
             </a>
 
@@ -38,7 +38,7 @@
     </div>
 
     <!-- ========================================= -->
-    <!-- ALERTA ÉXITO -->
+    <!-- ALERTA -->
     <!-- ========================================= -->
     @if (TempData["Success"] != null)
     {
@@ -56,25 +56,25 @@
     }
 
     <!-- ========================================= -->
-    <!-- INDICADORES -->
+    <!-- DASHBOARD -->
     <!-- ========================================= -->
 
     <div class="row mb-4">
 
-        <!-- TOTAL PRODUCCIONES -->
+        <!-- PEDIDOS PENDIENTES -->
 
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
 
             <div class="card border-0 shadow-sm h-100">
 
                 <div class="card-body text-center">
 
                     <div class="text-muted small mb-2">
-                        Producciones registradas
+                        Pedidos pendientes
                     </div>
 
-                    <h2 class="fw-bold text-primary mb-0">
-                        @Model.TotalRegistros
+                    <h2 class="fw-bold text-danger mb-0">
+                        @Model.TotalPedidosPendientes
                     </h2>
 
                 </div>
@@ -83,20 +83,42 @@
 
         </div>
 
-        <!-- ARTÍCULOS DISTINTOS -->
+        <!-- EN PRODUCCIÓN -->
 
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
 
             <div class="card border-0 shadow-sm h-100">
 
                 <div class="card-body text-center">
 
                     <div class="text-muted small mb-2">
-                        Artículos distintos
+                        En producción
+                    </div>
+
+                    <h2 class="fw-bold text-warning mb-0">
+                        @Model.TotalPedidosEnProduccion
+                    </h2>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- COMPLETADOS -->
+
+        <div class="col-md-3 mb-3">
+
+            <div class="card border-0 shadow-sm h-100">
+
+                <div class="card-body text-center">
+
+                    <div class="text-muted small mb-2">
+                        Completados
                     </div>
 
                     <h2 class="fw-bold text-success mb-0">
-                        @Model.TotalArticulosDistintos
+                        @Model.TotalPedidosCompletados
                     </h2>
 
                 </div>
@@ -105,20 +127,20 @@
 
         </div>
 
-        <!-- UNIDADES PRODUCIDAS -->
+        <!-- UNIDADES PENDIENTES -->
 
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
 
             <div class="card border-0 shadow-sm h-100">
 
                 <div class="card-body text-center">
 
                     <div class="text-muted small mb-2">
-                        Unidades producidas
+                        Unidades pendientes
                     </div>
 
                     <h2 class="fw-bold text-dark mb-0">
-                        @Model.TotalUnidadesProducidas
+                        @Model.TotalUnidadesPendientes
                     </h2>
 
                 </div>
@@ -137,17 +159,17 @@
 
         <div class="card-header bg-light fw-bold">
 
-            📋 Historial de Producción
+            📋 Pedidos en Producción
 
         </div>
 
         <div class="card-body">
 
-            @if (Model.Producciones == null || !Model.Producciones.Any())
+            @if (Model.Pedidos == null || !Model.Pedidos.Any())
             {
                 <div class="alert alert-info mb-0">
 
-                    No existen producciones registradas.
+                    No existen pedidos pendientes de producción.
 
                 </div>
             }
@@ -155,68 +177,84 @@
             {
                 <div class="table-responsive">
 
-                    <table class="table table-bordered table-hover table-sm align-middle mb-0">
+                    <table class="table table-bordered table-hover align-middle table-sm mb-0">
+
 
                         <thead class="table-light">
 
                             <tr>
 
-                                <th style="width:80px">
-                                    ID
+                                <!-- PEDIDO -->
+
+                                <th style="width:110px">
+                                    Pedido
                                 </th>
 
-                                <th style="width:140px">
-                                    Fecha
-                                </th>
-
-                                <th style="width:180px">
-                                    Usuario
-                                </th>
+                                <!-- CLIENTE -->
 
                                 <th>
-                                    Observación
+                                    Cliente
                                 </th>
 
-                                <th class="text-center"
-                                    style="width:110px">
+                                <!-- TIPO VENTA -->
 
-                                    Artículos
-
-                                </th>
-
-                                <th class="text-center"
-                                    style="width:120px">
-
-                                    Unidades
-
-                                </th>
-
-                                <th class="text-end"
-                                    style="width:130px">
-
-                                    Costo
-
-                                </th>
-
-                                <th class="text-end"
-                                    style="width:130px">
-
+                                <th class="text-center" style="width:120px">
                                     Venta
-
                                 </th>
 
-                                <th class="text-end"
-                                    style="width:130px">
+                                <!-- ESTADO PAGO -->
 
-                                    Utilidad
-
+                                <th class="text-center" style="width:140px">
+                                    Estado Pago
                                 </th>
 
-                                <th class="text-center"
-                                    style="width:140px">
+                                <!-- DESPACHO -->
 
+                                <th class="text-center" style="width:160px">
+                                    Despacho
+                                </th>
+
+                                <!-- SALDO -->
+
+                                <th class="text-end" style="width:140px">
+                                    Saldo
+                                </th>
+
+                                <!-- TOTAL PEDIDO -->
+
+                                <th class="text-center" style="width:120px">
+                                    Pedido
+                                </th>
+
+
+                                <!-- PRODUCCIÓN / PENDIENTE -->
+                                <th class="text-center" style="width:140px">
+                                    Producción<br />
+                                    <small class="text-muted">Pendiente</small>
+                                </th>
+
+                                <!-- AVANCE -->
+
+                                <th class="text-center" style="width:170px">
+                                    Avance
+                                </th>
+
+                                <!-- ESTADO PRODUCCIÓN -->
+
+                                <th class="text-center" style="width:160px">
+                                    Producción
+                                </th>
+
+                                <!-- ÚLTIMA PRODUCCIÓN -->
+
+                                <th class="text-center" style="width:140px">
+                                    Última Prod.
+                                </th>
+
+                                <!-- ACCIONES -->
+
+                                <th class="text-center" style="width:220px">
                                     Acción
-
                                 </th>
 
                             </tr>
@@ -225,93 +263,202 @@
 
                         <tbody>
 
-                            @foreach (var p in Model.Producciones)
+                            @foreach (var item in Model.Pedidos)
                             {
-                                var totalUnidades =
-                                p.Detalles?.Sum(d => d.CantidadProducida) ?? 0;
-
-                                var totalCosto =
-                                p.Detalles?.Sum(d => d.SubtotalCosto) ?? 0;
-
-                                var totalVenta =
-                                p.Detalles?.Sum(d => d.SubtotalVenta) ?? 0;
-
-                                var utilidad =
-                                totalVenta - totalCosto;
-
                                 <tr>
 
-                                    <!-- ID -->
+                                    <!-- PEDIDO -->
 
                                     <td>
 
-                                        @p.ID_Produccion
+                                        <div class="fw-bold text-primary">
+                                            #@item.ID_Pedido
+                                        </div>
+
+                                        <small class="text-muted">
+                                            @item.FechaPedido.ToString("dd/MM/yyyy")
+                                        </small>
 
                                     </td>
 
-                                    <!-- FECHA -->
+                                    <!-- CLIENTE -->
 
                                     <td>
 
-                                        @p.FechaProduccion.ToString("dd/MM/yyyy")
+                                        <div class="fw-bold">
+                                            @item.Cliente
+                                        </div>
+
+                                        <small class="text-muted">
+                                            CC/NIT: @item.ID_Cliente
+                                        </small>
 
                                     </td>
 
-                                    <!-- USUARIO -->
-
-                                    <td>
-
-                                        @p.Usuario
-
-                                    </td>
-
-                                    <!-- OBSERVACIÓN -->
-
-                                    <td>
-
-                                        @(string.IsNullOrWhiteSpace(p.Observacion)
-                                            ? "-"
-                                            : p.Observacion)
-
-                                    </td>
-
-                                    <!-- ARTÍCULOS -->
+                                    <!-- TIPO VENTA -->
 
                                     <td class="text-center">
 
-                                        @(p.Detalles?.Count ?? 0)
+                                        @if (item.TipoVenta == "CREDITO")
+                                        {
+                                            <span class="badge bg-warning text-dark">
+                                                CRÉDITO
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">
+                                                CONTADO
+                                            </span>
+                                        }
 
                                     </td>
 
-                                    <!-- UNIDADES -->
+                                    <!-- ESTADO PAGO -->
 
-                                    <td class="text-center fw-bold">
+                                    <td class="text-center">
 
-                                        @totalUnidades
+                                        @if (item.EstadoPago == "PAGADO")
+                                        {
+                                            <span class="badge bg-success">
+                                                PAGADO
+                                            </span>
+                                        }
+                                        else if (item.EstadoPago == "ABONADO")
+                                        {
+                                            <span class="badge bg-warning text-dark">
+                                                ABONADO
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">
+                                                PENDIENTE
+                                            </span>
+                                        }
 
                                     </td>
 
-                                    <!-- COSTO -->
+                                    <!-- ESTADO LOGÍSTICO -->
 
-                                    <td class="text-end">
+                                    <td class="text-center">
 
-                                        @totalCosto.ToString("C")
+                                        @if (item.Estado == "DESPACHADO")
+                                        {
+                                            <span class="badge bg-success">
+                                                DESPACHADO
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">
+                                                NO DESPACHADO
+                                            </span>
+                                        }
 
                                     </td>
 
-                                    <!-- VENTA -->
-
-                                    <td class="text-end">
-
-                                        @totalVenta.ToString("C")
-
-                                    </td>
-
-                                    <!-- UTILIDAD -->
+                                    <!-- SALDO -->
 
                                     <td class="text-end fw-bold">
 
-                                        @utilidad.ToString("C")
+                                        @item.SaldoPendiente.ToString("C")
+
+                                    </td>
+
+                                    <!-- TOTAL PEDIDO -->
+
+                                    <td class="text-center fw-bold">
+
+                                        @item.TotalPedido
+
+                                    </td>
+
+
+                                    <!-- PRODUCCIÓN / PENDIENTE -->
+                                    <td class="text-center fw-bold">
+
+                                        <div class="text-success">
+                                            ✔ @item.TotalProducido
+                                        </div>
+
+                                        <div class="text-danger small">
+                                            ✖ @item.Pendiente
+                                        </div>
+
+                                    </td>
+
+
+                                    <!-- AVANCE -->
+                                    <td>
+
+                                        <div class="position-relative">
+
+                                            <div class="progress" style="height:22px;">
+
+                                                <div class="progress-bar
+                                                @(item.PorcentajeProduccion >= 100
+                                                    ? "bg-success"
+                                                    : item.PorcentajeProduccion > 0
+                                                        ? "bg-warning"
+                                                        : "bg-danger")"
+                                                     role="progressbar"
+                                                     style="width:@item.PorcentajeProduccion%">
+                                                </div>
+
+                                            </div>
+
+                                            <!-- TEXTO SIEMPRE VISIBLE -->
+                                            <div class="position-absolute top-50 start-50 translate-middle fw-bold small">
+
+                                                @item.PorcentajeProduccion%
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+                                    <!-- ESTADO PRODUCCIÓN -->
+
+                                    <td class="text-center">
+
+                                        @switch (item.EstadoProduccion)
+                                        {
+                                            case "COMPLETADO":
+
+                                                <span class="badge bg-success">
+                                                    COMPLETADO
+                                                </span>
+
+                                                break;
+
+                                            case "EN PRODUCCIÓN":
+
+                                                <span class="badge bg-warning text-dark">
+                                                    EN PRODUCCIÓN
+                                                </span>
+
+                                                break;
+
+                                            default:
+
+                                                <span class="badge bg-danger">
+                                                    PENDIENTE
+                                                </span>
+
+                                                break;
+                                        }
+
+                                    </td>
+
+                                    <!-- ÚLTIMA PRODUCCIÓN -->
+
+                                    <td class="text-center">
+
+                                        @(item.UltimaProduccion.HasValue
+                                            ? item.UltimaProduccion.Value.ToString("dd/MM/yyyy")
+                                            : "-")
 
                                     </td>
 
@@ -319,13 +466,25 @@
 
                                     <td class="text-center">
 
-                                        <a asp-action="ReporteProduccionPdf"
-                                           asp-route-id="@p.ID_Produccion"
-                                           class="btn btn-sm btn-primary">
+                                        <div class="d-flex gap-1 justify-content-center flex-wrap">
 
-                                            📄 Reporte
+                                            <a asp-action="CrearERP"
+                                               asp-route-idPedido="@item.ID_Pedido"
+                                               class="btn btn-sm btn-success">
 
-                                        </a>
+                                                ➕ Producir
+
+                                            </a>
+
+                                            <a asp-action="Crear"
+                                               asp-route-idPedido="@item.ID_Pedido"
+                                               class="btn btn-sm btn-success">
+
+                                                ➕ Producir
+
+                                            </a>
+
+                                        </div>
 
                                     </td>
 
@@ -333,6 +492,7 @@
                             }
 
                         </tbody>
+
 
                     </table>
 
@@ -347,8 +507,6 @@
 
                         <ul class="pagination justify-content-center flex-wrap">
 
-                            <!-- ANTERIOR -->
-
                             <li class="page-item @(Model.TienePaginaAnterior ? "" : "disabled")">
 
                                 <a class="page-link"
@@ -361,7 +519,6 @@
 
                             </li>
 
-                            <!-- NÚMEROS -->
                             @for (int i = 1; i <= Model.TotalPaginas; i++)
                             {
                                 <li class="page-item @(i == Model.PaginaActual ? "active" : "")">
@@ -376,8 +533,6 @@
 
                                 </li>
                             }
-
-                            <!-- SIGUIENTE -->
 
                             <li class="page-item @(Model.TienePaginaSiguiente ? "" : "disabled")">
 

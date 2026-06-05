@@ -145,6 +145,60 @@ namespace InventarioWEB.Controllers
         }
         */
 
+        
+        [HttpGet]
+        public async Task<IActionResult> CrearERP(int idPedido)
+        {
+            var pedido = await _context.Pedidos
+                .Include(p => p.Cliente)
+                .Include(p => p.DetallePedidos)
+                    .ThenInclude(d => d.Producto)
+                .FirstOrDefaultAsync(p => p.ID_Pedido == idPedido);
+
+            if (pedido == null)
+                return NotFound();
+
+            var model = new ProduccionCrearViewModel
+            {
+                ID_Pedido = pedido.ID_Pedido,
+                ID_Cliente = pedido.ID_Cliente,
+
+                Cliente =
+                    pedido.Cliente.Nombre + " " +
+                    pedido.Cliente.Apellido,
+
+                EstadoPago = pedido.EstadoPago,
+                Estado = pedido.Estado,
+                TipoVenta = pedido.TipoVenta,
+
+                TotalPedido = pedido.TotalVenta,
+                SaldoPendiente = pedido.Saldo,
+
+                FechaProduccion = DateTime.Today,
+
+                Detalles = pedido.DetallePedidos
+                    .Select(d => new DetalleProduccionVM
+                    {
+                        ID_DetallePedido = d.ID_Detalle,
+
+                        ID_Producto = d.ID_Producto,
+
+                        NombreProducto = d.Producto.Nombre,
+
+                        CantidadPedido = d.Cantidad,
+
+                        CantidadProducida = 0,
+
+                        CantidadPendiente = d.Cantidad,
+
+                        PrecioVentaUnitario = d.PrecioVenta
+                    })
+                    .ToList()
+            };
+
+            return View(model);
+        }
+
         // ==========================================================
         // GET CREAR PRODUCCION
         // ==========================================================
