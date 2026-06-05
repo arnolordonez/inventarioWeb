@@ -21,6 +21,42 @@ namespace InventarioWEB.Controllers
             _produccionService = produccionService;
         }
 
+
+        // ==========================================================
+        // DASHBOARD PRODUCCIÓN POR PEDIDOS ERP
+        // ==========================================================
+        public async Task<IActionResult> Index()
+        {
+            var pedidos =
+                await _produccionService
+                    .ObtenerDashboardPedidosProduccionAsync();
+
+            var model = new ProduccionPedidoDashboardVM
+            {
+                Pedidos = pedidos,
+
+                TotalPedidosPendientes =
+                    pedidos.Count(x => x.EstadoProduccion == "PENDIENTE"),
+
+                TotalPedidosEnProduccion =
+                    pedidos.Count(x => x.EstadoProduccion == "EN PRODUCCIÓN"),
+
+                TotalPedidosCompletados =
+                    pedidos.Count(x => x.EstadoProduccion == "COMPLETADO"),
+
+                TotalUnidadesPendientes =
+                    pedidos.Sum(x => x.Pendiente),
+
+                TotalUnidadesProducidas =
+                    pedidos.Sum(x => x.TotalProducido)
+            };
+
+            return View(model);
+        }
+
+
+
+        /*
         // ==========================================================
         // LISTADO DE PRODUCCIONES
         // ==========================================================
@@ -107,6 +143,7 @@ namespace InventarioWEB.Controllers
 
             return View(model);
         }
+        */
 
         // ==========================================================
         // GET CREAR PRODUCCION

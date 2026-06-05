@@ -2,6 +2,7 @@
 using InventarioWEB.Data;
 using InventarioWEB.Models;
 using InventarioWEB.ViewModels;
+using Microsoft.AspNetCore.Mvc;
 
 namespace InventarioWEB.Services
 {
@@ -333,6 +334,138 @@ namespace InventarioWEB.Services
             });
         }
 
+
+        /*
+        // ==========================================================
+        // DASHBOARD PRODUCCIÓN POR PEDIDOS ERP
+        // ==========================================================
+        public async Task<IActionResult> Index()
+        {
+            var pedidos =
+                await _produccionService
+                    .ObtenerDashboardPedidosProduccionAsync();
+
+            var model = new ProduccionPedidoDashboardVM
+            {
+                Pedidos = pedidos,
+
+                TotalPedidosPendientes =
+                    pedidos.Count(x => x.EstadoProduccion == "PENDIENTE"),
+
+                TotalPedidosEnProduccion =
+                    pedidos.Count(x => x.EstadoProduccion == "EN PRODUCCIÓN"),
+
+                TotalPedidosCompletados =
+                    pedidos.Count(x => x.EstadoProduccion == "COMPLETADO"),
+
+                TotalUnidadesPendientes =
+                    pedidos.Sum(x => x.Pendiente),
+
+                TotalUnidadesProducidas =
+                    pedidos.Sum(x => x.TotalProducido)
+            };
+
+            return View(model);
+        }
+        */
+
+        // ============================================================
+        // DASHBOARD PRODUCCIÓN POR PEDIDOS ERP
+        // ============================================================
+
+        public async Task<List<ProduccionPedidoItemVM>>
+            ObtenerDashboardPedidosProduccionAsync()
+        {
+            var pedidos = await (
+                from p in _context.Pedidos
+
+                join c in _context.Clientes
+                    on p.ID_Cliente equals c.ID_Cliente
+
+                orderby p.ID_Pedido descending
+
+                select new ProduccionPedidoItemVM
+                {
+                    ID_Pedido = p.ID_Pedido,
+
+                    FechaPedido = p.Fecha,
+
+                    ID_Cliente = p.ID_Cliente,
+
+                    Cliente = c.Nombre + " " + c.Apellido,
+
+                    Estado = p.Estado,
+
+                    EstadoPago = p.EstadoPago,
+
+                    TipoVenta = p.TipoVenta,
+
+                    TotalVenta = p.Total,
+
+                    SaldoPendiente = p.Saldo
+                })
+                .AsNoTracking()
+                .ToListAsync();
+
+            foreach (var pedido in pedidos)
+            {
+                var totalPedido =
+                    await _context.DetallePedidos
+                        .Where(x => x.ID_Pedido == pedido.ID_Pedido)
+                        .SumAsync(x => (int?)x.Cantidad) ?? 0;
+
+                var totalProducido =
+                    await (
+                        from dp in _context.DetalleProducciones
+
+                        join det in _context.DetallePedidos
+                            on dp.ID_DetallePedido equals det.ID_Detalle
+
+                        where det.ID_Pedido == pedido.ID_Pedido
+
+                        select dp.CantidadProducida
+                    )
+                    .SumAsync(x => (int?)x) ?? 0;
+
+                pedido.TotalPedido = totalPedido;
+
+                pedido.TotalProducido = totalProducido;
+
+                pedido.Pendiente =
+                    totalPedido - totalProducido;
+
+                pedido.PorcentajeProduccion =
+                    totalPedido == 0
+                        ? 0
+                        : Math.Round(
+                            ((decimal)totalProducido / totalPedido) * 100,
+                            2);
+
+                pedido.EstadoProduccion =
+                    totalProducido == 0
+                        ? "PENDIENTE"
+                        : pedido.Pendiente > 0
+                            ? "EN PRODUCCIÓN"
+                            : "COMPLETADO";
+
+                pedido.UltimaProduccion =
+                    await (
+                        from dp in _context.DetalleProducciones
+
+                        join det in _context.DetallePedidos
+                            on dp.ID_DetallePedido equals det.ID_Detalle
+
+                        where det.ID_Pedido == pedido.ID_Pedido
+
+                        select (DateTime?)dp.FechaFinProduccion
+                    )
+                    .MaxAsync();
+            }
+
+            return pedidos;
+        }
+
+
         // ============================================================
         // 📊 REPORTE POR FECHA
         // ============================================================
@@ -354,7 +487,7 @@ namespace InventarioWEB.Services
                 .ToListAsync();
         }
         public async Task<List<PendienteProduccionVM>>
-ObtenerPendientesProduccionAsync()
+          ObtenerPendientesProduccionAsync()
         {
             var data = await (
                 from dp in _context.DetallePedidos
