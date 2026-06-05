@@ -27,6 +27,22 @@
         public string Color { get; set; } = string.Empty;
 
         // =====================================================
+        // INVENTARIO
+        // =====================================================
+
+        public int StockActual { get; set; }
+
+        // =====================================================
+        // COSTOS Y PRECIOS
+        // =====================================================
+
+        public decimal PrecioCosto { get; set; }
+
+        public decimal PrecioVTA { get; set; }
+
+        public decimal IVA_Porcentaje { get; set; }
+
+        // =====================================================
         // CLIENTE
         // =====================================================
 
@@ -63,7 +79,11 @@
 
         public int CantidadPendiente { get; set; }
 
-        // PENDIENTE / EN PRODUCCIÓN / COMPLETADO
+        // =====================================================
+        // ESTADO PRODUCCIÓN
+        // =====================================================
+
+        // PENDIENTE / EN_PROCESO / COMPLETADO
         public string EstadoProduccion { get; set; } = "PENDIENTE";
     }
 }

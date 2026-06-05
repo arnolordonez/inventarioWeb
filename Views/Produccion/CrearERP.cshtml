@@ -288,36 +288,54 @@
                                         @Model.Detalles[i].StockActual
 
                                     </td>
+                                                                       
+                                        <!-- CANTIDAD PRODUCIR -->
+                                        <td>
 
-                                    <!-- CANTIDAD PRODUCIR -->
-                                    <td>
+                                            @if (Model.Detalles[i].CantidadPendiente > 0)
+                                            {
+                                                <input asp-for="Detalles[@i].CantidadProducida"
+                                                       type="number"
+                                                       class="form-control text-center"
+                                                       min="0"
+                                                       max="@Model.Detalles[i].CantidadPendiente" />
 
-                                        <input asp-for="Detalles[@i].CantidadProducida"
-                                               type="number"
-                                               class="form-control text-center"
-                                               min="0"
-                                               max="@Model.Detalles[i].CantidadPendiente" />
+                                                <span asp-validation-for="Detalles[@i].CantidadProducida"
+                                                      class="text-danger small">
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success">
+                                                    COMPLETADO
+                                                </span>
+                                            }
 
-                                        <span asp-validation-for="Detalles[@i].CantidadProducida"
-                                              class="text-danger small">
-                                        </span>
+                                        </td>
 
-                                    </td>
+                                        <!-- COSTO -->
+                                        <td>
 
-                                    <!-- COSTO -->
-                                    <td>
+                                            @if (Model.Detalles[i].CantidadPendiente > 0)
+                                            {
+                                                <input asp-for="Detalles[@i].CostoUnitario"
+                                                       type="number"
+                                                       step="0.01"
+                                                       min="0"
+                                                       class="form-control text-end" />
 
-                                        <input asp-for="Detalles[@i].CostoUnitario"
-                                               type="number"
-                                               step="0.01"
-                                               min="0"
-                                               class="form-control text-end" />
+                                                <span asp-validation-for="Detalles[@i].CostoUnitario"
+                                                      class="text-danger small">
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">
+                                                    -
+                                                </span>
+                                            }
 
-                                        <span asp-validation-for="Detalles[@i].CostoUnitario"
-                                              class="text-danger small">
-                                        </span>
-
-                                    </td>
+                                        </td>
 
                                     <!-- VENTA -->
                                     <td class="text-end fw-bold text-primary">
@@ -349,17 +367,32 @@
 
                 </div>
 
-    <div class="mt-4 text-end">
+               
+                @if (Model.Detalles?.Any(x => x.CantidadPendiente > 0) == true)
+                {
+                    <div class="mt-4 text-end">
 
-            <button type="submit"
-                    class="btn btn-success btn-lg">
+                        <button type="submit"
+                                class="btn btn-success btn-lg">
 
-                💾 Registrar Producción ERP
+                            💾 Registrar Producción ERP
 
-            </button>
+                        </button>
 
-    </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-success mt-4">
 
+                        ✅ Pedido completamente producido.
+
+                    </div>
+                }
+
+        </div>   <!-- card-body -->
+
+     </div>   <!-- card -->
 
   </div>
 

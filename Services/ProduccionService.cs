@@ -466,6 +466,136 @@ namespace InventarioWEB.Services
         }
 
 
+        public async Task<List<PendienteProduccionVM>>
+    ObtenerDetallePedidoParaProduccionAsync(int idPedido)
+        {
+            var data = await (
+                from dp in _context.DetallePedidos
+
+                join p in _context.Pedidos
+                    on dp.ID_Pedido equals p.ID_Pedido
+
+                join c in _context.Clientes
+                    on p.ID_Cliente equals c.ID_Cliente
+
+                join prod in _context.Productos
+                    on dp.ID_Producto equals prod.ID_Producto
+
+                join r in _context.Referencias
+                    on prod.ID_Referencias equals r.ID_Referencias
+
+                join t in _context.Tallas
+                    on prod.ID_Tallas equals t.ID_Tallas
+
+                join col in _context.Colores
+                    on prod.ID_Color equals col.ID_Color
+
+                let cantidadProducida =
+                    _context.DetalleProducciones
+                        .Where(x => x.ID_DetallePedido == dp.ID_Detalle)
+                        .Sum(x => (int?)x.CantidadProducida) ?? 0
+
+                let pendiente =
+                    dp.Cantidad - cantidadProducida
+
+                where p.ID_Pedido == idPedido
+
+                orderby prod.Nombre
+
+                select new PendienteProduccionVM
+                {
+                    // =====================================================
+                    // PEDIDO
+                    // =====================================================
+
+                    ID_DetallePedido = dp.ID_Detalle,
+
+                    ID_Pedido = p.ID_Pedido,
+
+                    FechaPedido = p.Fecha,
+
+                    // =====================================================
+                    // PRODUCTO
+                    // =====================================================
+
+                    ID_Producto = prod.ID_Producto,
+
+                    Producto = prod.Nombre,
+
+                    Referencia = r.DescripReferencia,
+
+                    Talla = t.DescripTalla,
+
+                    Color = col.Nombre,
+
+                    // =====================================================
+                    // INVENTARIO
+                    // =====================================================
+
+                    StockActual = prod.Stock,
+
+                    // =====================================================
+                    // COSTOS Y PRECIOS
+                    // =====================================================
+
+                    PrecioCosto = prod.PrecioCosto,
+
+                    PrecioVTA = prod.PrecioVTA,
+
+                    IVA_Porcentaje = prod.IVA_Porcentaje,
+
+                    // =====================================================
+                    // CLIENTE
+                    // =====================================================
+
+                    Cliente = c.Nombre + " " + c.Apellido,
+
+                    // =====================================================
+                    // ESTADOS
+                    // =====================================================
+
+                    Estado = p.Estado,
+
+                    EstadoPago = p.EstadoPago,
+
+                    TipoVenta = p.TipoVenta,
+
+                    // =====================================================
+                    // VALORES
+                    // =====================================================
+
+                    TotalVenta = p.Total,
+
+                    Saldo = p.Saldo,
+
+                    // =====================================================
+                    // PRODUCCIÓN
+                    // =====================================================
+
+                    CantidadPedida = dp.Cantidad,
+
+                    CantidadProducida = cantidadProducida,
+
+                    CantidadPendiente = pendiente,
+
+                    // =====================================================
+                    // ESTADO PRODUCCIÓN
+                    // =====================================================
+
+                    EstadoProduccion =
+                        pendiente <= 0
+                            ? "COMPLETADO"
+                            : cantidadProducida == 0
+                                ? "PENDIENTE"
+                                : "EN_PROCESO"
+                })
+                .AsNoTracking()
+                .ToListAsync();
+
+            return data;
+        }
+
+
         // ============================================================
         // 📊 REPORTE POR FECHA
         // ============================================================
