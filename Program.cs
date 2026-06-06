@@ -1,11 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using InventarioWEB.Data;
 using InventarioWEB.Services;
-
-using InventarioWEB.Mongo;
-using InventarioWEB.Mongo.Context;
-using InventarioWEB.Mongo.Services;
-using Microsoft.Extensions.Options;
 using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -44,23 +39,9 @@ builder.Services.AddDbContext<MovimientoVentasDbContext>(options =>
 // ==========================================================
 
 builder.Services.AddScoped<ProduccionService>();
-builder.Services.AddScoped<AbonoService>();// Línea que se incluyó para registrar el servicio de AbonoService
+builder.Services.AddScoped<AbonoService>();
 builder.Services.AddScoped<ReciboCajaService>();
 
-// ==========================================================
-// CONFIGURACIÓN MONGODB
-// ==========================================================
-
-builder.Services.Configure<MongoSettings>(
-    builder.Configuration.GetSection("MongoSettings"));
-
-builder.Services.AddSingleton<MongoDbContext>(sp =>
-{
-    var settings = sp.GetRequiredService<IOptions<MongoSettings>>().Value;
-    return new MongoDbContext(settings);
-});
-
-builder.Services.AddScoped<ColorService>();
 
 // ==========================================================
 // SERVICIOS MVC + API
@@ -71,8 +52,7 @@ builder.Services.AddControllersWithViews()
         options.JsonSerializerOptions.PropertyNamingPolicy = null;
     });
 
-  //builder.Services.AddControllersWithViews(); // MVC
-  //builder.Services.AddControllers();          // API
+  
 
 // ==========================================================
 // SWAGGER PARA DOCUMENTACIÓN DE API
