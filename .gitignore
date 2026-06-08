@@ -362,4 +362,4 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 # Archivos generados dinámicamente (recibos)
-wwwroot/ReciboCaja/*.pdf
+# wwwroot/ReciboCaja/*.pdf
