@@ -147,11 +147,26 @@ namespace InventarioWEB.Controllers
         /// </remarks>
         public async Task<IActionResult> Dashboard()
         {
-            if (string.IsNullOrEmpty(HttpContext.Session.GetString("UsuarioID")))
+            var usuarioId = HttpContext.Session.GetString("UsuarioID");
+
+            if (string.IsNullOrEmpty(usuarioId))
                 return RedirectToAction("Login");
 
             var hoy = DateTime.Today;
 
+            /*
+            var usuarioId = HttpContext.Session.GetString("UsuarioID");
+
+            Console.WriteLine($"UsuarioID sesión: {usuarioId}");
+
+            if (string.IsNullOrEmpty(usuarioId))
+            {
+                Console.WriteLine("⚠️ Sesión expirada. Redireccionando a Login.");
+                return RedirectToAction("Login");
+            }
+
+            var hoy = DateTime.Today;
+            */
             // ==========================
             // 💰 VENTAS HOY
             // ==========================

@@ -64,7 +64,7 @@ namespace InventarioWEB.Controllers
                  )
  
                )
-                .OrderBy(p => p.ID_Pedido)
+               .OrderByDescending(p => p.ID_Pedido)
                 .AsNoTracking()
                 .ToListAsync();
 

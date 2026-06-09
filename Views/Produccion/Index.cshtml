@@ -234,26 +234,19 @@
                                 </th>
 
                                 <!-- AVANCE -->
-
-                                <th class="text-center" style="width:170px">
+                                <th class="text-center" style="width:140px">
                                     Avance
                                 </th>
 
                                 <!-- ESTADO PRODUCCIÓN -->
 
-                                <th class="text-center" style="width:160px">
+                                <th class="text-center" style="width:100px">
                                     Producción
                                 </th>
 
-                                <!-- ÚLTIMA PRODUCCIÓN -->
-
-                                <th class="text-center" style="width:140px">
-                                    Última Prod.
-                                </th>
-
+                               
                                 <!-- ACCIONES -->
-
-                                <th class="text-center" style="width:220px">
+                                <th class="text-center" style="width:120px">
                                     Acción
                                 </th>
 
@@ -387,38 +380,34 @@
                                         </div>
 
                                     </td>
-
+                                                                                                           
 
                                     <!-- AVANCE -->
-                                    <td>
+                                    <td style="min-width:140px;">
 
                                         <div class="position-relative">
 
                                             <div class="progress" style="height:22px;">
 
-                                                <div class="progress-bar
+                                                                                    <div class="progress-bar
                                                 @(item.PorcentajeProduccion >= 100
                                                     ? "bg-success"
                                                     : item.PorcentajeProduccion > 0
                                                         ? "bg-warning"
                                                         : "bg-danger")"
-                                                     role="progressbar"
+                                                         role="progressbar"
                                                      style="width:@item.PorcentajeProduccion%">
                                                 </div>
 
                                             </div>
 
-                                            <!-- TEXTO SIEMPRE VISIBLE -->
                                             <div class="position-absolute top-50 start-50 translate-middle fw-bold small">
-
                                                 @item.PorcentajeProduccion%
-
                                             </div>
 
                                         </div>
 
                                     </td>
-
                                     <!-- ESTADO PRODUCCIÓN -->
 
                                     <td class="text-center">
@@ -451,16 +440,7 @@
                                         }
 
                                     </td>
-
-                                    <!-- ÚLTIMA PRODUCCIÓN -->
-
-                                    <td class="text-center">
-
-                                        @(item.UltimaProduccion.HasValue
-                                            ? item.UltimaProduccion.Value.ToString("dd/MM/yyyy")
-                                            : "-")
-
-                                    </td>
+                                                                       
 
                                     <!-- ACCIONES -->
 
