@@ -41,6 +41,11 @@ namespace InventarioWEB.Controllers
             _context = context;
         }
 
+        private bool TieneAcceso()
+        {
+            var rol = HttpContext.Session.GetString("Rol");
+            return rol == "Administrador";
+        }
         // ============================================================
         // INDEX
         // ============================================================
@@ -64,6 +69,9 @@ namespace InventarioWEB.Controllers
         [HttpGet]
         public async Task<IActionResult> Index(ProductosIndexViewModel model)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             await CargarFiltros(model);
 
             model.Productos = new List<ProductosIndexItemViewModel>();
@@ -200,6 +208,9 @@ namespace InventarioWEB.Controllers
         /// </summary>
         public async Task<IActionResult> Crear()
         {
+           if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             var model = new ProductoCreateViewModel();
             await CargarListasCrear(model);
             return View(model);
@@ -219,6 +230,9 @@ namespace InventarioWEB.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Crear(ProductoCreateViewModel model)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             try
             {
                 // ============================
@@ -395,6 +409,9 @@ namespace InventarioWEB.Controllers
         /// </summary>
         public async Task<IActionResult> Editar(int id)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             var producto = await _context.Productos.FindAsync(id);
             if (producto == null)
                 return NotFound();
@@ -413,6 +430,9 @@ namespace InventarioWEB.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Editar(int id, Producto model)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             if (!ModelState.IsValid)
             {
                 await CargarListasEditar();

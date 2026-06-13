@@ -31,52 +31,37 @@ namespace InventarioWEB.Controllers
             _reciboCajaService = reciboCajaService;
         }
 
+        private bool TieneAcceso()
+        {
+            var rol = HttpContext.Session.GetString("Rol");
+
+            return rol == "Administrador"
+                || rol == "Cartera";
+        }
+
+
         // ==========================================================
         // 🔹 INDEX
         // ==========================================================
         public IActionResult Index()
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             return View();
         }
 
+        
 
-        /*using InventarioWEB.Data;
-        using InventarioWEB.Models;
-        using InventarioWEB.ViewModels;
-        using iText.IO.Font.Constants;
-        using iText.Kernel.Font;
-        using iText.Layout.Element;
-        using iText.Layout.Properties;
-        using Microsoft.AspNetCore.Mvc;
-        using Microsoft.EntityFrameworkCore;
-
-        namespace InventarioWEB.Controllers
-        {
-            public class AbonosController : Controller
-            {
-                private readonly MovimientoVentasDbContext _context;
-                private readonly IWebHostEnvironment _env;
-
-                public AbonosController(MovimientoVentasDbContext context, IWebHostEnvironment env)
-                {
-                    _context = context;
-                    _env = env;
-                }
-
-                // ==========================================================
-                // 🔹 INDEX
-                // ==========================================================
-                public IActionResult Index()
-                {
-                    return View();
-                }
-                */
         // ==========================================================
         // 🔹 BUSCAR CLIENTES
         // ==========================================================
         [HttpGet]
         public async Task<IActionResult> BuscarClientes(string term)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             if (string.IsNullOrWhiteSpace(term))
                 return Json(new List<object>());
 
@@ -130,6 +115,12 @@ namespace InventarioWEB.Controllers
         [HttpGet]
         public async Task<IActionResult> ObtenerPedidosPendientes(int idCliente)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             var pedidos = await _context.Pedidos
                 .AsNoTracking()
                 .Where(p =>
@@ -343,6 +334,9 @@ namespace InventarioWEB.Controllers
         [HttpPost]
         public async Task<IActionResult> RegistrarAbono([FromBody] AbonoVM model)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             using var transaction =
                 await _context.Database.BeginTransactionAsync();
 
@@ -628,6 +622,9 @@ namespace InventarioWEB.Controllers
         [HttpGet]
         public async Task<IActionResult> ObtenerHistorialAbonos(int idPedido)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             var historial = await _context.Abonos
                 .AsNoTracking()
                 .Include(a => a.MetodoPago)

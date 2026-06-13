@@ -20,7 +20,6 @@
             <!-- Navegación -->
             <div class="mb-4 d-flex gap-2 justify-content-center justify-content-md-start flex-wrap">
                 <a asp-action="Login" class="btn btn-light text-primary">Login</a>
-                <a asp-action="Register" class="btn btn-light text-primary">Registro</a>
                 <a asp-action="ForgotPassword" class="btn btn-light text-primary">Recuperar contraseña</a>
             </div>
         </div>
@@ -65,8 +64,9 @@
 
                 <!-- Opciones -->
                 <div class="d-flex flex-column gap-2">
-                    <a asp-action="Register" class="btn btn-warning rounded-pill">¿No tienes cuenta? Regístrate</a>
-                    <a asp-action="ForgotPassword" class="btn btn-danger rounded-pill">¿Olvidaste tu contraseña?</a>
+                    <a asp-action="ForgotPassword" class="btn btn-danger rounded-pill">
+                        ¿Olvidaste tu contraseña?
+                    </a>
                 </div>
 
                 <!-- Mensaje -->

@@ -1,0 +1,225 @@
+﻿@model InventarioWEB.ViewModels.UsuarioCreateViewModel
+
+@{
+    ViewData["Title"] = "Crear Usuario";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <div>
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-person-plus-fill me-2"></i>
+            Nuevo Usuario
+        </h2>
+
+        <small class="text-muted">
+            Registro de usuarios del sistema ERP
+        </small>
+    </div>
+
+    <a asp-action="Index"
+       class="btn btn-secondary">
+        <i class="bi bi-arrow-left me-2"></i>
+        Volver
+    </a>
+
+</div>
+
+<div class="card shadow-sm">
+
+    <div class="card-header bg-light">
+        <strong>Información del Usuario</strong>
+    </div>
+
+    <div class="card-body">
+
+        <form asp-action="Create" method="post">
+
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="ModelOnly"
+                 class="text-danger mb-3">
+            </div>
+
+            <div class="row">
+
+                <!-- NOMBRES -->
+                <div class="col-md-6 mb-3">
+
+                    <label asp-for="Nombres"
+                           class="form-label fw-bold">
+                    </label>
+
+                    <input asp-for="Nombres"
+                           class="form-control"
+                           placeholder="Ingrese los nombres" />
+
+                    <span asp-validation-for="Nombres"
+                          class="text-danger">
+                    </span>
+
+                </div>
+
+                <!-- APELLIDOS -->
+                <div class="col-md-6 mb-3">
+
+                    <label asp-for="Apellidos"
+                           class="form-label fw-bold">
+                    </label>
+
+                    <input asp-for="Apellidos"
+                           class="form-control"
+                           placeholder="Ingrese los apellidos" />
+
+                    <span asp-validation-for="Apellidos"
+                          class="text-danger">
+                    </span>
+
+                </div>
+
+                <!-- CORREO -->
+                <div class="col-md-6 mb-3">
+
+                    <label asp-for="Correo"
+                           class="form-label fw-bold">
+                    </label>
+
+                    <input asp-for="Correo"
+                           type="email"
+                           class="form-control"
+                           placeholder="correo@empresa.com" />
+
+                    <span asp-validation-for="Correo"
+                          class="text-danger">
+                    </span>
+
+                </div>
+
+                <!-- ROL -->
+                <div class="col-md-6 mb-3">
+
+                    <label asp-for="IdRol"
+                           class="form-label fw-bold">
+                        Rol
+                    </label>
+
+                    <select asp-for="IdRol"
+                            class="form-select">
+
+                        <option value="">
+                            Seleccione un rol...
+                        </option>
+
+                        @if (ViewBag.Roles != null)
+                        {
+                            @foreach (var rol in ViewBag.Roles)
+                            {
+                                <option value="@rol.IdRol">
+                                    @rol.NombreRol
+                                </option>
+                            }
+                        }
+
+                    </select>
+
+                    <span asp-validation-for="IdRol"
+                          class="text-danger">
+                    </span>
+
+                    <small class="text-muted">
+                        Seleccione el perfil que tendrá acceso al sistema.
+                    </small>
+
+                </div>
+
+                <!-- CONTRASEÑA -->
+                <div class="col-md-6 mb-3">
+
+                    <label asp-for="Contrasena"
+                           class="form-label fw-bold">
+                    </label>
+
+                    <input asp-for="Contrasena"
+                           type="password"
+                           class="form-control"
+                           placeholder="Ingrese la contraseña" />
+
+                    <span asp-validation-for="Contrasena"
+                          class="text-danger">
+                    </span>
+
+                </div>
+
+                <!-- CONFIRMAR CONTRASEÑA -->
+                <div class="col-md-6 mb-3">
+
+                    <label asp-for="ConfirmarContrasena"
+                           class="form-label fw-bold">
+                    </label>
+
+                    <input asp-for="ConfirmarContrasena"
+                           type="password"
+                           class="form-control"
+                           placeholder="Confirme la contraseña" />
+
+                    <span asp-validation-for="ConfirmarContrasena"
+                          class="text-danger">
+                    </span>
+
+                </div>
+
+                <!-- ACTIVO -->
+                <div class="col-12 mb-3">
+
+                    <div class="form-check">
+
+                        <input asp-for="Activo"
+                               type="checkbox"
+                               class="form-check-input" />
+
+                        <label asp-for="Activo"
+                               class="form-check-label">
+                            Usuario Activo
+                        </label>
+
+                    </div>
+
+                    <small class="text-muted">
+                        Si se desmarca, el usuario no podrá iniciar sesión en el sistema.
+                    </small>
+
+                </div>
+
+            </div>
+
+            <hr />
+
+            <div class="d-flex gap-2">
+
+                <button type="submit"
+                        class="btn btn-primary">
+
+                    <i class="bi bi-save me-2"></i>
+                    Guardar Usuario
+
+                </button>
+
+                <a asp-action="Index"
+                   class="btn btn-secondary">
+
+                    <i class="bi bi-x-circle me-2"></i>
+                    Cancelar
+
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

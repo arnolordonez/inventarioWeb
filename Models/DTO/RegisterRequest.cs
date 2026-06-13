@@ -1,4 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿
+/// <summary>
+/// DTO heredado del registro público.
+/// Actualmente en desuso.
+/// Los usuarios son creados por el Administrador del sistema.
+/// </summary>
+
+
+using System.ComponentModel.DataAnnotations;
 
 namespace InventarioWEB.Models.DTO
 {

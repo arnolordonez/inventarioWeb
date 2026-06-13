@@ -21,12 +21,32 @@ namespace InventarioWEB.Controllers
             _produccionService = produccionService;
         }
 
+        // ==========================================================
+        // SEGURIDAD ERP
+        // ==========================================================
+        private bool TieneAcceso()
+        {
+            var rol = HttpContext.Session.GetString("Rol");
+
+            return rol == "Administrador"
+                || rol == "Producción";
+        }
+
 
         // ==========================================================
         // DASHBOARD PRODUCCIÓN POR PEDIDOS ERP
         // ==========================================================
         public async Task<IActionResult> Index()
         {
+            if (!TieneAcceso())
+            {
+                TempData["error"] =
+                    "No tiene permisos para acceder al módulo Producción.";
+
+                return RedirectToAction(
+                    "Dashboard",
+                    "Auto");
+            }
             var pedidos =
                 await _produccionService
                     .ObtenerDashboardPedidosProduccionAsync();
@@ -56,102 +76,23 @@ namespace InventarioWEB.Controllers
 
 
 
-        /*
-        // ==========================================================
-        // LISTADO DE PRODUCCIONES
-        // ==========================================================
-        public async Task<IActionResult> Index(int pagina = 1, int registrosPorPagina = 20)
-        {
-            await CargarFiltrosBaseAsync();
-
-            var query = _context.Producciones
-                .AsNoTracking()
-                .Include(p => p.Detalles)
-                    .ThenInclude(d => d.Producto)
-                .OrderByDescending(p => p.FechaProduccion)
-                .ThenByDescending(p => p.ID_Produccion);
-
-            var totalRegistros = await query.CountAsync();
-            var totalPaginas = (int)Math.Ceiling(totalRegistros / (double)registrosPorPagina);
-
-            if (pagina < 1) pagina = 1;
-            if (pagina > totalPaginas && totalPaginas > 0)
-                pagina = totalPaginas;
-
-            var producciones = await query
-                .Skip((pagina - 1) * registrosPorPagina)
-                .Take(registrosPorPagina)
-                .ToListAsync();
-
-            var model = new ProduccionListadoViewModel
-            {
-                Producciones = producciones,
-
-                PaginaActual = pagina,
-
-                TotalPaginas = totalPaginas,
-
-                TotalRegistros = totalRegistros,
-
-                RegistrosPorPagina = registrosPorPagina,
-
-                // =====================================================
-                // INDICADORES
-                // =====================================================
-
-                TotalArticulosDistintos =
-        producciones
-            .SelectMany(p => p.Detalles ?? new List<DetalleProduccion>())
-            .Select(d => d.ID_Producto)
-            .Distinct()
-            .Count(),
-
-                TotalUnidadesProducidas =
-        producciones
-            .SelectMany(p => p.Detalles ?? new List<DetalleProduccion>())
-            .Sum(d => d.CantidadProducida),
-
-                // =====================================================
-                // ESTADOS
-                // =====================================================
-
-                TotalProduccionesActivas =
-        producciones.Count(p => p.Activo),
-
-                TotalProduccionesInactivas =
-        producciones.Count(p => !p.Activo),
-
-                // =====================================================
-                // TOTALES ECONÓMICOS
-                // =====================================================
-
-                TotalCosto =
-        producciones
-            .SelectMany(p => p.Detalles ?? new List<DetalleProduccion>())
-            .Sum(d => d.SubtotalCosto),
-
-                TotalVenta =
-        producciones
-            .SelectMany(p => p.Detalles ?? new List<DetalleProduccion>())
-            .Sum(d => d.SubtotalVenta),
-
-                TotalUtilidad =
-        producciones
-            .SelectMany(p => p.Detalles ?? new List<DetalleProduccion>())
-            .Sum(d => d.SubtotalVenta - d.SubtotalCosto)
-            };
-
-            return View(model);
-        }
-        */
-
 
         // ==========================================================
         // GET CREAR PRODUCCIÓN ERP
         // ==========================================================
         [HttpGet]
+
         public async Task<IActionResult> CrearERP(int idPedido)
         {
+            if (!TieneAcceso())
+            {
+                TempData["error"] =
+                    "No tiene permisos para acceder al módulo Producción.";
+
+                return RedirectToAction(
+                    "Dashboard",
+                    "Auto");
+            }
             var model = new ProduccionCrearViewModel
             {
                 FechaProduccion = DateTime.Today,
@@ -262,8 +203,18 @@ namespace InventarioWEB.Controllers
         // ==========================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CrearERP(ProduccionCrearViewModel model)
+        public async Task<IActionResult> CrearERP(
+           ProduccionCrearViewModel model)
         {
+            if (!TieneAcceso())
+            {
+                TempData["error"] =
+                    "No tiene permisos para realizar esta operación.";
+
+                return RedirectToAction(
+                    "Dashboard",
+                    "Auto");
+            }
             if (!ModelState.IsValid)
             {
                 return View("CrearERP", model);
@@ -445,6 +396,15 @@ namespace InventarioWEB.Controllers
         // ==========================================================
         public async Task<IActionResult> Crear()
         {
+            if (!TieneAcceso())
+            {
+                TempData["error"] =
+                    "No tiene permisos para acceder al módulo Producción.";
+
+                return RedirectToAction(
+                    "Dashboard",
+                    "Auto");
+            }
             var model = new ProduccionCrearViewModel
             {
                 FechaProduccion = DateTime.Today,
@@ -462,6 +422,15 @@ namespace InventarioWEB.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Crear(ProduccionCrearViewModel model)
         {
+            if (!TieneAcceso())
+            {
+                TempData["error"] =
+                    "No tiene permisos para realizar esta operación.";
+
+                return RedirectToAction(
+                    "Dashboard",
+                    "Auto");
+            }
             model.Detalles = model.Detalles?
                 .Where(d => d.ID_Producto > 0 && d.CantidadProducida > 0 && d.CostoUnitario > 0)
                 .ToList() ?? new List<DetalleProduccionVM>();
@@ -610,6 +579,9 @@ namespace InventarioWEB.Controllers
             int pagina = 1,
             int registrosPorPagina = 50)
         {
+            if (!TieneAcceso())
+                return Unauthorized();
+
             var (lista, total) = await _produccionService.BuscarProductosAsync(
                 idProducto,
                 idGenero,
@@ -640,6 +612,8 @@ namespace InventarioWEB.Controllers
         [HttpGet]
         public async Task<IActionResult> ObtenerReferenciasPorGenero(int idGenero)
         {
+            if (!TieneAcceso())
+                return Unauthorized();
             if (idGenero <= 0)
                 return Json(new List<object>());
 
@@ -650,6 +624,9 @@ namespace InventarioWEB.Controllers
         [HttpGet]
         public async Task<IActionResult> ObtenerTallasPorGenero(int idGenero)
         {
+            if (!TieneAcceso())
+                return Unauthorized();
+
             if (idGenero <= 0)
                 return Json(new List<object>());
 
@@ -686,8 +663,18 @@ namespace InventarioWEB.Controllers
                 "Nombre");
         }
 
+
         public async Task<IActionResult> ReporteProduccionPdf(int id)
         {
+            if (!TieneAcceso())
+            {
+                TempData["error"] =
+                    "No tiene permisos para acceder al reporte.";
+
+                return RedirectToAction(
+                    "Dashboard",
+                    "Auto");
+            }
             var produccion = await _context.Producciones
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.ID_Produccion == id);

@@ -33,13 +33,23 @@ namespace InventarioWEB.Controllers
             _env = env;
             _reciboCajaService = reciboCajaService;
         }
-       
+
+        private bool TieneAcceso()
+        {
+            var rol = HttpContext.Session.GetString("Rol");
+
+            return rol == "Administrador"
+                || rol == "Vendedor";
+        }
 
         // ==========================================================
         // 🔹 INDEX (POS)
         // ==========================================================
         public async Task<IActionResult> Index()
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             await CargarFiltrosBaseAsync();
             return View();
         }
@@ -211,6 +221,9 @@ namespace InventarioWEB.Controllers
         [HttpPost]
         public async Task<IActionResult> Crear([FromBody] VentaVM venta)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
@@ -587,6 +600,9 @@ namespace InventarioWEB.Controllers
         [HttpGet]
         public async Task<IActionResult> ObtenerOrdenProduccion(int idPedido)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             try
             {
                 // 🔍 PEDIDO
