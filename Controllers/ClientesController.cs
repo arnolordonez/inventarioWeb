@@ -25,6 +25,15 @@ namespace InventarioWEB.Controllers
             _context = context;
         }
 
+        private bool TieneAcceso()
+        {
+            var rol = HttpContext.Session.GetString("Rol");
+
+            return rol == "Administrador"
+                || rol == "Vendedor";
+        }
+
+
         /// <summary>
         /// Muestra el listado paginado de clientes.
         /// Permite filtrar por estado (activos/inactivos) y realizar búsquedas por cédula o nombre.
@@ -38,6 +47,9 @@ namespace InventarioWEB.Controllers
             bool soloEliminados = false,
             string? search = null)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             int pageSize = 10;
             int pageNumber = page ?? 1;
 
@@ -74,6 +86,9 @@ namespace InventarioWEB.Controllers
         /// <returns>Vista con la información del cliente o NotFound si no existe.</returns>
         public async Task<IActionResult> Details(int id)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.ID_Cliente == id);
             if (cliente == null) return NotFound();
 
@@ -87,6 +102,9 @@ namespace InventarioWEB.Controllers
         /// <returns>Vista de creación de cliente.</returns>
         public async Task<IActionResult> Create()
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             await CargarTiposCliente();
             return View(new Cliente { FechaRegistro = DateTime.Now, Activo = true });
         }
@@ -101,6 +119,9 @@ namespace InventarioWEB.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Cliente model)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             await CargarTiposCliente();
 
             if (!ValidarCliente(model, esNuevo: true))
@@ -126,6 +147,9 @@ namespace InventarioWEB.Controllers
         /// <returns>Vista de edición o NotFound si no existe.</returns>
         public async Task<IActionResult> Edit(int id)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             var cliente = await _context.Clientes.FindAsync(id);
             if (cliente == null) return NotFound();
 
@@ -144,6 +168,9 @@ namespace InventarioWEB.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, Cliente model)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             if (id != model.ID_Cliente) return BadRequest();
 
             await CargarTiposCliente();
@@ -180,6 +207,9 @@ namespace InventarioWEB.Controllers
         [HttpGet]
         public async Task<IActionResult> Delete(int id)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.ID_Cliente == id);
             if (cliente == null) return NotFound();
 

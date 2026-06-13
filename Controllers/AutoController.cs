@@ -114,23 +114,63 @@ namespace InventarioWEB.Controllers
         /// La contraseña es validada utilizando el algoritmo BCrypt.
         /// En caso exitoso, se almacenan identificadores básicos en la sesión HTTP.
         /// </remarks>
+
         [HttpPost]
         public IActionResult Login(LoginRequest request)
         {
-            if (!ModelState.IsValid) return View(request);
+            if (!ModelState.IsValid)
+                return View(request);
 
-            var usuario = _usuariosContext.Usuarios.FirstOrDefault(u => u.Correo == request.Correo);
-            if (usuario != null && BCrypt.Net.BCrypt.Verify(request.Contrasena, usuario.HashContrasena))
+            // ==========================================
+            // VALIDAR USUARIO INACTIVO
+            // ==========================================
+           
+
+            // ==========================================
+            // BUSCAR USUARIO ACTIVO CON SU ROL
+            // ==========================================
+            var usuario = _usuariosContext.Usuarios
+                .Include(u => u.Rol)
+                .FirstOrDefault(u =>
+                    u.Correo == request.Correo &&
+                    u.Activo);
+
+            // ==========================================
+            // VALIDAR CONTRASEÑA
+            // ==========================================
+            if (usuario != null &&
+                BCrypt.Net.BCrypt.Verify(
+                    request.Contrasena,
+                    usuario.HashContrasena))
             {
-                HttpContext.Session.SetString("UsuarioID", usuario.IdUsuario.ToString());
-                HttpContext.Session.SetString("UsuarioNombre", $"{usuario.Nombres} {usuario.Apellidos}");
+                // ==========================================
+                // SESIÓN ERP
+                // ==========================================
+                HttpContext.Session.SetString(
+                    "UsuarioID",
+                    usuario.IdUsuario.ToString());
+
+                HttpContext.Session.SetString(
+                    "UsuarioNombre",
+                    $"{usuario.Nombres} {usuario.Apellidos}");
+
+                HttpContext.Session.SetString(
+                    "Rol",
+                    usuario.Rol?.NombreRol ?? string.Empty);
+
+                HttpContext.Session.SetString(
+                    "IdRol",
+                    usuario.IdRol.ToString());
+
                 return RedirectToAction("Dashboard");
             }
 
-            ModelState.AddModelError("", "Correo o contraseña incorrectos.");
+            ModelState.AddModelError(
+                "",
+                "Correo o contraseña incorrectos.");
+
             return View(request);
         }
-
         // ==========================================================
         // DASHBOARD
         // ==========================================================
@@ -235,38 +275,29 @@ namespace InventarioWEB.Controllers
 
 
         // ==========================================================
-        // REGISTRO DE USUARIO
+        // REGISTRO DE USUARIO (DESHABILITADO)
         // ==========================================================
 
         [HttpGet]
-        public IActionResult Register() => View();
+        public IActionResult Register()
+        {
+            TempData["error"] =
+                "El registro de usuarios se encuentra deshabilitado.";
+
+            return RedirectToAction("Login");
+        }
 
         [HttpPost]
         public IActionResult Register(RegisterRequest request)
         {
-            if (!ModelState.IsValid) return View(request);
+            // ==========================================================
+            // REGISTRO PÚBLICO DESHABILITADO
+            // ERP: Los usuarios deben ser creados únicamente
+            // por un Administrador del sistema.
+            // ==========================================================
 
-            if (_usuariosContext.Usuarios.Any(u => u.Correo == request.Correo))
-            {
-                ModelState.AddModelError("Correo", "El correo ya está registrado.");
-                return View(request);
-            }
-
-            var nuevoUsuario = new Usuario
-            {
-                Nombres = request.Nombres.Trim(),
-                Apellidos = request.Apellidos.Trim(),
-                Correo = request.Correo.Trim(),
-                Salt = Guid.NewGuid().ToString(),
-                HashContrasena = BCrypt.Net.BCrypt.HashPassword(request.Contrasena.Trim()),
-                IdRol = 1,
-                Activo = true,
-                FechaCreacion = DateTime.Now,
-                FechaUltimaActualizacion = DateTime.Now
-            };
-
-            _usuariosContext.Usuarios.Add(nuevoUsuario);
-            _usuariosContext.SaveChanges();
+            TempData["error"] =
+                "El registro de usuarios se encuentra deshabilitado. Solicite la creación de su cuenta al Administrador del sistema.";
 
             return RedirectToAction("Login");
         }
@@ -280,6 +311,15 @@ namespace InventarioWEB.Controllers
         {
             HttpContext.Session.Clear();
             return RedirectToAction("Login");
+        }
+
+        // ==========================================================
+        // ACCESO DENEGADO
+        // ==========================================================
+
+        public IActionResult AccesoDenegado()
+        {
+            return View();
         }
 
 
@@ -301,7 +341,8 @@ namespace InventarioWEB.Controllers
         [HttpPost]
         public IActionResult ForgotPassword(ForgotPasswordRequest request)
         {
-            if (!ModelState.IsValid) return View(request);
+            if (!ModelState.IsValid)
+                return View(request);
 
             var usuario = _usuariosContext.Usuarios
                 .FirstOrDefault(u => u.Correo == request.Correo);
@@ -317,7 +358,9 @@ namespace InventarioWEB.Controllers
             HttpContext.Session.SetString("ResetToken", token);
             HttpContext.Session.SetString("ResetUserId", usuario.IdUsuario.ToString());
 
-            ViewBag.Mensaje = $"Token generado: {token} (en producción se enviaría por correo).";
+            ViewBag.Mensaje =
+                $"Token generado: {token} (en producción se enviaría por correo).";
+
             return View(request);
         }
 
@@ -345,7 +388,8 @@ namespace InventarioWEB.Controllers
         [HttpPost]
         public IActionResult ResetPassword(ResetPasswordRequest request)
         {
-            if (!ModelState.IsValid) return View(request);
+            if (!ModelState.IsValid)
+                return View(request);
 
             var sessionToken = HttpContext.Session.GetString("ResetToken");
             var userIdStr = HttpContext.Session.GetString("ResetUserId");
@@ -367,15 +411,15 @@ namespace InventarioWEB.Controllers
                 return View(request);
             }
 
-            usuario.HashContrasena = BCrypt.Net.BCrypt.HashPassword(request.NuevaContrasena.Trim());
+            usuario.HashContrasena =
+                BCrypt.Net.BCrypt.HashPassword(request.NuevaContrasena.Trim());
+
             usuario.FechaUltimaActualizacion = DateTime.Now;
 
             _usuariosContext.SaveChanges();
 
             HttpContext.Session.Remove("ResetToken");
             HttpContext.Session.Remove("ResetUserId");
-
-            ViewBag.Mensaje = "Contraseña actualizada con éxito. Puede iniciar sesión.";
 
             return RedirectToAction("Login");
         }

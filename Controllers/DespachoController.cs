@@ -17,7 +17,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace InventarioWEB.Controllers
 {
-    [AllowAnonymous] // 🔥 IMPORTANTE: permite acceso sin login
+   // [AllowAnonymous] // 🔥 IMPORTANTE: permite acceso sin login
     public class DespachoController : Controller
     {
         private readonly IWebHostEnvironment _env;
@@ -27,13 +27,22 @@ namespace InventarioWEB.Controllers
             _context = context;
             _env = env;
         }
+        private bool TieneAcceso()
+        {
+            var rol = HttpContext.Session.GetString("Rol");
 
+            return rol == "Administrador"
+                || rol == "Producción";
+        }
 
         // ==========================================================
         // LISTADO
         // ==========================================================
         public async Task<IActionResult> Index()
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             // 🔥 SOLO LECTURA → AsNoTracking mejora rendimiento
             var despachos = await _context.Despachos
                 .Include(d => d.Pedido)
@@ -51,6 +60,9 @@ namespace InventarioWEB.Controllers
         // ==========================================================
         public async Task<IActionResult> SeleccionarPedido()
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             // 🔥 SOLO PEDIDOS PAGADOS Y NO DESPACHADOS
             var pedidos = await _context.Pedidos
                 .Include(p => p.Cliente)
@@ -89,6 +101,9 @@ namespace InventarioWEB.Controllers
         // ==========================================================
         public async Task<IActionResult> Detalle(int id)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             var despacho = await _context.Despachos
                 .Include(d => d.Pedido)
                 .Include(d => d.Detalles)
@@ -111,6 +126,9 @@ namespace InventarioWEB.Controllers
         // ==========================================================
         public async Task<IActionResult> Crear(int idPedido)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             var pedido = await _context.Pedidos
                 .Include(p => p.DetallePedidos)
                     .ThenInclude(dp => dp.Producto)
@@ -249,6 +267,9 @@ namespace InventarioWEB.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Crear(DespachoTallaViewModel model)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             if (!ModelState.IsValid)
                 return await Crear(model.ID_Pedido);
 
@@ -686,6 +707,9 @@ namespace InventarioWEB.Controllers
         // ==========================================================
         public async Task<IActionResult> Factura(int id)
         {
+            if (!TieneAcceso())
+                return RedirectToAction("AccesoDenegado", "Auto");
+
             var despacho = await _context.Despachos
                 .Include(d => d.Pedido)
                     .ThenInclude(p => p.Cliente)

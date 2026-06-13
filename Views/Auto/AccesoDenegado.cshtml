@@ -1,0 +1,51 @@
+﻿@{
+    ViewData["Title"] = "Acceso Denegado";
+}
+
+<div class="container mt-5">
+
+    <div class="card shadow border-danger">
+
+        <div class="card-header bg-danger text-white">
+            <h3 class="mb-0">
+                🚫 Acceso Denegado
+            </h3>
+        </div>
+
+        <div class="card-body">
+
+            <div class="alert alert-warning">
+                <strong>No tiene permisos suficientes para acceder a esta opción del sistema.</strong>
+            </div>
+
+            <p>
+                Su rol actual no está autorizado para ejecutar esta acción.
+            </p>
+
+            <p>
+                Si considera que esto es un error, comuníquese con el administrador del sistema.
+            </p>
+
+            <hr />
+
+            <div class="d-flex gap-2">
+
+                <a asp-controller="Auto"
+                   asp-action="Dashboard"
+                   class="btn btn-primary">
+                    🏠 Volver al Dashboard
+                </a>
+
+                <a asp-controller="Auto"
+                   asp-action="Logout"
+                   class="btn btn-secondary">
+                    🔐 Cerrar Sesión
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

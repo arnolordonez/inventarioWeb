@@ -1,0 +1,155 @@
+﻿@{
+    ViewData["Title"] = "Sistema de Usuarios";
+    Layout = null; // Para no usar el layout por defecto y mostrar la pantalla completa
+}
+
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/css/styles.css" />
+</head>
+<body>
+    <!-- 🔹 Encabezado -->
+    <header class="site-header" role="banner">
+        <div class="container header-inner">
+            <h1 id="app-title">SISTEMA DE USUARIOS</h1>
+            <nav aria-label="Navegación principal" class="top-nav" role="navigation">
+                <button id="nav-login" class="nav-btn" aria-pressed="true">Login</button>
+                <button id="nav-register" class="nav-btn" aria-pressed="false">Registro</button>
+                <button id="nav-forgot" class="nav-btn" aria-pressed="false">Recuperar contraseña</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 🔹 Contenido principal -->
+    <main class="container" id="main" role="main">
+        <div id="live-region" aria-live="polite" aria-atomic="true" class="visually-hidden"></div>
+
+        <!-- Pantalla Login -->
+        <section id="screen-login" class="screen" aria-labelledby="login-title">
+            <h2 id="login-title" class="screen-title">Iniciar Sesión</h2>
+            <form id="form-login" novalidate>
+                <label for="loginUsuario">Usuario</label>
+                <input id="loginUsuario" name="usuario" type="text" required aria-required="true">
+
+                <label for="loginContrasena">Contraseña</label>
+                <input id="loginContrasena" name="contrasena" type="password" required aria-required="true">
+
+                <div class="actions">
+                    <button type="submit" class="btn primary" id="btn-login">Ingresar</button>
+                </div>
+
+                <div class="links">
+                    <button type="button" id="btn-open-register" class="link-btn">¿No tienes cuenta? Regístrate</button>
+                    <button type="button" id="btn-open-forgot" class="link-btn">¿Olvidaste tu contraseña?</button>
+                </div>
+            </form>
+            <div id="loginMessage" class="message"></div>
+        </section>
+
+        <!-- Pantalla Registro -->
+        <section id="screen-register" class="screen hidden" aria-labelledby="register-title">
+            <h2 id="register-title" class="screen-title">Registro de Usuario</h2>
+            <form id="form-register" novalidate>
+                <label for="nombres">Nombres</label>
+                <input id="nombres" name="nombres" type="text" required aria-required="true">
+
+                <label for="apellidos">Apellidos</label>
+                <input id="apellidos" name="apellidos" type="text" required aria-required="true">
+
+                <label for="cedula">Cédula</label>
+                <input id="cedula" name="cedula" type="text" inputmode="numeric" pattern="[0-9]{6,15}" required aria-required="true">
+
+                <label for="fecha_nac">Fecha de Nacimiento</label>
+                <input id="fecha_nac" name="fecha_nac" type="date" required aria-required="true">
+
+                <label for="usuario">Usuario</label>
+                <input id="usuario" name="usuario" type="text" required aria-required="true">
+
+                <label for="contrasena">Contraseña</label>
+                <input id="contrasena" name="contrasena" type="password" required aria-required="true">
+
+                <label for="correo">Correo</label>
+                <input id="correo" name="correo" type="email" required aria-required="true">
+
+                <div class="actions">
+                    <button type="submit" class="btn primary">Registrar</button>
+                    <button type="button" class="btn outline" id="btn-cancel-register">Cancelar</button>
+                </div>
+            </form>
+            <div id="registerMessage" class="message"></div>
+        </section>
+
+        <!-- Pantalla Recuperar contraseña -->
+        <section id="screen-forgot" class="screen hidden" aria-labelledby="forgot-title">
+            <h2 id="forgot-title" class="screen-title">Recuperar Contraseña</h2>
+            <form id="form-forgot" novalidate>
+                <label for="correoForgot">Correo</label>
+                <input id="correoForgot" name="correo" type="email" required aria-required="true">
+                <div class="actions">
+                    <button type="submit" class="btn primary">Recuperar</button>
+                    <button type="button" class="btn outline" id="btn-cancel-forgot">Cancelar</button>
+                </div>
+            </form>
+            <div id="forgotMessage" class="message"></div>
+        </section>
+
+        <!-- Pantalla Restablecer contraseña -->
+        <section id="screen-reset" class="screen hidden" aria-labelledby="reset-title">
+            <h2 id="reset-title" class="screen-title">Restablecer Contraseña</h2>
+            <form id="form-reset" novalidate>
+                <label for="newPassword">Nueva Contraseña</label>
+                <input id="newPassword" name="newPassword" type="password" autocomplete="new-password" required aria-required="true">
+
+                <label for="confirmPassword">Confirmar Contraseña</label>
+                <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required aria-required="true">
+
+                <div class="actions">
+                    <button type="submit" class="btn primary">Restablecer</button>
+                    <button type="button" class="btn outline" id="btn-cancel-reset">Cancelar</button>
+                </div>
+            </form>
+            <div id="resetMessage" class="message"></div>
+        </section>
+
+        <!-- Pantalla principal (Dashboard) -->
+        <section id="screen-dashboard" class="screen hidden" aria-labelledby="dashboard-title">
+            <h2 id="dashboard-title" class="screen-title">Menú Principal</h2>
+            <p id="dashboard-welcome" style="text-align:center; margin-bottom:1em;"></p>
+            <nav class="dashboard-menu">
+                <ul>
+                    <li><button id="btn-grafica" class="btn">📊 Estadísticas</button></li>
+                    <li><button id="btn-reporte" class="btn">📄 Generar reporte</button></li>
+                </ul>
+            </nav>
+            <div class="actions">
+                <button id="btn-logout" class="btn outline">Cerrar sesión</button>
+            </div>
+        </section>
+
+        <!-- Modal de Error -->
+        <div id="error-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="error-title" aria-describedby="error-desc">
+            <div class="modal-content">
+                <h3 id="error-title">⚠️ Error</h3>
+                <p id="error-desc"></p>
+                <div class="actions">
+                    <button id="btn-retry" class="btn primary">Reintentar</button>
+                    <button id="btn-close-modal" class="btn outline">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Pie de página -->
+    <footer class="site-footer" role="contentinfo">
+        <div class="container">
+            <small>Sistema de Usuarios · Paleta: Azul #2A5D9F · Blanco #FFFFFF · Gris #333333</small>
+        </div>
+    </footer>
+
+    <script src="~/js/app.js"></script>
+</body>
+</html>
