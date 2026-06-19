@@ -11,7 +11,6 @@ namespace InventarioWEB.Data
         // ==========================================================
         // DBSETS
         // ==========================================================
-
         public DbSet<Abono> Abonos { get; set; } = null!;
         public DbSet<Cliente> Clientes { get; set; } = null!;
         public DbSet<Color> Colores { get; set; } = null!;
@@ -32,6 +31,7 @@ namespace InventarioWEB.Data
         public DbSet<DetalleDespacho> DetalleDespachos { get; set; } = null!;
         public DbSet<MovimientoInventario> MovimientoInventarios { get; set; } = null!;
         public DbSet<EnvioWhatsApp> EnvioWhatsApp { get; set; }
+        public DbSet<HistorialInventario> HistorialInventario { get; set; } = null!;
 
         // PRODUCCIÓN
         public DbSet<Produccion> Producciones { get; set; } = null!;

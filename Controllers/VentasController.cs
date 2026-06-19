@@ -17,6 +17,7 @@ using iText.Kernel.Font;
 using InventarioWEB.Services;
 using iText.Commons.Actions.Contexts;
 
+using System.Diagnostics;  // Usada para diagnostico de rendimiento
 namespace InventarioWEB.Controllers
 {
     public class VentasController : Controller
@@ -36,7 +37,8 @@ namespace InventarioWEB.Controllers
 
         private bool TieneAcceso()
         {
-            var rol = HttpContext.Session.GetString("Rol");
+            var rol = HttpContext.Session.GetString("Rol")?.Trim() ?? string.Empty;
+            //var rol = HttpContext.Session.GetString("Rol");
 
             return rol == "Administrador"
                 || rol == "Vendedor";
@@ -190,6 +192,7 @@ namespace InventarioWEB.Controllers
             return Json(data);
         }
 
+        
         [HttpGet]
         public async Task<IActionResult> ObtenerMatriz(int idGenero, int idReferencia, int idTela, int idColor)
         {
@@ -214,11 +217,49 @@ namespace InventarioWEB.Controllers
 
             return Json(productos);
         }
+        
 
-        // ==========================================================
-        // 🔹 GUARDAR VENTA (VERSIÓN ESTABLE - CORREGIDA + URL PDF)
-        // ==========================================================
-        [HttpPost]
+        /*
+        // METODO UTILIZADO PARA MEDIR RENDIMIENTO DE LA CONSULTA DE MATRIZ DE PRODUCTOS (PNF-002)
+        [HttpGet]
+    public async Task<IActionResult> ObtenerMatriz(int idGenero, int idReferencia, int idTela, int idColor)
+    {
+        // INICIO MEDICIÓN PNF-002
+        var sw = Stopwatch.StartNew();
+        var productos = await _context.Productos
+            .Include(p => p.Talla)
+            .Where(p =>
+                p.ID_Genero == idGenero &&
+                p.ID_Referencias == idReferencia &&
+                p.ID_Telas == idTela &&
+                p.ID_Color == idColor &&
+                p.Activo
+            )
+            .Select(p => new
+            {
+                id_Producto = p.ID_Producto,
+                talla = p.Talla != null ? p.Talla.DescripTalla : "Sin talla",
+                stock = p.Stock,
+                precioVTA = p.PrecioVTA
+            })
+            .OrderBy(p => p.talla)
+            .ToListAsync();
+
+        // FIN MEDICIÓN PNF-002
+        sw.Stop();
+
+        Debug.WriteLine(
+            $"PNF-002 -> ObtenerMatriz ejecutado en {sw.ElapsedMilliseconds} ms");
+
+        return Json(productos);
+    }
+    */
+
+
+    // ==========================================================
+    // 🔹 GUARDAR VENTA (VERSIÓN ESTABLE - CORREGIDA + URL PDF)
+    // ==========================================================
+    [HttpPost]
         public async Task<IActionResult> Crear([FromBody] VentaVM venta)
         {
             if (!TieneAcceso())

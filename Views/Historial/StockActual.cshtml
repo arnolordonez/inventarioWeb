@@ -1,0 +1,32 @@
+﻿@model List<InventarioWEB.Models.MovimientoInventario>
+
+@{
+    ViewData["Title"] = "Movimientos de Inventario";
+}
+
+<h2>📦 Movimientos de Inventario</h2>
+
+<table class="table table-bordered table-striped">
+    <thead class="table-dark">
+        <tr>
+            <th>Fecha</th>
+            <th>Producto</th>
+            <th>Tipo</th>
+            <th>Cantidad</th>
+            <th>Usuario</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Fecha.ToString("yyyy-MM-dd HH:mm")</td>
+                <td>@item.ID_Producto</td>
+                <td>@item.TipoMovimiento</td>
+                <td>@item.Cantidad</td>
+                <td>@item.Usuario</td>
+            </tr>
+        }
+    </tbody>
+</table>
