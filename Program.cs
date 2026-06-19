@@ -41,7 +41,7 @@ builder.Services.AddDbContext<MovimientoVentasDbContext>(options =>
 builder.Services.AddScoped<ProduccionService>();
 builder.Services.AddScoped<AbonoService>();
 builder.Services.AddScoped<ReciboCajaService>();
-
+builder.Services.AddScoped<HistorialInventarioService>();
 
 // ==========================================================
 // SERVICIOS MVC + API
@@ -98,7 +98,6 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-
 // Activar sesiones (REQUERIDO PARA LOGIN)
 app.UseSession();
 

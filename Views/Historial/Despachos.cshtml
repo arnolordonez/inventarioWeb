@@ -1,0 +1,32 @@
+﻿@model List<InventarioWEB.Models.Despacho>
+
+@{
+    ViewData["Title"] = "Historial de Despachos";
+}
+
+<h2>🚚 Historial de Despachos</h2>
+
+<table class="table table-bordered table-striped">
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Pedido</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+            <th>Tipo</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.ID_Despacho</td>
+                <td>@item.ID_Pedido</td>
+                <td>@item.Fecha.ToString("yyyy-MM-dd")</td>
+                <td>@item.Estado</td>
+                <td>@item.Tipo</td>
+            </tr>
+        }
+    </tbody>
+</table>

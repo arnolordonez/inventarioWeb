@@ -14,22 +14,29 @@ using iText.IO.Image;
 using iText.Layout.Borders;
 using iText.Layout.Properties;
 using Microsoft.AspNetCore.Authorization;
+using InventarioWEB.Services;
 
 namespace InventarioWEB.Controllers
 {
    // [AllowAnonymous] // 🔥 IMPORTANTE: permite acceso sin login
     public class DespachoController : Controller
     {
+        
         private readonly IWebHostEnvironment _env;
         private readonly MovimientoVentasDbContext _context;
-        public DespachoController(MovimientoVentasDbContext context, IWebHostEnvironment env)
+        private readonly HistorialInventarioService _historialService;
+
+        public DespachoController(MovimientoVentasDbContext context,IWebHostEnvironment env,
+            HistorialInventarioService historialService)
         {
             _context = context;
             _env = env;
+            _historialService = historialService;
         }
         private bool TieneAcceso()
         {
-            var rol = HttpContext.Session.GetString("Rol");
+            var rol = HttpContext.Session.GetString("Rol")?.Trim() ?? string.Empty;
+
 
             return rol == "Administrador"
                 || rol == "Producción";
@@ -148,24 +155,19 @@ namespace InventarioWEB.Controllers
             // 🔥 PRODUCCIÓN REAL DISPONIBLE PARA DESPACHO
             // =====================================================
 
-            var produccionDisponible = await (
-                from dp in _context.DetalleProducciones
-
-                group dp by dp.ID_DetallePedido into g
-
-                select new
+            var produccionDisponible = await _context.DetalleProducciones
+                .Where(dp => dp.ID_DetallePedido != null) // 🔥 FILTRO CLAVE
+                .GroupBy(dp => dp.ID_DetallePedido ?? 0)
+                .Select(g => new
                 {
                     ID_DetallePedido = g.Key,
-
-                    TotalProducido =
-                        g.Sum(x => x.CantidadProducida)
-                }
-            )
-           .ToDictionaryAsync(
-                x => x.ID_DetallePedido,
-                x => x.TotalProducido
-            );
-
+                    TotalProducido = g.Sum(x => x.CantidadProducida)
+                })
+                .ToDictionaryAsync(
+                    x => x.ID_DetallePedido,
+                    x => x.TotalProducido
+                );
+    
             // =====================================================
             // 🔥 DESPACHADO REAL
             // =====================================================
@@ -382,8 +384,8 @@ namespace InventarioWEB.Controllers
                     .Select(d => d.ID_Producto)
                     .Distinct()
                     .ToList();
-
                 var productos = await _context.Productos
+                    .Include(p => p.Tela)
                     .Where(p => productoIds.Contains(p.ID_Producto))
                     .ToDictionaryAsync(p => p.ID_Producto);
 
@@ -404,8 +406,26 @@ namespace InventarioWEB.Controllers
 
                 // =====================================================
                 // 🔥 PRODUCCIÓN REAL DISPONIBLE
-                // =====================================================
+                // =====================================================              
 
+                var produccionDisponible = await _context.DetalleProducciones
+                    .Where(x => x.ID_DetallePedido != null)
+                    .Select(x => new
+                    {
+                        ID_DetallePedido = x.ID_DetallePedido!.Value, // 🔥 FORZAMOS NON-NULL
+                        x.CantidadProducida
+                    })
+                    .GroupBy(x => x.ID_DetallePedido)
+                    .Select(g => new
+                    {
+                        ID_DetallePedido = g.Key,
+                        TotalProducido = g.Sum(x => x.CantidadProducida)
+                    })
+                    .ToDictionaryAsync(
+                        x => x.ID_DetallePedido,
+                        x => x.TotalProducido
+                    );
+                /*
                 var produccionDisponible = await _context.DetalleProducciones
                     .GroupBy(x => x.ID_DetallePedido)
                     .Select(g => new
@@ -417,7 +437,7 @@ namespace InventarioWEB.Controllers
                         x => x.ID_DetallePedido,
                         x => x.TotalProducido
                     );
-
+                     */
                 // =====================================================
                 // 🔥 VALIDACIÓN POR ITEM
                 // =====================================================
@@ -629,10 +649,12 @@ namespace InventarioWEB.Controllers
                     };
 
                     _context.DetalleDespachos.Add(detalleDespacho);
+                                      
+                    // ==============================================
+                    // 📉 ACTUALIZAR STOCK
+                    // ==============================================
+                    var stockAnterior = producto.Stock;
 
-                    // ==============================================
-                    // 📉 ACTUALIZAR STOCK (ÚNICA MUTACIÓN REAL)
-                    // ==============================================
                     producto.Stock -= item.Cantidad;
 
                     if (producto.Stock < 0)
@@ -642,6 +664,33 @@ namespace InventarioWEB.Controllers
                         );
                     }
 
+                    var stockActual = producto.Stock;
+
+                    _context.Entry(producto).State = EntityState.Modified;
+
+                   
+                    // ==============================================
+                    // 🔥 HISTORIAL INVENTARIO
+                    // ==============================================
+                    await _historialService.RegistrarDespachoAsync(
+                        sku: $"{producto.ID_Referencias}-{producto.ID_Color}-{producto.ID_Tallas}",
+                        referencia: producto.ID_Referencias.ToString(),
+                        color: producto.ColorSnapshot ?? "N/A",
+                        tela: producto.Tela?.DescripTela ?? "N/A",
+                        talla: producto.ID_Tallas.ToString(),
+                        cantidad: item.Cantidad,
+                        stockAnterior: stockAnterior,
+                        stockActual: stockActual,
+                       
+                    usuarioId: int.Parse(HttpContext.Session.GetString("UsuarioID") ?? "0"),
+                        usuarioNombre: HttpContext.Session.GetString("UsuarioNombre") ?? "Sistema",
+                        ventaId: pedido.ID_Pedido,
+                        despachoId: despacho.ID_Despacho,
+                        cliente: pedido.Cliente?.Nombre ?? "Cliente General",
+                        documentoReferencia: $"DESP-{despacho.ID_Despacho}"
+                    );
+
+                    //********
                     _context.Entry(producto).State = EntityState.Modified;
                 }
                 // ==============================================

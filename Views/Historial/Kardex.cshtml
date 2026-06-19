@@ -1,0 +1,530 @@
+﻿@*@ @model List<InventarioWEB.Models.HistorialInventario>  *@
+@model List<InventarioWEB.ViewModels.KardexViewModel>
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Kardex de Inventario";
+
+    
+    // ✅ Validación correcta
+    var hayDatos = Model != null && Model.Any();
+
+    // ✅ Totales correctos para Kardex
+    var totalEntradas = Model != null
+        ? Model.Sum(m => m.Entrada)
+        : 0;
+
+    var totalSalidas = Model != null
+        ? Model.Sum(m => m.Salida)
+        : 0;
+
+  
+    /*
+    // ✅ Validación correcta
+    var hayDatos = Model != null && Model.Any();
+
+    var totalEntradas = Model != null ? Model
+        .Where(m =>
+            m.TipoMovimiento == "PRODUCCION" ||
+            m.TipoMovimiento == "COMPRA" ||
+            m.TipoMovimiento == "AJUSTE")
+        .Sum(m => m.Cantidad)
+        : 0;
+
+    var totalSalidas = Model != null ? Model
+        .Where(m => m.TipoMovimiento == "VENTA_DESPACHO")
+        .Sum(m => Math.Abs(m.Cantidad))
+        : 0;
+        */
+
+
+    // ✅ Serialización segura para JS
+    var graficaJson = JsonSerializer.Serialize(ViewBag.Grafica ?? new object[] { });
+}
+<h2>📊 Kardex de Inventario</h2>
+
+<!-- 📈 GRÁFICA -->
+<div class="mb-4">
+    <canvas id="graficaMovimientos" height="100"></canvas>
+</div>
+
+<script id="grafica-data" type="application/json">
+    @Html.Raw(graficaJson)
+</script>
+
+
+<!-- 🔍 FILTROS -->
+<form method="get" class="mb-3">
+
+    <div class="row g-2 align-items-end">
+
+        <div class="col-md-2">
+            <input type="text"
+                   name="sku"
+                   class="form-control"
+                   placeholder="SKU"
+                   value="@ViewBag.Filtros?.sku" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label mb-1">Género</label>
+
+            <select id="genero"
+                    name="genero"
+                    class="form-select">
+
+                <option value="">
+                    Todos
+                </option>
+
+                @foreach (var item in ViewBag.Generos)
+                {
+                    if (ViewBag.GeneroSeleccionado != null &&
+                    (int)ViewBag.GeneroSeleccionado == item.ID_Genero)
+                    {
+                        <option value="@item.ID_Genero" selected>
+                            @item.DescripGenero
+                        </option>
+                    }
+                    else
+                    {
+                        <option value="@item.ID_Genero">
+                            @item.DescripGenero
+                        </option>
+                    }
+                }
+
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label mb-1">Referencia</label>
+
+            <select id="referencia"
+                    name="referencia"
+                    class="form-select">
+
+                <option value="">
+                    Todas
+                </option>
+
+                @foreach (InventarioWEB.Models.Referencia item in
+                (IEnumerable<InventarioWEB.Models.Referencia>)ViewBag.Referencias)
+                {
+                    if (ViewBag.ReferenciaSeleccionada != null &&
+                    (int)ViewBag.ReferenciaSeleccionada == item.ID_Referencias)
+                    {
+                        <option value="@item.ID_Referencias" selected>
+                            @item.DescripReferencia
+                        </option>
+                    }
+                    else
+                    {
+                        <option value="@item.ID_Referencias">
+                            @item.DescripReferencia
+                        </option>
+                    }
+                }
+
+            </select>
+        </div>
+       
+        
+        <div class="col-md-2">
+            <label class="form-label mb-1">Color</label>
+
+            <select id="color"
+                    name="color"
+                    class="form-select">
+
+                <option value="">
+                    Todos
+                </option>
+
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label mb-1">Tela</label>
+
+            <select id="tela"
+                    name="tela"
+                    class="form-select">
+
+                <option value="">
+                    Todas
+                </option>
+
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label mb-1">Talla</label>
+
+            <select id="talla"
+                    name="talla"
+                    class="form-select">
+
+                <option value="">
+                    Todas
+                </option>
+
+            </select>
+        </div>
+        <!-- 📅 FECHAS AGRUPADAS -->
+        <div class="col-md-3">
+
+            <label class="form-label mb-1">
+                Período
+            </label>
+
+            <div class="d-flex gap-1">
+
+                <input type="date"
+                       name="fechaInicio"
+                       class="form-control"
+                       value="@ViewBag.Filtros?.fechaInicio" />
+
+                <input type="date"
+                       name="fechaFin"
+                       class="form-control"
+                       value="@ViewBag.Filtros?.fechaFin" />
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="mt-3">
+
+        <button type="submit" class="btn btn-primary">
+            🔍 Buscar
+        </button>
+
+        <a href="@Url.Action("Kardex")"
+           class="btn btn-secondary">
+            Limpiar
+        </a>
+
+        @if (hayDatos)
+        {
+            <a asp-action="ExportarExcel"
+               asp-route-sku="@ViewBag.Filtros?.sku"
+               asp-route-referencia="@ViewBag.Filtros?.referencia"
+               asp-route-color="@ViewBag.Filtros?.color"
+               asp-route-tela="@ViewBag.Filtros?.tela"
+               asp-route-talla="@ViewBag.Filtros?.talla"
+               asp-route-fechaInicio="@ViewBag.Filtros?.fechaInicio"
+               asp-route-fechaFin="@ViewBag.Filtros?.fechaFin"
+               class="btn btn-success">
+
+                📄 Exportar Excel
+
+            </a>
+        }
+        else
+        {
+            <button type="button"
+                    class="btn btn-secondary"
+                    disabled>
+
+                📄 Exportar Excel
+
+            </button>
+        }
+
+    </div>
+
+    @if (!hayDatos)
+    {
+        <div class="alert alert-warning mt-3 mb-0">
+            No hay datos para los filtros seleccionados.
+        </div>
+    }
+
+</form>
+<hr />
+
+<!-- 📊 TOTALES -->
+<div class="mb-3">
+    <strong>Total Entradas:</strong>
+    <span style="color:green">@totalEntradas</span> |
+
+    <strong>Total Salidas:</strong>
+    <span style="color:red">@totalSalidas</span>
+</div>
+
+<!-- 📋 TABLA -->
+<table class="table table-bordered table-striped table-sm">
+    <thead class="table-dark">
+        <tr>
+            <th>Fecha</th>
+            <th>SKU</th>
+            <th>Referencia</th>
+            <th>Color</th>
+            <th>Tela</th>
+            <th>Talla</th>
+            <th>Movimiento</th>
+            <th>Documento</th>
+            <th class="text-end">Entrada</th>
+            <th class="text-end">Salida</th>
+            <th class="text-end">Saldo</th>
+                       
+            <th>Usuario</th> <!--Usuario se queda -->
+        </tr>
+    </thead>
+    <tbody>
+         
+          @*  foreach (var item in Model ?? Enumerable.Empty<InventarioWEB.Models.HistorialInventario>()) *@
+              @if (hayDatos)
+              {
+                foreach (var item in Model!)
+                {
+                <tr>
+                    <td>@item.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>@item.Sku</td>
+                    <td>@item.Referencia</td>
+                    <td>@item.Color</td>
+                    <td>@item.Talla</td>
+
+                    <td>
+                        <span style="color:
+                    @(item.TipoMovimiento == "SALIDA" ? "red" : "green")">
+                            @item.TipoMovimiento
+                        </span>
+                    </td>
+
+                    <!-- 🟢 ENTRADA -->
+                    <td style="color:green; text-align:right;">
+                        @(item.Entrada > 0 ? item.Entrada.ToString("N0") : "")
+                    </td>
+
+                    <!-- 🔴 SALIDA -->
+                    <td style="color:red; text-align:right;">
+                        @(item.Salida > 0 ? item.Salida.ToString("N0") : "")
+                    </td>
+
+                    <!-- 🔵 SALDO -->
+                    <td style="text-align:right; font-weight:bold;">
+                        @item.Saldo.ToString("N0")
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="9" class="text-center">
+                    ⚠️ No hay movimientos para los filtros seleccionados
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@section Scripts {
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+
+        // =====================================
+        // GRÁFICA KARDEX
+        // =====================================
+
+        var raw = document.getElementById('grafica-data')?.textContent;
+        var datos = raw ? JSON.parse(raw) : [];
+
+        if (datos.length > 0) {
+
+            var labels = datos.map(x =>
+                new Date(x.Fecha).toLocaleDateString());
+
+            var entradas = datos.map(x => x.Entrada || 0);
+            var salidas = datos.map(x => x.Salida || 0);
+
+            var ctx =
+                document.getElementById('graficaMovimientos');
+
+            if (!ctx) {
+
+                console.error(
+                    "❌ No existe el canvas graficaMovimientos");
+
+            }
+            else {
+
+                new Chart(ctx, {
+
+                    type: 'bar',
+
+                    data: {
+
+                        labels: labels,
+
+                        datasets: [
+
+                            {
+                                label: 'Entradas',
+                                data: entradas
+                            },
+
+                            {
+                                label: 'Salidas',
+                                data: salidas
+                            }
+
+                        ]
+
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        scales: {
+
+                            y: {
+                                beginAtZero: true
+                            }
+
+                        }
+
+                    }
+
+                });
+
+            }
+
+        }
+
+    </script>
+
+    <script>
+
+
+        // =====================================
+        // CARGA INICIAL (COLOR / TELA)
+        // =====================================
+
+        function cargarColores() {
+
+            $.get('/Historial/ObtenerColores', function (data) {
+
+                let combo = $('#color');
+                combo.empty();
+                combo.append('<option value="">Todos</option>');
+
+                $.each(data, function (i, item) {
+                    combo.append(
+                        `<option value="${item.value}">
+                            ${item.text}
+                        </option>`
+                    );
+                });
+
+            });
+
+        }
+
+        function cargarTelas() {
+
+            $.get('/Historial/ObtenerTelas', function (data) {
+
+                let combo = $('#tela');
+                combo.empty();
+                combo.append('<option value="">Todas</option>');
+
+                $.each(data, function (i, item) {
+                    combo.append(
+                        `<option value="${item.value}">
+                            ${item.text}
+                        </option>`
+                    );
+                });
+
+            });
+
+        }
+
+        // Ejecutar al cargar la vista
+        cargarColores();
+        cargarTelas();
+
+
+
+        // =====================================
+        // CARGAR REFERENCIAS POR GÉNERO
+        // =====================================
+
+        $('#genero').change(function () {
+
+            let idGenero = $(this).val();
+
+            let combo = $('#referencia');
+
+            combo.empty();
+
+            combo.append(
+                '<option value="">Todas</option>'
+            );
+
+            if (!idGenero)
+                return;
+
+            $.get(
+                '/Historial/ObtenerReferenciasPorGenero',
+                { idGenero: idGenero },
+
+                function (data) {
+
+                    console.log(
+                        'Referencias cargadas:',
+                        data
+                    );
+
+                    $.each(data, function (i, item) {
+
+                        combo.append(
+                            `<option value="${item.value}">
+                                ${item.text}
+                            </option>`
+                        );
+
+                    });
+
+                }
+            );
+
+
+            $.get(
+            '/Historial/ObtenerTallasPorGenero',
+            { idGenero: idGenero },
+
+            function (data) {
+
+                let comboTalla = $('#talla');
+
+                comboTalla.empty();
+
+                comboTalla.append(
+                    '<option value="">Todas</option>'
+                );
+
+                $.each(data, function (i, item) {
+
+                    comboTalla.append(
+                        `<option value="${item.value}">
+                            ${item.text}
+                        </option>`
+                    );
+
+                });
+
+            }
+        );
+
+        });
+    </script>
+}
+   

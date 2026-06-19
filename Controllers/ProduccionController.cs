@@ -26,8 +26,8 @@ namespace InventarioWEB.Controllers
         // ==========================================================
         private bool TieneAcceso()
         {
-            var rol = HttpContext.Session.GetString("Rol");
-
+            //var rol = HttpContext.Session.GetString("Rol");
+            var rol = HttpContext.Session.GetString("Rol")?.Trim() ?? string.Empty;
             return rol == "Administrador"
                 || rol == "Producción";
         }
