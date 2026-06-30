@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿
+using Microsoft.EntityFrameworkCore;
 using InventarioWEB.Data;
 using InventarioWEB.Models;
 using InventarioWEB.ViewModels;
@@ -10,18 +11,23 @@ namespace InventarioWEB.Services
     {
         private readonly MovimientoVentasDbContext _context;
 
+        // 🔥 Servicio de historial de inventario
+        private readonly HistorialInventarioService _historialService;
 
         private readonly decimal _margenAdvertencia;
         private readonly decimal _margenCritico;
 
-        public ProduccionService(MovimientoVentasDbContext context, IConfiguration config)
+        public ProduccionService(
+            MovimientoVentasDbContext context,
+            HistorialInventarioService historialService,
+            IConfiguration config)
         {
             _context = context;
+            _historialService = historialService;
 
             _margenAdvertencia = config.GetValue<decimal>("Produccion:MargenAdvertencia");
             _margenCritico = config.GetValue<decimal>("Produccion:MargenCritico");
         }
-       
 
         // ============================================================
         // 🔍 BÚSQUEDA OPTIMIZADA DE PRODUCTOS PARA PRODUCCIÓN
@@ -170,10 +176,17 @@ namespace InventarioWEB.Services
         // ============================================================
         // 📦 REGISTRO DE PRODUCCIÓN ROBUSTO
         // ============================================================
-
+        /*
         public async Task RegistrarProduccionAsync(
             Produccion produccion,
             List<DetalleProduccion> detalles)
+        {
+        */
+        public async Task RegistrarProduccionAsync(
+             Produccion produccion,
+             List<DetalleProduccion> detalles,
+             int usuarioId,
+             string usuarioNombre)
         {
             var strategy = _context.Database.CreateExecutionStrategy();
 
@@ -281,9 +294,28 @@ namespace InventarioWEB.Services
                         detalle.SubtotalVenta =
                             Math.Round(baseVenta + ivaValor, 2, MidpointRounding.AwayFromZero);
 
+
                         var stockAnterior = producto.Stock;
                         var nuevoStock = stockAnterior + detalle.CantidadProducida;
+
                         producto.Stock = nuevoStock;
+
+                        // ================================================
+                        // REGISTRAR HISTORIAL DE ENTRADA
+                        // ================================================
+
+                        await _historialService.RegistrarEntradaProduccionAsync(
+                              producto: producto,
+                              cantidad: detalle.CantidadProducida,
+                              stockAnterior: stockAnterior,
+                              stockActual: nuevoStock,
+                              usuarioId: usuarioId,
+                              usuarioNombre: usuarioNombre,
+                              produccionId: produccion.ID_Produccion,
+                              documentoReferencia: $"PROD-{produccion.ID_Produccion}",
+                              observaciones: $"Entrada por Producción #{produccion.ID_Produccion}"
+                        );
+
 
                         decimal costoActual = producto.PrecioCosto;
 

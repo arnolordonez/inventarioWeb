@@ -1,5 +1,284 @@
-﻿@*@ @model List<InventarioWEB.Models.HistorialInventario>  *@
+﻿@model List<InventarioWEB.ViewModels.KardexViewModel>
+@using System.Text.Json
+@using InventarioWEB.ViewModels
+
+@{
+    ViewData["Title"] = "Kardex de Inventario";
+
+    var modelData = Model ?? new List<KardexViewModel>();
+    var hayDatos = modelData.Any();
+
+    var totalEntradas = modelData.Sum(m => m.Entrada);
+    var totalSalidas = modelData.Sum(m => m.Salida);
+
+    var graficaJson = JsonSerializer.Serialize(
+        ViewBag.Grafica ?? new List<KardexGraficaViewModel>(),
+        new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                }
+    );
+
+    var filtros = ViewBag.Filtros;
+}
+
+
+
+
+<!-- 🟣 GRAFICA -->
+
+<h2>📊 Kardex de Inventario</h2>
+
+<div class="mb-4">
+    <canvas id="graficaMovimientos" height="100"></canvas>
+</div>
+
+<script id="grafica-data" type="application/json">
+    @Html.Raw(graficaJson)
+</script>
+
+<!-- 🟣 FILTROS -->
+
+<form method="get" class="mb-3">
+
+    <div class="row g-2 align-items-end">
+
+        <div class="col-md-2">
+            <label class="form-label">Producto</label>
+            <input type="number"
+                   name="idProducto"
+                   class="form-control"
+                   value="@(filtros?.idProducto ?? "")" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">Color</label>
+            <input type="text"
+                   name="color"
+                   class="form-control"
+                   value="@(filtros?.color ?? "")" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">Tela</label>
+            <input type="text"
+                   name="tela"
+                   class="form-control"
+                   value="@(filtros?.tela ?? "")" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">Talla</label>
+            <input type="text"
+                   name="talla"
+                   class="form-control"
+                   value="@(filtros?.talla ?? "")" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">Desde</label>
+            <input type="date"
+                   name="fechaInicio"
+                   class="form-control"
+                   value="@(filtros?.fechaInicio != null
+                        ? ((DateTime)filtros.fechaInicio).ToString("yyyy-MM-dd")
+                        : "")" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">Hasta</label>
+            <input type="date"
+                   name="fechaFin"
+                   class="form-control"
+                   value="@(filtros?.fechaFin != null
+                        ? ((DateTime)filtros.fechaFin).ToString("yyyy-MM-dd")
+                        : "")" />
+        </div>
+
+    </div>
+
+    <!-- 🟣 BOTONES -->
+    <div class="mt-3">
+
+        <button type="submit" class="btn btn-primary">
+            🔍 Buscar
+        </button>
+
+        <a href="@Url.Action("Kardex")" class="btn btn-secondary">
+            Limpiar
+        </a>
+
+        @if (hayDatos)
+        {
+            <a asp-action="ExportarExcel"
+               asp-route-idProducto="@(filtros?.idProducto)"
+               asp-route-color="@(filtros?.color)"
+               asp-route-tela="@(filtros?.tela)"
+               asp-route-talla="@(filtros?.talla)"
+               asp-route-fechaInicio="@(filtros?.fechaInicio)"
+               asp-route-fechaFin="@(filtros?.fechaFin)"
+               class="btn btn-success">
+                📄 Exportar Excel
+            </a>
+        }
+        else
+        {
+            <button class="btn btn-secondary" disabled>
+                📄 Exportar Excel
+            </button>
+        }
+
+    </div>
+</form>
+
+
+<!-- RESUMEN (MEJORADO) -->
+
+@if (hayDatos)
+{
+    <div class="mb-3">
+        <strong>Entradas:</strong>
+        <span class="text-success">@totalEntradas</span> |
+
+        <strong>Salidas:</strong>
+        <span class="text-danger">@totalSalidas</span>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        No hay datos para los filtros seleccionados.
+    </div>
+}
+
+
+<!--TABLA KARDEX (CORREGIDA Y LIMPIA) -->
+@if (hayDatos)
+{
+    <table class="table table-sm table-bordered table-striped">
+
+        <thead class="table-dark">
+            <tr>
+                <th>Fecha</th>
+                <th>Movimiento</th>
+                <th>Documento</th>
+                <th class="text-end">Entrada</th>
+                <th class="text-end">Salida</th>
+                <th class="text-end">Saldo</th>
+                <th>Usuario</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var item in modelData)
+            {
+                <tr>
+                    <td>@item.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+
+                    <td>
+                        @if (item.Entrada > 0)
+                        {
+                            <span class="badge bg-success">🟢 Entrada</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">🔴 Salida</span>
+                        }
+                    </td>                                     
+
+                    <td>@item.DocumentoReferencia</td>
+
+                    <td class="text-end text-success">
+                        @(item.Entrada > 0 ? item.Entrada : "")
+                    </td>
+
+                    <td class="text-end text-danger">
+                        @(item.Salida > 0 ? item.Salida : "")
+                    </td>
+
+                    <td class="text-end fw-bold">
+                        @item.Saldo
+                    </td>
+
+                    <td>@item.UsuarioNombre</td>
+                </tr>
+            }
+        </tbody>
+
+    </table>
+}
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const raw = JSON.parse(
+        document.getElementById('grafica-data').textContent
+    ) || [];
+
+    const data = raw.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+    const labels = data.map(x =>
+        new Date(x.fecha).toLocaleDateString()
+    );
+
+    const entradas = data.map(x => x.entrada);
+    const salidas = data.map(x => x.salida);
+
+    let saldo = 0;
+
+    const saldoData = data.map(x => {
+        saldo += (x.entrada - x.salida);
+        return saldo;
+    });
+
+    new Chart(document.getElementById('graficaMovimientos'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Entradas 🟢',
+                    data: entradas,
+                    borderColor: 'green',
+                    fill: false
+                },
+                {
+                    label: 'Salidas 🔴',
+                    data: salidas,
+                    borderColor: 'red',
+                    fill: false
+                },
+                {
+                    label: 'Saldo 📈',
+                    data: saldoData,
+                    borderColor: 'blue',
+                    tension: 0.3,
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            }
+        }
+    });
+</script>
+
+
+
+
+
+
+
+
+@*
 @model List<InventarioWEB.ViewModels.KardexViewModel>
+
 @using System.Text.Json
 @{
     ViewData["Title"] = "Kardex de Inventario";
@@ -16,27 +295,7 @@
     var totalSalidas = Model != null
         ? Model.Sum(m => m.Salida)
         : 0;
-
-  
-    /*
-    // ✅ Validación correcta
-    var hayDatos = Model != null && Model.Any();
-
-    var totalEntradas = Model != null ? Model
-        .Where(m =>
-            m.TipoMovimiento == "PRODUCCION" ||
-            m.TipoMovimiento == "COMPRA" ||
-            m.TipoMovimiento == "AJUSTE")
-        .Sum(m => m.Cantidad)
-        : 0;
-
-    var totalSalidas = Model != null ? Model
-        .Where(m => m.TipoMovimiento == "VENTA_DESPACHO")
-        .Sum(m => Math.Abs(m.Cantidad))
-        : 0;
-        */
-
-
+    
     // ✅ Serialización segura para JS
     var graficaJson = JsonSerializer.Serialize(ViewBag.Grafica ?? new object[] { });
 }
@@ -57,14 +316,16 @@
 
     <div class="row g-2 align-items-end">
 
+        <!-- 🔵 ID PRODUCTO -->
         <div class="col-md-2">
-            <input type="text"
-                   name="sku"
+            <input type="number"
+                   name="idProducto"
                    class="form-control"
-                   placeholder="SKU"
-                   value="@ViewBag.Filtros?.sku" />
+                   placeholder="Id Producto"
+                   value="@ViewBag.Filtros?.idProducto" />
         </div>
 
+        <!-- 🟣 GÉNERO -->
         <div class="col-md-2">
             <label class="form-label mb-1">Género</label>
 
@@ -72,30 +333,19 @@
                     name="genero"
                     class="form-select">
 
-                <option value="">
-                    Todos
-                </option>
+                <option value="">Todos</option>
 
                 @foreach (var item in ViewBag.Generos)
                 {
-                    if (ViewBag.GeneroSeleccionado != null &&
-                    (int)ViewBag.GeneroSeleccionado == item.ID_Genero)
-                    {
-                        <option value="@item.ID_Genero" selected>
-                            @item.DescripGenero
-                        </option>
-                    }
-                    else
-                    {
-                        <option value="@item.ID_Genero">
-                            @item.DescripGenero
-                        </option>
-                    }
+                    <option value="@item.ID_Genero"
+                            selected="@(ViewBag.GeneroSeleccionado != null && (int)ViewBag.GeneroSeleccionado == item.ID_Genero)">
+                        @item.DescripGenero
+                    </option>
                 }
-
             </select>
         </div>
 
+        <!-- 🟡 REFERENCIA -->
         <div class="col-md-2">
             <label class="form-label mb-1">Referencia</label>
 
@@ -103,82 +353,47 @@
                     name="referencia"
                     class="form-select">
 
-                <option value="">
-                    Todas
-                </option>
+                <option value="">Todas</option>
 
                 @foreach (InventarioWEB.Models.Referencia item in
                 (IEnumerable<InventarioWEB.Models.Referencia>)ViewBag.Referencias)
                 {
-                    if (ViewBag.ReferenciaSeleccionada != null &&
-                    (int)ViewBag.ReferenciaSeleccionada == item.ID_Referencias)
-                    {
-                        <option value="@item.ID_Referencias" selected>
-                            @item.DescripReferencia
-                        </option>
-                    }
-                    else
-                    {
-                        <option value="@item.ID_Referencias">
-                            @item.DescripReferencia
-                        </option>
-                    }
+                    <option value="@item.ID_Referencias"
+                            selected="@(ViewBag.ReferenciaSeleccionada != null && (int)ViewBag.ReferenciaSeleccionada == item.ID_Referencias)">
+                        @item.DescripReferencia
+                    </option>
                 }
-
             </select>
         </div>
-       
-        
+
+        <!-- 🟢 COLOR -->
         <div class="col-md-2">
             <label class="form-label mb-1">Color</label>
-
-            <select id="color"
-                    name="color"
-                    class="form-select">
-
-                <option value="">
-                    Todos
-                </option>
-
+            <select id="color" name="color" class="form-select">
+                <option value="">Todos</option>
             </select>
         </div>
 
+        <!-- 🔵 TELA -->
         <div class="col-md-2">
             <label class="form-label mb-1">Tela</label>
-
-            <select id="tela"
-                    name="tela"
-                    class="form-select">
-
-                <option value="">
-                    Todas
-                </option>
-
+            <select id="tela" name="tela" class="form-select">
+                <option value="">Todas</option>
             </select>
         </div>
 
+        <!-- 🟠 TALLA -->
         <div class="col-md-2">
             <label class="form-label mb-1">Talla</label>
-
-            <select id="talla"
-                    name="talla"
-                    class="form-select">
-
-                <option value="">
-                    Todas
-                </option>
-
+            <select id="talla" name="talla" class="form-select">
+                <option value="">Todas</option>
             </select>
         </div>
-        <!-- 📅 FECHAS AGRUPADAS -->
+
+        <!-- 📅 FECHAS -->
         <div class="col-md-3">
-
-            <label class="form-label mb-1">
-                Período
-            </label>
-
+            <label class="form-label mb-1">Período</label>
             <div class="d-flex gap-1">
-
                 <input type="date"
                        name="fechaInicio"
                        class="form-control"
@@ -188,11 +403,14 @@
                        name="fechaFin"
                        class="form-control"
                        value="@ViewBag.Filtros?.fechaFin" />
-
             </div>
-
         </div>
 
+    </div>
+
+    <!-- 💡 UX -->
+    <div class="form-text text-muted mt-2">
+        💡 Puedes buscar por <strong>IdProducto</strong> o por filtros combinados.
     </div>
 
     <div class="mt-3">
@@ -209,7 +427,7 @@
         @if (hayDatos)
         {
             <a asp-action="ExportarExcel"
-               asp-route-sku="@ViewBag.Filtros?.sku"
+               asp-route-idProducto="@ViewBag.Filtros?.idProducto"
                asp-route-referencia="@ViewBag.Filtros?.referencia"
                asp-route-color="@ViewBag.Filtros?.color"
                asp-route-tela="@ViewBag.Filtros?.tela"
@@ -244,7 +462,6 @@
 
 </form>
 <hr />
-
 <!-- 📊 TOTALES -->
 <div class="mb-3">
     <strong>Total Entradas:</strong>
@@ -259,8 +476,7 @@
     <thead class="table-dark">
         <tr>
             <th>Fecha</th>
-            <th>SKU</th>
-            <th>Referencia</th>
+              <th>Referencia</th>
             <th>Color</th>
             <th>Tela</th>
             <th>Talla</th>
@@ -274,40 +490,61 @@
         </tr>
     </thead>
     <tbody>
-         
-          @*  foreach (var item in Model ?? Enumerable.Empty<InventarioWEB.Models.HistorialInventario>()) *@
-              @if (hayDatos)
-              {
-                foreach (var item in Model!)
-                {
+
+       
+
+
+         @*  foreach (var item in Model ?? Enumerable.Empty<InventarioWEB.Models.HistorialInventario>()) *@
+
+@* 
+
+         @if (hayDatos)
+        {
+            @foreach (var item in Model!)
+            {
                 <tr>
                     <td>@item.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
-                    <td>@item.Sku</td>
+
                     <td>@item.Referencia</td>
                     <td>@item.Color</td>
+                    <td>@item.Tela</td>
                     <td>@item.Talla</td>
 
                     <td>
-                        <span style="color:
-                    @(item.TipoMovimiento == "SALIDA" ? "red" : "green")">
+                        <span class="badge
+                     @(item.TipoMovimiento == "VENTA"
+                     || item.TipoMovimiento == "DESPACHO"
+                     || item.TipoMovimiento == "VENTA_DESPACHO"
+                        ? "bg-danger"
+                        : "bg-success")">
                             @item.TipoMovimiento
                         </span>
                     </td>
 
-                    <!-- 🟢 ENTRADA -->
-                    <td style="color:green; text-align:right;">
+
+
+                    <!-- DOCUMENTO -->
+                    <td>@item.DocumentoReferencia</td>
+                    
+
+                    <!-- ENTRADA -->
+                    <td class="text-end text-success">
                         @(item.Entrada > 0 ? item.Entrada.ToString("N0") : "")
                     </td>
 
-                    <!-- 🔴 SALIDA -->
-                    <td style="color:red; text-align:right;">
+                    <!-- SALIDA -->
+                    <td class="text-end text-danger">
                         @(item.Salida > 0 ? item.Salida.ToString("N0") : "")
                     </td>
 
-                    <!-- 🔵 SALDO -->
-                    <td style="text-align:right; font-weight:bold;">
+                    <!-- SALDO -->
+                    <td class="text-end fw-bold">
                         @item.Saldo.ToString("N0")
                     </td>
+
+                    <!-- USUARIO -->
+                    <td>@item.UsuarioNombre</td>
+                   
                 </tr>
             }
         }
@@ -527,4 +764,9 @@
         });
     </script>
 }
-   
+*@ 
+
+
+
+
+

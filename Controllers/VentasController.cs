@@ -16,10 +16,12 @@ using iText.IO.Font.Constants;
 using iText.Kernel.Font;
 using InventarioWEB.Services;
 using iText.Commons.Actions.Contexts;
+using InventarioWEB.Filters;
 
 using System.Diagnostics;  // Usada para diagnostico de rendimiento
 namespace InventarioWEB.Controllers
 {
+    [ValidarSesion]
     public class VentasController : Controller
     {
         private readonly MovimientoVentasDbContext _context;

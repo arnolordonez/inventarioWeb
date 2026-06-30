@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using InventarioWEB.Data;
 using InventarioWEB.Models;
 using InventarioWEB.ViewModels;
+using InventarioWEB.Filters;
 
 namespace InventarioWEB.Controllers
 {
@@ -26,6 +27,8 @@ namespace InventarioWEB.Controllers
     ///
     /// Este controlador constituye el núcleo funcional del módulo Productos.
     /// </remarks>
+    /// 
+    [ValidarSesion]
     public class ProductosController : Controller
     {
         private readonly MovimientoVentasDbContext _context;

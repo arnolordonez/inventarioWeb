@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using InventarioWEB.Data;
 using InventarioWEB.Models;
 using X.PagedList;
+using InventarioWEB.Filters;
+
 
 namespace InventarioWEB.Controllers
 {
@@ -12,6 +14,7 @@ namespace InventarioWEB.Controllers
     /// Permite listar, crear, editar, consultar detalles, desactivar (soft delete)
     /// y restaurar registros de clientes.
     /// </summary>
+    [ValidarSesion]
     public class ClientesController : Controller
     {
         private readonly MovimientoVentasDbContext _context;

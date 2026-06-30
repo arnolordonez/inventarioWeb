@@ -43,6 +43,7 @@ builder.Services.AddScoped<AbonoService>();
 builder.Services.AddScoped<ReciboCajaService>();
 builder.Services.AddScoped<HistorialInventarioService>();
 
+
 // ==========================================================
 // SERVICIOS MVC + API
 // ==========================================================

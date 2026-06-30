@@ -1,0 +1,132 @@
+﻿@model IEnumerable<InventarioWEB.ViewModels.KardexAnaliticoViewModel>
+
+@{
+    ViewData["Title"] = "Kardex Analítico";
+
+    var datos = Model ?? Enumerable.Empty<InventarioWEB.ViewModels.KardexAnaliticoViewModel>();
+    var hayDatos = datos.Any();
+}
+<h2>📊 Kardex Analítico</h2>
+
+<hr />
+
+@if (!hayDatos)
+{
+    <div class="alert alert-warning">
+        No hay datos analíticos para mostrar.
+    </div>
+}
+else
+{
+    <!-- =========================
+         RESUMEN GENERAL
+    ========================= -->
+    <div class="row mb-4">
+
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h6>Total Entradas</h6>
+                    <h3>@datos.Sum(x => x.TotalEntradas)</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card text-white bg-danger">
+                <div class="card-body">
+                    <h6>Total Salidas</h6>
+                    <h3>@datos.Sum(x => x.TotalSalidas)</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h6>Movimientos</h6>
+                    <h3>@datos.Sum(x => x.MovimientosTotales)</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card text-white bg-dark">
+                <div class="card-body">
+                    <h6>Stock Actual</h6>
+                    <h3>@datos.Sum(x => x.StockActual)</h3>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- =========================
+         TABLA ANALÍTICA
+    ========================= -->
+    <div class="table-responsive">
+
+        <table class="table table-bordered table-striped table-sm">
+
+            <thead class="table-dark">
+                <tr>
+                    <th>Producto</th>
+                    <th>Referencia</th>
+                    <th>Género</th>
+                    <th>Color</th>
+                    <th>Tela</th>
+
+                    <th class="text-end">Entradas</th>
+                    <th class="text-end">Salidas</th>
+                    <th class="text-end">Stock</th>
+
+                    <th class="text-end">Movimientos</th>
+                    <th>Último Movimiento</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var item in datos)
+                {
+                    <tr>
+
+                        <td>@item.IdProducto</td>
+                        <td>@item.Referencia</td>
+                        <td>@item.Genero</td>
+                        <td>@item.Color</td>
+                        <td>@item.Tela</td>
+
+                        <td class="text-end text-success">
+                            @item.TotalEntradas
+                        </td>
+
+                        <td class="text-end text-danger">
+                            @item.TotalSalidas
+                        </td>
+
+                        <td class="text-end fw-bold">
+                            @item.StockActual
+                        </td>
+
+                        <td class="text-end">
+                            @item.MovimientosTotales
+                        </td>
+
+                        <td>
+                            @if (item.UltimoMovimiento.HasValue)
+                            {
+                                <span>
+                                    @item.UltimoMovimiento.Value.ToString("dd/MM/yyyy")
+                                    (@item.UltimoTipoMovimiento)
+                                </span>
+                            }
+                        </td>
+
+                    </tr>
+                }
+            </tbody>
+
+        </table>
+
+    </div>
+}

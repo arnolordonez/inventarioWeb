@@ -8,9 +8,11 @@ using iText.Layout.Element;
 using iText.Layout.Properties;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using InventarioWEB.Filters;
 
 namespace InventarioWEB.Controllers
 {
+    [ValidarSesion]
     public class AbonosController : Controller
     {
         private readonly MovimientoVentasDbContext _context;
