@@ -5,22 +5,25 @@ using InventarioWEB.Data;
 using InventarioWEB.Models;
 using InventarioWEB.Services;
 using InventarioWEB.ViewModels;
+using InventarioWEB.Filters;
 
 namespace InventarioWEB.Controllers
 {
+    [ValidarSesion]
     public class ProduccionController : Controller
     {
         private readonly MovimientoVentasDbContext _context;
         private readonly ProduccionService _produccionService;
-
+        private readonly HistorialInventarioService _historialService;
         public ProduccionController(
             MovimientoVentasDbContext context,
-            ProduccionService produccionService)
+            ProduccionService produccionService,
+            HistorialInventarioService historialService)
         {
             _context = context;
             _produccionService = produccionService;
+            _historialService = historialService;
         }
-
         // ==========================================================
         // SEGURIDAD ERP
         // ==========================================================
@@ -198,6 +201,164 @@ namespace InventarioWEB.Controllers
             return View("CrearERP", model);
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CrearERP(ProduccionCrearViewModel model)
+        {
+            if (!TieneAcceso())
+            {
+                TempData["error"] =
+                    "No tiene permisos para realizar esta operación.";
+
+                return RedirectToAction("Dashboard", "Auto");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return View("CrearERP", model);
+            }
+
+            using var transaction =
+                await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                var itemsProduccion = model.Detalles
+                    .Where(x => x.CantidadProducida > 0)
+                    .ToList();
+
+                if (!itemsProduccion.Any())
+                {
+                    throw new Exception("Debe ingresar al menos una cantidad a producir.");
+                }
+
+                // =====================================================
+                // USUARIO (UNIFICADO CON DESPACHOS)
+                // =====================================================
+
+                int usuarioId =
+                    int.Parse(HttpContext.Session.GetString("UsuarioID") ?? "0");
+
+                string usuarioNombre =
+                    HttpContext.Session.GetString("UsuarioNombre") ?? "Sistema";
+
+                // =====================================================
+                // CABECERA PRODUCCIÓN
+                // =====================================================
+
+                var produccion = new Produccion
+                {
+                    FechaProduccion = model.FechaProduccion,
+                    Observacion = "Producción ERP",
+                    Usuario = usuarioNombre,
+                    Activo = true,
+                    FechaRegistro = DateTime.Now
+                };
+
+                _context.Producciones.Add(produccion);
+                await _context.SaveChangesAsync();
+
+                foreach (var item in itemsProduccion)
+                {
+                    var producto = await _context.Productos
+                        .FirstOrDefaultAsync(p => p.ID_Producto == item.ID_Producto);
+
+                    if (producto == null)
+                        throw new Exception($"Producto no encontrado ID {item.ID_Producto}");
+
+                    var detallePedido = await _context.DetallePedidos
+                        .FirstOrDefaultAsync(d => d.ID_Detalle == item.ID_DetallePedido);
+
+                    if (detallePedido == null)
+                        throw new Exception($"Detalle pedido no encontrado {item.NombreProducto}");
+
+                    var totalProducido =
+                        await _context.DetalleProducciones
+                            .Where(x => x.ID_DetallePedido == item.ID_DetallePedido)
+                            .SumAsync(x => (int?)x.CantidadProducida) ?? 0;
+
+                    var pendienteReal = detallePedido.Cantidad - totalProducido;
+
+                    if (pendienteReal < 0)
+                        pendienteReal = 0;
+
+                    if (item.CantidadProducida > pendienteReal)
+                    {
+                        throw new Exception(
+                            $"La producción supera lo pendiente del producto {item.NombreProducto}. " +
+                            $"Pendiente: {pendienteReal}"
+                        );
+                    }
+
+                    // =====================================================
+                    // DETALLE PRODUCCIÓN
+                    // =====================================================
+
+                    var detalleProduccion = new DetalleProduccion
+                    {
+                        ID_Produccion = produccion.ID_Produccion,
+                        ID_Producto = item.ID_Producto,
+                        ID_DetallePedido = item.ID_DetallePedido,
+                        CantidadProducida = item.CantidadProducida,
+                        CostoUnitario = item.CostoUnitario,
+                        PrecioVentaUnitario = item.PrecioVentaUnitario,
+                        IVA = item.IVA,
+
+                        SubtotalCosto = item.CantidadProducida * item.CostoUnitario,
+                        SubtotalVenta = item.CantidadProducida * item.PrecioVentaUnitario,
+
+                        EstadoProduccion = "TERMINADO",
+                        FechaInicioProduccion = DateTime.Now,
+                        FechaFinProduccion = DateTime.Now,
+                        ObservacionProduccion = "Producción ERP"
+                    };
+
+                    _context.DetalleProducciones.Add(detalleProduccion);
+
+                    // =====================================================
+                    // ACTUALIZAR STOCK
+                    // =====================================================
+
+                    var stockAnterior = producto.Stock;
+                    var nuevoStock = stockAnterior + item.CantidadProducida;
+
+                    producto.Stock = nuevoStock;
+
+                    _context.Productos.Update(producto);
+
+                    // =====================================================
+                    // 🔥 HISTORIAL DE ENTRADA (PRODUCCIÓN)
+                    // =====================================================
+
+                    await _historialService.RegistrarEntradaProduccionAsync(
+                        producto: producto,
+                        cantidad: item.CantidadProducida,
+                        stockAnterior: stockAnterior,
+                        stockActual: nuevoStock,
+                        usuarioId: usuarioId,
+                        usuarioNombre: usuarioNombre,
+                        produccionId: produccion.ID_Produccion,
+                        documentoReferencia: $"PROD-{produccion.ID_Produccion}",
+                        observaciones: $"Entrada por Producción ERP #{produccion.ID_Produccion}"
+                    );
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                TempData["Success"] = "Producción registrada correctamente.";
+
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                ModelState.AddModelError("", ex.Message);
+                return View("CrearERP", model);
+            }
+        }
+
+        /*
         // ==========================================================
         // POST CREAR PRODUCCIÓN ERP
         // ==========================================================
@@ -389,7 +550,7 @@ namespace InventarioWEB.Controllers
                 return View("CrearERP", model);
             }
         }
-
+        */
 
         // ==========================================================
         // GET CREAR PRODUCCION
@@ -550,8 +711,18 @@ namespace InventarioWEB.Controllers
             }
             try
             {
-                await _produccionService
-                    .RegistrarProduccionAsync(produccion, detalles);
+                
+                int usuarioId = int.Parse(HttpContext.Session.GetString("UsuarioID") ?? "0");
+
+                string usuarioNombre =
+                    HttpContext.Session.GetString("UsuarioNombre") ?? "Sistema";
+
+
+                await _produccionService.RegistrarProduccionAsync(
+                    produccion,
+                    detalles,
+                    usuarioId,
+                    usuarioNombre);
 
                 TempData["Success"] = "Producción registrada correctamente.";
 

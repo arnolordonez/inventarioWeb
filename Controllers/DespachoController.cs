@@ -15,10 +15,12 @@ using iText.Layout.Borders;
 using iText.Layout.Properties;
 using Microsoft.AspNetCore.Authorization;
 using InventarioWEB.Services;
+using InventarioWEB.Filters;
 
 namespace InventarioWEB.Controllers
 {
-   // [AllowAnonymous] // 🔥 IMPORTANTE: permite acceso sin login
+    // [AllowAnonymous] // 🔥 IMPORTANTE: permite acceso sin login
+    [ValidarSesion]
     public class DespachoController : Controller
     {
         
@@ -385,9 +387,12 @@ namespace InventarioWEB.Controllers
                     .Distinct()
                     .ToList();
                 var productos = await _context.Productos
-                    .Include(p => p.Tela)
-                    .Where(p => productoIds.Contains(p.ID_Producto))
-                    .ToDictionaryAsync(p => p.ID_Producto);
+                     .Include(p => p.Tela)
+                     .Include(p => p.Referencia)
+                     .Include(p => p.Talla)
+                     .Include(p => p.ColorNav)
+                     .Where(p => productoIds.Contains(p.ID_Producto))
+                     .ToDictionaryAsync(p => p.ID_Producto);
 
                 // =====================================================
                 // 🔥 HISTÓRICO REAL (FUENTE: detalle_despacho)
@@ -498,19 +503,7 @@ namespace InventarioWEB.Controllers
                         disponibleProduccion = 0;
                     }
 
-                    // =================================================
-                    // 🚫 VALIDAR PRODUCCIÓN DISPONIBLE
-                    // =================================================
-
-                    if (item.Cantidad > disponibleProduccion)
-                    {
-                        throw new Exception(
-                            $"No existe producción disponible para despachar " +
-                            $"en talla {item.Talla}. " +
-                            $"Disponible producción: {disponibleProduccion} docenas."
-                        );
-                    }
-
+                    
                     // =================================================
                     // 🚫 VALIDACIÓN STOCK FÍSICO
                     // =================================================
@@ -574,11 +567,7 @@ namespace InventarioWEB.Controllers
 
                 var totalYaDespachado = despachadoReal.Values.Sum();
 
-                if ((totalNuevo + totalYaDespachado) > pedidoTotal)
-                {
-                    throw new Exception("No puede despachar más de lo pendiente");
-                }
-
+               
                 // =====================================================
                 // VALIDACIÓN FINAL
                 // =====================================================
@@ -668,21 +657,12 @@ namespace InventarioWEB.Controllers
 
                     _context.Entry(producto).State = EntityState.Modified;
 
-                   
-                    // ==============================================
-                    // 🔥 HISTORIAL INVENTARIO
-                    // ==============================================
                     await _historialService.RegistrarDespachoAsync(
-                        sku: $"{producto.ID_Referencias}-{producto.ID_Color}-{producto.ID_Tallas}",
-                        referencia: producto.ID_Referencias.ToString(),
-                        color: producto.ColorSnapshot ?? "N/A",
-                        tela: producto.Tela?.DescripTela ?? "N/A",
-                        talla: producto.ID_Tallas.ToString(),
+                        producto: producto,
                         cantidad: item.Cantidad,
                         stockAnterior: stockAnterior,
                         stockActual: stockActual,
-                       
-                    usuarioId: int.Parse(HttpContext.Session.GetString("UsuarioID") ?? "0"),
+                        usuarioId: int.Parse(HttpContext.Session.GetString("UsuarioID") ?? "0"),
                         usuarioNombre: HttpContext.Session.GetString("UsuarioNombre") ?? "Sistema",
                         ventaId: pedido.ID_Pedido,
                         despachoId: despacho.ID_Despacho,
@@ -691,7 +671,7 @@ namespace InventarioWEB.Controllers
                     );
 
                     //********
-                    _context.Entry(producto).State = EntityState.Modified;
+                   // _context.Entry(producto).State = EntityState.Modified;
                 }
                 // ==============================================
                 // 💾 GUARDAR CAMBIOS

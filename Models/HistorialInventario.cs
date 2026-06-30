@@ -7,35 +7,43 @@ namespace InventarioWEB.Models
     {
         public int Id { get; set; }
 
-        public DateTime FechaRegistro { get; set; } = DateTime.Now;
+        // 🔥 Auditoría temporal
+        public DateTime FechaRegistro { get; set; }
 
-        // 🔥 OBLIGATORIOS (usar required)
+        // 🔥 Tipo de movimiento (VENTA, DESPACHO, PRODUCCION, AJUSTE)
         public required string TipoMovimiento { get; set; }
+
         public required string DocumentoReferencia { get; set; }
 
-        // 🔥 SKU + descomposición
-        public required string SkuArticulo { get; set; }
-        public required string Referencia { get; set; }
-        public required string Color { get; set; }
-        public required string Tela { get; set; }
-        public required string Talla { get; set; }
+        // 🔥 Identidad del producto
+        public int IdProducto { get; set; }
 
+        // 🔥 Género del producto (Snapshot)
+        public int IdGenero { get; set; }
+
+        // 🔥 Snapshot del producto (NO FK)
+        public string Referencia { get; set; } = string.Empty;
+        public string Color { get; set; } = string.Empty;
+        public string Tela { get; set; } = string.Empty;
+        public string Talla { get; set; } = string.Empty;
+        public string NombreProducto { get; set; } = string.Empty;
+
+        // 🔥 Movimiento
         public int Cantidad { get; set; }
-
         public int StockAnterior { get; set; }
         public int StockActual { get; set; }
 
+        // 🔥 Usuario
         public int UsuarioId { get; set; }
-        public required string UsuarioNombre { get; set; }
+        public string UsuarioNombre { get; set; } = string.Empty;
 
-        // 🔥 Trazabilidad
+        // 🔗 Relaciones opcionales
         public int? VentaId { get; set; }
         public int? DespachoId { get; set; }
 
-       // public required string Cliente { get; set; }
         public string? Cliente { get; set; }
 
-        // 🔥 OPCIONAL
+        // 📝 Auditoría
         public string? Observaciones { get; set; }
     }
 }

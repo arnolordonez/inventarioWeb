@@ -1,0 +1,198 @@
+﻿@model List<InventarioWEB.ViewModels.KardexViewModel>
+@using System.Text.Json
+
+@{
+    ViewData["Title"] = "Kardex del Producto";
+
+    var datos = Model ?? new List<InventarioWEB.ViewModels.KardexViewModel>();
+    var hayDatos = datos.Any();
+
+    var totalEntradas = datos.Sum(x => x.Entrada);
+    var totalSalidas = datos.Sum(x => x.Salida);
+    var saldoActual = datos.LastOrDefault()?.Saldo ?? 0;
+
+    var graficaJson = JsonSerializer.Serialize(ViewBag.Grafica ?? new object[] { });
+
+    var filtros = ViewBag.Filtros;
+}
+
+<!-- ========================= -->
+<!-- HEADER -->
+<!-- ========================= -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>📦 Kardex del Producto</h3>
+
+    <div class="btn-group">
+
+        <a class="btn btn-outline-primary"
+           asp-action="Kardex">
+            ← Volver al Kardex General
+        </a>
+
+        <a class="btn btn-success"
+           asp-action="ExportarExcel"
+           asp-route-idProducto="@filtros?.idProducto"
+           asp-route-referencia="@filtros?.referencia"
+           asp-route-color="@filtros?.color"
+           asp-route-tela="@filtros?.tela"
+           asp-route-talla="@filtros?.talla"
+           asp-route-fechaInicio="@filtros?.fechaInicio"
+           asp-route-fechaFin="@filtros?.fechaFin">
+            📥 Exportar Excel
+        </a>
+
+    </div>
+</div>
+
+@if (!hayDatos)
+{
+    <div class="alert alert-warning">
+        No hay movimientos registrados para este producto.
+    </div>
+}
+else
+{
+    <!-- ========================= -->
+    <!-- 📊 KPIs ERP -->
+    <!-- ========================= -->
+    <div class="row mb-3">
+
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6>Entradas</h6>
+                    <h3>@totalEntradas</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h6>Salidas</h6>
+                    <h3>@totalSalidas</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6>Saldo Actual</h6>
+                    <h3>@saldoActual</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-dark text-white">
+                <div class="card-body">
+                    <h6>Movimientos</h6>
+                    <h3>@datos.Count</h3>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ========================= -->
+    <!-- 📈 GRÁFICA -->
+    <!-- ========================= -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <canvas id="graficaProducto" height="90"></canvas>
+        </div>
+    </div>
+
+    <script id="grafica-data" type="application/json">
+        @Html.Raw(graficaJson)
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        const data = JSON.parse(document.getElementById('grafica-data').textContent);
+
+        const labels = data.map(x => new Date(x.Fecha).toLocaleDateString());
+        const entradas = data.map(x => x.Entrada);
+        const salidas = data.map(x => x.Salida);
+
+        new Chart(document.getElementById('graficaProducto'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Entradas',
+                        data: entradas,
+                        borderColor: 'green',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Salidas',
+                        data: salidas,
+                        borderColor: 'red',
+                        tension: 0.3
+                    }
+                ]
+            }
+        });
+    </script>
+
+    <!-- ========================= -->
+    <!-- 📋 TABLA PROFESIONAL -->
+    <!-- ========================= -->
+    <div class="table-responsive">
+
+        <table class="table table-sm table-striped table-bordered align-middle">
+
+            <thead class="table-dark">
+                <tr>
+                    <th>Fecha</th>
+                    <th>Movimiento</th>
+                    <th>Documento</th>
+                    <th class="text-end">Entrada</th>
+                    <th class="text-end">Salida</th>
+                    <th class="text-end">Saldo</th>
+                    <th>Usuario</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var item in datos)
+                {
+                    <tr>
+
+                        <td>
+                            @item.Fecha.ToString("dd/MM/yyyy HH:mm")
+                        </td>
+
+                        <td>
+                            <span class="badge bg-secondary">
+                                @item.TipoMovimiento
+                            </span>
+                        </td>
+
+                        <td>@item.DocumentoReferencia</td>
+
+                        <td class="text-end text-success fw-bold">
+                            @(item.Entrada > 0 ? item.Entrada : "")
+                        </td>
+
+                        <td class="text-end text-danger fw-bold">
+                            @(item.Salida > 0 ? item.Salida : "")
+                        </td>
+
+                        <td class="text-end fw-bold">
+                            @item.Saldo
+                        </td>
+
+                        <td>@item.UsuarioNombre</td>
+                    </tr>
+                }
+            </tbody>
+
+        </table>
+
+    </div>
+}

@@ -16,13 +16,12 @@
        
             <img src="~/img/Logo.jpg" style="height:130px;" class="mb-2" />
             <h1 class="display-4 fw-bold mb-2">Indomable</h1>
-                        
+
             <!-- Navegación -->
-            <div class="mb-4 d-flex gap-2 justify-content-center justify-content-md-start flex-wrap">
+            <div class="mb-4 d-flex justify-content-center justify-content-md-start">
                 <a asp-action="Login" class="btn btn-light text-primary">Login</a>
-                <a asp-action="ForgotPassword" class="btn btn-light text-primary">Recuperar contraseña</a>
             </div>
-        </div>
+        </div>   <!-- ← ESTE DIV FALTABA -->
 
         <!-- LADO DERECHO (LOGIN) -->
         <div class="card p-5 shadow-lg" style="width: 100%; max-width: 520px; background-color:white; color:#000; border-radius: 15px;">
@@ -60,20 +59,8 @@
                 <!-- Botón -->
                 <div class="d-grid gap-2 mb-3">
                     <button type="submit" class="btn btn-primary btn-lg rounded-pill">Ingresar</button>
-                </div>
-
-                <!-- Opciones -->
-                <div class="d-flex flex-column gap-2">
-                    <a asp-action="ForgotPassword" class="btn btn-danger rounded-pill">
-                        ¿Olvidaste tu contraseña?
-                    </a>
-                </div>
-
-                <!-- Mensaje -->
-                @if (ViewBag.Mensaje != null)
-                {
-                    <div class="alert alert-danger mt-3 text-center rounded">@ViewBag.Mensaje</div>
-                }
+                </div>               
+               
             </form>
         </div>
 

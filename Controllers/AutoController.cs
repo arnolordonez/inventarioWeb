@@ -322,7 +322,7 @@ namespace InventarioWEB.Controllers
             return View();
         }
 
-
+        /*
         // ==========================================================
         // FORGOT PASSWORD (GET)
         // ==========================================================
@@ -332,7 +332,7 @@ namespace InventarioWEB.Controllers
         {
             return View(new ForgotPasswordRequest());
         }
-
+         
 
         // ==========================================================
         // FORGOT PASSWORD (POST)
@@ -363,7 +363,7 @@ namespace InventarioWEB.Controllers
 
             return View(request);
         }
-
+        
 
         // ==========================================================
         // RESET PASSWORD (GET)
@@ -380,7 +380,7 @@ namespace InventarioWEB.Controllers
             return View(model);
         }
 
-
+        
         // ==========================================================
         // RESET PASSWORD (POST)
         // ==========================================================
@@ -423,7 +423,7 @@ namespace InventarioWEB.Controllers
 
             return RedirectToAction("Login");
         }
-
+        
 
         // ==========================================================
         // MODELO FORGOT PASSWORD
@@ -435,5 +435,6 @@ namespace InventarioWEB.Controllers
             [EmailAddress(ErrorMessage = "Formato de correo inválido.")]
             public string Correo { get; set; } = string.Empty;
         }
+        */
     }
 }

@@ -5,6 +5,7 @@ using InventarioWEB.Models;
 using InventarioWEB.ViewModels;
 using System.Security.Cryptography;
 using BCrypt.Net;
+using InventarioWEB.Filters;
 
 namespace InventarioWEB.Controllers
 {
@@ -12,6 +13,7 @@ namespace InventarioWEB.Controllers
     /// Administración de usuarios del sistema ERP.
     /// Acceso exclusivo para Administradores.
     /// </summary>
+    [ValidarSesion]
     public class UsuariosController : Controller
     {
         // ==========================================================

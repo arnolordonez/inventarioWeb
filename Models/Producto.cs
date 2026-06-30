@@ -22,7 +22,10 @@ namespace InventarioWEB.Models
         public string Nombre { get; set; } = string.Empty;
 
         // ============================
-        // SNAPSHOT HISTÓRICO DEL COLOR
+        // COLOR DEL PRODUCTO
+        // Se almacena como texto en la tabla productos
+        // y sirve como respaldo cuando no se cargan
+        // las entidades de navegación.
         // ============================
         [Column("Color")]
         [StringLength(150)]
@@ -78,7 +81,6 @@ namespace InventarioWEB.Models
 
         [ForeignKey(nameof(ID_Genero))]
         public Genero? Genero { get; set; }
-
 
         [ForeignKey(nameof(ID_Referencias))]
         public Referencia? Referencia { get; set; }

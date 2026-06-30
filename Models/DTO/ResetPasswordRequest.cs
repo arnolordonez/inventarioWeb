@@ -1,4 +1,5 @@
-﻿// Archivo: Models/DTO/ResetPasswordRequest.cs
+﻿
+// Archivo: Models/DTO/ResetPasswordRequest.cs
 using System.ComponentModel.DataAnnotations;
 
 namespace InventarioWEB.Models.DTO

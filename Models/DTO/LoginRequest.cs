@@ -6,10 +6,10 @@ namespace InventarioWEB.Models.DTO
     {
         [Required(ErrorMessage = "El correo es obligatorio.")]
         [EmailAddress(ErrorMessage = "Formato de correo inválido.")]
-        public string Correo { get; set; }
+        public string Correo { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "La contraseña es obligatoria.")]
         [DataType(DataType.Password)]
-        public string Contrasena { get; set; }
+        public string Contrasena { get; set; } = string.Empty;
     }
 }

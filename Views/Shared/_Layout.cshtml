@@ -109,14 +109,13 @@
             padding: 80px 20px 120px;
             transition: margin-left 0.3s ease;
             min-height: 100vh;
-        }
-
+        }   
+      
         /* 🔥 MEDIA QUERY CORRECTO */
-        @@media (min-width: 992px) {
             .content.shift {
                 margin-left: 240px;
             }
-        }
+
         footer {
             background-color: #1E3A8A;
             color: white;
@@ -188,13 +187,24 @@
                     <i class="bi bi-box-seam me-2"></i>Producción
                 </a>
 
+                <!-- DESPACHO (FLUJO OPERATIVO) -->
                 <a asp-controller="Despacho" asp-action="SeleccionarPedido">
-                    <i class="bi bi-truck me-2"></i>Despacho
+                    <i class="bi bi-truck me-2"></i>Seleccionar Pedido Despacho
                 </a>
 
-                <a asp-controller="Productos" asp-action="Index">
-                    <i class="bi bi-bag me-2"></i>Productos
+                <!-- DESPACHOS (GESTIÓN / HISTORIAL OPERATIVO) -->
+                <a asp-controller="Despacho" asp-action="Index">
+                    <i class="bi bi-box-seam me-2"></i>Despachos
                 </a>
+
+
+                <!-- SOLO ADMINISTRADOR -->
+                @if (rol == "administrador")
+                {
+                    <a asp-controller="Productos" asp-action="Index">
+                        <i class="bi bi-bag me-2"></i>Productos
+                    </a>
+                }
 
                 <a asp-controller="Catalogos" asp-action="Index">
                     <i class="bi bi-collection me-2"></i>Catálogos
@@ -257,14 +267,18 @@
                 <!-- MOVIMIENTOS DE STOCK -->
                 @if (rol == "administrador" || rol == "producción")
                 {
-                    <a asp-controller="Historial" asp-action="Inventario">
-                        <i class="bi bi-boxes me-2"></i>Movimientos de StockActual
+                    <a asp-controller="Historial" asp-action="AlertasStock">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Alertas de Stock
                     </a>
 
                     <a asp-controller="Historial" asp-action="Kardex">
-                        <i class="bi bi-clipboard-data me-2"></i>Kardex de Inventario
+                        <i class="bi bi-clipboard-data me-2"></i>
+                        Kardex de Inventario
                     </a>
                 }
+
+               
 
                 <hr />
             }

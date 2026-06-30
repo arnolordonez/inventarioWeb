@@ -1,4 +1,5 @@
-﻿// Archivo: Models/DTO/ForgotPasswordRequest.cs
+﻿
+// Archivo: Models/DTO/ForgotPasswordRequest.cs
 using System.ComponentModel.DataAnnotations;
 
 namespace InventarioWEB.Models.DTO

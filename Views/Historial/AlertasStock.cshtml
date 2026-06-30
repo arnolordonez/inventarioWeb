@@ -1,0 +1,87 @@
+﻿@model List<InventarioWEB.ViewModels.StockMinimoViewModel>
+
+@{
+    ViewData["Title"] = "Alertas de Stock";
+}
+
+<h2 class="mb-3">📦 Dashboard de Alertas de Stock</h2>
+
+<!-- ===================== -->
+<!-- 📊 RESUMEN CARDS -->
+<!-- ===================== -->
+<div class="row mb-4">
+
+    <div class="col-md-4">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <h5>Críticos</h5>
+                <h3>@Model.Count(x => x.StockActual <= 2)</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5>Bajo Stock</h5>
+                <h3>@Model.Count(x => x.StockActual > 2 && x.StockActual <= 5)</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5>Estables</h5>
+                <h3>@Model.Count(x => x.StockActual > 5)</h3>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ===================== -->
+<!-- 📋 TABLA ALERTAS -->
+<!-- ===================== -->
+<table class="table table-bordered table-striped">
+    <thead class="table-dark">
+        <tr>
+            <th>Producto</th>
+            <th>Referencia</th>
+            <th>Color</th>
+            <th>Tela</th>
+            <th>Talla</th>
+            <th class="text-end">Stock</th>
+            <th>Estado</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        @foreach (var item in Model)
+        {
+            var clase = item.StockActual switch
+            {
+                <= 2 => "table-danger",
+                <= 5 => "table-warning",
+                _ => "table-success"
+            };
+
+            var estado = item.StockActual switch
+            {
+                <= 2 => "🔴 Crítico",
+                <= 5 => "🟠 Bajo",
+                _ => "🟢 Normal"
+            };
+
+            <tr class="@clase">
+                <td>@item.IdProducto</td>
+                <td>@item.Referencia</td>
+                <td>@item.Color</td>
+                <td>@item.Tela</td>
+                <td>@item.Talla</td>
+                <td class="text-end fw-bold">@item.StockActual</td>
+                <td>@estado</td>
+            </tr>
+        }
+    </tbody>
+</table>
