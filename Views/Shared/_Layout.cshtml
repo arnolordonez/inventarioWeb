@@ -251,7 +251,7 @@
                 <!-- HISTORIAL DE VENTAS -->
                 @if (rol == "administrador" || rol == "vendedor" || rol == "cartera")
                 {
-                    <a asp-controller="Historial" asp-action="Ventas">
+                    <a asp-controller="HistorialVentas" asp-action="Index">
                         <i class="bi bi-receipt me-2"></i>Historial de Ventas
                     </a>
                 }

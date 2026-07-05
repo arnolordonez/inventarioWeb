@@ -7,9 +7,9 @@
     var datos = Model ?? new List<InventarioWEB.ViewModels.KardexViewModel>();
     var hayDatos = datos.Any();
 
-    var totalEntradas = datos.Sum(x => x.Entrada);
-    var totalSalidas = datos.Sum(x => x.Salida);
-    var saldoActual = datos.LastOrDefault()?.Saldo ?? 0;
+    var totalEntradas = datos.Sum(x => x.EntradaStock);
+    var totalSalidas = datos.Sum(x => x.SalidaStock);
+    var saldoActual = datos.LastOrDefault()?.StockActual ?? 0;
 
     var graficaJson = JsonSerializer.Serialize(ViewBag.Grafica ?? new object[] { });
 
@@ -176,15 +176,15 @@ else
                         <td>@item.DocumentoReferencia</td>
 
                         <td class="text-end text-success fw-bold">
-                            @(item.Entrada > 0 ? item.Entrada : "")
+                            @(item.EntradaStock > 0 ? item.EntradaStock : "")
                         </td>
 
                         <td class="text-end text-danger fw-bold">
-                            @(item.Salida > 0 ? item.Salida : "")
+                            @(item.SalidaStock > 0 ? item.SalidaStock : "")
                         </td>
 
                         <td class="text-end fw-bold">
-                            @item.Saldo
+                            @item.StockActual
                         </td>
 
                         <td>@item.UsuarioNombre</td>

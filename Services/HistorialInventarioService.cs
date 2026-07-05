@@ -300,8 +300,9 @@ namespace InventarioWEB.Services
 
                     VentaId = h.VentaId,
                     DespachoId = h.DespachoId,
-                    Cliente = h.Cliente,
-
+                    
+                    Cliente = h.Cliente ?? "SIN CLIENTE",
+                    Observaciones = h.Observaciones ?? "SIN OBSERVACIONES",
                     // ===========================
                     // FLAGS DE VALIDACIÓN
                     // ===========================
@@ -481,47 +482,47 @@ namespace InventarioWEB.Services
             var lista = await query
                 .OrderBy(h => h.FechaRegistro)
                 .ThenBy(h => h.Id)
+                               
                 .ToListAsync();
-
             // =========================================================
-            // 🔄 TRANSFORMACIÓN KARDEX REAL (ROBUSTO ERP)
+            // 🔄 TRANSFORMACIÓN KARDEX REAL (USANDO FUENTE DE VERDAD)
             // =========================================================
-            int saldo = 0;
             var kardex = new List<KardexViewModel>();
+                       
+
+            var stockFinal = await _context.HistorialInventario
+            .Where(x => x.IdProducto == filter.IdProducto)
+            .OrderByDescending(x => x.FechaRegistro)
+             .Select(x => x.StockActual)
+             .FirstOrDefaultAsync();
 
             foreach (var h in lista)
             {
                 var tipo = KardexTipoMovimientoMapper.GetTipo(h.TipoMovimiento ?? string.Empty);
-
-                // ⚠️ Auditoría de datos sucios (ANTES de cualquier lógica)
-                if (string.IsNullOrWhiteSpace(h.TipoMovimiento))
-                {
-                    _logger?.LogWarning("Movimiento sin TipoMovimiento. Id: {Id}", h.Id);
-                }
 
                 bool esEntrada = tipo == TipoMovimientoKardex.Entrada;
                 bool esSalida = tipo == TipoMovimientoKardex.Salida;
 
                 int cantidad = Math.Abs(h.Cantidad);
 
-                int entrada = esEntrada ? cantidad : 0;
-                int salida = esSalida ? cantidad : 0;
-
-                saldo += entrada - salida;
-
                 kardex.Add(new KardexViewModel
                 {
                     Fecha = h.FechaRegistro,
-                    TipoMovimiento = h.TipoMovimiento,
-                    Referencia = h.Referencia,
-                    Color = h.Color,
-                    Tela = h.Tela,
-                    Talla = h.Talla,
-                    DocumentoReferencia = h.DocumentoReferencia,
-                    UsuarioNombre = h.UsuarioNombre,
-                    Entrada = entrada,
-                    Salida = salida,
-                    Saldo = saldo
+                    TipoMovimiento = h.TipoMovimiento ?? string.Empty,
+
+                    Referencia = h.Referencia ?? string.Empty,
+                    Color = h.Color ?? string.Empty,
+                    Tela = h.Tela ?? string.Empty,
+                    Talla = h.Talla ?? string.Empty,
+
+                    DocumentoReferencia = h.DocumentoReferencia ?? string.Empty,
+                    UsuarioNombre = h.UsuarioNombre ?? string.Empty,
+
+                    EntradaStock = esEntrada ? cantidad : 0,
+                    SalidaStock = esSalida ? cantidad : 0,
+
+                    StockAnterior = h.StockAnterior,
+                    StockActual = h.StockActual
                 });
             }
 
@@ -530,12 +531,18 @@ namespace InventarioWEB.Services
             // =========================================================
 
             var grafica = kardex
-                .GroupBy(x => x.Fecha.Date)
+                .GroupBy(x => new DateTime(
+                    x.Fecha.Year,
+                    x.Fecha.Month,
+                    x.Fecha.Day,
+                    x.Fecha.Hour,
+                    0,
+                    0))
                 .Select(g => new KardexGraficaViewModel
                 {
                     Fecha = g.Key,
-                    Entrada = g.Sum(x => x.Entrada),
-                    Salida = g.Sum(x => x.Salida)
+                    EntradaStock = g.Sum(x => x.EntradaStock),
+                    SalidaStock = g.Sum(x => x.SalidaStock)
                 })
                 .OrderBy(x => x.Fecha)
                 .ToList();
@@ -543,14 +550,15 @@ namespace InventarioWEB.Services
             // =========================================================
             // ✅ RETURN FINAL
             // =========================================================
-
             return new KardexResultViewModel
             {
                 Movimientos = kardex,
                 Grafica = grafica,
-                TotalEntradas = kardex.Sum(x => x.Entrada),
-                TotalSalidas = kardex.Sum(x => x.Salida)
-            };
+                TotalEntradas = kardex.Sum(x => x.EntradaStock),
+                TotalSalidas = kardex.Sum(x => x.SalidaStock),
+
+                StockFinal = stockFinal
+            };                  
         }
 
         public async Task<List<StockMinimoViewModel>> ObtenerStockMinimoAsync()

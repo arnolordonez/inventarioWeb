@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace InventarioWEB.ViewModels
 {
     // ======================================================
-    // 🔹 DETALLE COMPLETO DE UNA VENTA (VISTA DETALLE)
+    // 🔹 DETALLE COMPLETO DE UNA VENTA
     // ======================================================
     public class VentaDetalleVM
     {
@@ -19,20 +20,31 @@ namespace InventarioWEB.ViewModels
         public decimal TotalAbonado { get; set; }
 
         public decimal Saldo => TotalVenta - TotalAbonado;
-
         public string Estado => Saldo == 0 ? "Pagado" : "Pendiente";
 
-        public List<DetalleProductoVM> Productos { get; set; } = new();
+        public string TipoVenta { get; set; } = string.Empty;
 
-        public List<AbonoDetalleVM> Abonos { get; set; } = new();
+        public string EstadoPedido { get; set; } = string.Empty;
+
+        public string EstadoPago { get; set; } = string.Empty;
+
+        public string EstadoDespacho { get; set; } = string.Empty;
+
+        public int? ID_Despacho { get; set; }
+              
+        public int TotalProductos => Productos.Count;
+
+        public int TotalUnidades => Productos.Sum(x => x.Cantidad);
+
+        public List<DetalleProductoVM> Productos { get; set; } = new();
+        public List<AbonoDetalleVM> Abonos { get; set; } = new(); // ✔ AQUÍ
     }
 
     // ======================================================
-    // 🔹 PRODUCTOS (MOSTRAR EN DETALLE)
+    // 🔹 PRODUCTOS DE LA VENTA
     // ======================================================
     public class DetalleProductoVM
     {
-        // 🔥 ESTE FALTABA
         public int ID_Producto { get; set; }
 
         public string Producto { get; set; } = string.Empty;
@@ -43,30 +55,13 @@ namespace InventarioWEB.ViewModels
 
         public int Cantidad { get; set; }
 
-       // public int Cantidad_Despachada { get; set; }
-
         public decimal PrecioVenta { get; set; }
 
         public decimal Subtotal { get; set; }
     }
 
     // ======================================================
-    // 🔹 ABONOS (MOSTRAR EN DETALLE)
-    // ======================================================
-    public class AbonoDetalleVM
-    {
-        public DateTime Fecha { get; set; }
-
-        public decimal Monto { get; set; }
-
-        public string MetodoPago { get; set; } = string.Empty;
-
-        // 🔥 OPCIONAL PERO RECOMENDADO
-        public int ID_MetodoPago { get; set; }
-    }
-
-    // ======================================================
-    // 🔥 ESTE ES EL QUE USA EL FRONTEND (JS)
+    // 🔹 VIEWMODEL UTILIZADO AL CREAR UNA VENTA
     // ======================================================
     public class DetalleVentaVM
     {
@@ -78,7 +73,18 @@ namespace InventarioWEB.ViewModels
 
         public decimal PrecioVenta { get; set; }
 
-        // 🔥 ESTE ES EL QUE NO SABÍAS DÓNDE VA → VA AQUÍ
-        public decimal Subtotal => Cantidad * PrecioVenta;
+        public decimal Subtotal { get; set; }
+
+        public decimal TotalIVA { get; set; }
+
+        public string EstadoPedido { get; set; } = string.Empty;
+
+        public string EstadoPago { get; set; } = string.Empty;
+
+        public string TipoVenta { get; set; } = string.Empty;
+
+        public int? ID_Despacho { get; set; }
+
+        public string EstadoDespacho { get; set; } = string.Empty;
     }
 }

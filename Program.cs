@@ -37,12 +37,22 @@ builder.Services.AddDbContext<MovimientoVentasDbContext>(options =>
 // ==========================================================
 // REGISTRO DE SERVICIOS DE NEGOCIO
 // ==========================================================
-
-builder.Services.AddScoped<ProduccionService>();
-builder.Services.AddScoped<AbonoService>();
-builder.Services.AddScoped<ReciboCajaService>();
+// ==========================================================
+// SERVICIOS INVENTARIO
+// ==========================================================
 builder.Services.AddScoped<HistorialInventarioService>();
 
+// ==========================================================
+// SERVICIOS VENTAS
+// ==========================================================
+builder.Services.AddScoped<HistorialVentasService>();
+builder.Services.AddScoped<AbonoService>();
+builder.Services.AddScoped<ReciboCajaService>();
+
+// ==========================================================
+// SERVICIOS PRODUCCIÓN
+// ==========================================================
+builder.Services.AddScoped<ProduccionService>();
 
 // ==========================================================
 // SERVICIOS MVC + API
@@ -52,8 +62,6 @@ builder.Services.AddControllersWithViews()
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = null;
     });
-
-  
 
 // ==========================================================
 // SWAGGER PARA DOCUMENTACIÓN DE API

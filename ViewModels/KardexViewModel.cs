@@ -4,27 +4,32 @@
     {
         public DateTime Fecha { get; set; }
 
-        public string? TipoMovimiento { get; set; }
+        public string TipoMovimiento { get; set; } = string.Empty;
 
-        public string? Referencia { get; set; }
-        public string? Color { get; set; }
-        public string? Tela { get; set; }
-        public string? Talla { get; set; }
+        public string Referencia { get; set; } = string.Empty;
+        public string Color { get; set; } = string.Empty;
+        public string Tela { get; set; } = string.Empty;
+        public string Talla { get; set; } = string.Empty;
 
-        // 🔥 Nombres alineados con la BD
-        public string? DocumentoReferencia { get; set; }
-        public string? UsuarioNombre { get; set; }
+        public string DocumentoReferencia { get; set; } = string.Empty;
+        public string UsuarioNombre { get; set; } = string.Empty;
 
-        public int Entrada { get; set; }
-        public int Salida { get; set; }
-        public int Saldo { get; set; }
 
-        public List<KardexViewModel> Movimientos { get; set; } = new();
+        // ================================
+        // 🔄 MOVIMIENTO (DELTA)
+        // ================================
+        public int EntradaStock { get; set; }
+        public int SalidaStock { get; set; }
 
-        public object Grafica { get; set; } = new { };
+        // ================================
+        // 📦 ESTADO DEL INVENTARIO
+        // ================================
+        public int StockAnterior { get; set; }
+        public int StockActual { get; set; }
 
-        public int TotalEntradas { get; set; }
-
-        public int TotalSalidas { get; set; }
+        // ================================
+        // 📊 CAMPOS UI (GRÁFICA / UX)
+        // ================================
+        public object? GraficaData { get; set; }
     }
 }
