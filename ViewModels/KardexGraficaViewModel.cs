@@ -3,7 +3,9 @@
     public class KardexGraficaViewModel
     {
         public DateTime Fecha { get; set; }
-        public int Entrada { get; set; }
-        public int Salida { get; set; }
+
+        public int EntradaStock { get; set; }
+
+        public int SalidaStock { get; set; }
     }
 }

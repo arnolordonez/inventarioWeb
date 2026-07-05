@@ -94,7 +94,7 @@ namespace InventarioWEB.Controllers.Catalogos
 
         /// <summary>
         /// Procesa la creación de una nueva referencia.
-        /// 
+        ///
         /// Validaciones implementadas:
         /// - Modelo válido.
         /// - Control de duplicidad por género.
@@ -110,9 +110,21 @@ namespace InventarioWEB.Controllers.Catalogos
                 return View(model);
             }
 
+            // =========================================================
+            // VALIDAR DESCRIPCIÓN
+            // =========================================================
+            if (string.IsNullOrWhiteSpace(model.DescripReferencia))
+            {
+                ModelState.AddModelError(nameof(model.DescripReferencia),
+                    "Debe ingresar la descripción de la referencia.");
+
+                model.Generos = await ObtenerGenerosSelectList();
+                return View(model);
+            }
+
             var descripcion = model.DescripReferencia.Trim();
             var descripcionNormalizada = descripcion.ToUpper();
-
+                        
             // Verifica que no exista referencia activa con misma descripción y género
             bool existe = await _context.Referencias.AnyAsync(r =>
                 r.Activo &&
@@ -194,11 +206,26 @@ namespace InventarioWEB.Controllers.Catalogos
             if (referencia == null || !referencia.Activo)
                 return NotFound();
 
+            // =========================================================
+            // VALIDAR DESCRIPCIÓN
+            // =========================================================
+            if (string.IsNullOrWhiteSpace(model.DescripReferencia))
+            {
+                ModelState.AddModelError(nameof(model.DescripReferencia),
+                    "Debe ingresar la descripción de la referencia.");
+
+                model.Generos = await ObtenerGenerosSelectList();
+                return View(model);
+            }
+
             var descripcion = model.DescripReferencia.Trim();
             var descripcionNormalizada = descripcion.ToUpper();
 
-            // Validación de duplicidad excluyendo el registro actual
-            bool duplicado = await _context.Referencias.AnyAsync(r =>
+            // Continúa el resto del método...
+        
+
+        // Validación de duplicidad excluyendo el registro actual
+        bool duplicado = await _context.Referencias.AnyAsync(r =>
                 r.Activo &&
                 r.ID_Referencias != id &&
                 r.ID_Genero == model.ID_Genero &&

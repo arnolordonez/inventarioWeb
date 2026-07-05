@@ -1,36 +1,36 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace InventarioWEB.ViewModels
 {
     public class KardexResultViewModel
     {
-        // =========================================================
-        // 📊 MOVIMIENTOS DETALLADOS (FUENTE PRINCIPAL)
-        // =========================================================
+        // ================================
+        // 📦 MOVIMIENTOS DEL KARDEX
+        // ================================
         public List<KardexViewModel> Movimientos { get; set; } = new();
 
-        // =========================================================
-        // 📈 GRÁFICA (TIPO FUERTE - EVITA OBJECT ANÓNIMO)
-        // =========================================================
+        // ================================
+        // 📊 DATOS PARA GRÁFICA
+        // ================================
         public List<KardexGraficaViewModel> Grafica { get; set; } = new();
 
-        // =========================================================
-        // 📦 TOTALES DEL SISTEMA
-        // =========================================================
+        // ================================
+        // 🔢 TOTALES DE MOVIMIENTOS
+        // ================================
         public int TotalEntradas { get; set; }
-
         public int TotalSalidas { get; set; }
 
-        // =========================================================
-        // 🧠 STOCK FINAL (CRÍTICO ERP)
-        // =========================================================
-        public int SaldoFinal => Movimientos.Count > 0
-            ? Movimientos[^1].Saldo
-            : 0;
+        // ================================
+        // 📦 STOCK FINAL (FUENTE DE VERDAD)
+        // ================================
 
-        // =========================================================
-        // 📊 INDICADOR DE MOVIMIENTOS
-        // =========================================================
-        public int TotalMovimientos => Movimientos?.Count ?? 0;
+        public int StockFinal { get; set; }
+        
+        // ================================
+        // 📊 TOTAL REGISTROS
+        // ================================
+        public int TotalMovimientos =>
+            Movimientos?.Count ?? 0;
     }
 }

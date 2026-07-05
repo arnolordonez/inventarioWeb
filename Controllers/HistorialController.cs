@@ -4,6 +4,7 @@ using InventarioWEB.DTOs;
 using InventarioWEB.Filters;
 using InventarioWEB.Models;
 using InventarioWEB.Services;
+using InventarioWEB.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,37 +25,17 @@ namespace InventarioWEB.Controllers
             _historialService = historialService;
         }
 
-
-        public async Task<IActionResult> Auditoria()
-        {
-            var data = await _historialService
-                .ValidarConsistenciaHistorialInventario();
-
-            return View(data);
-        }
         // ==============================
-        // 🛒 VENTAS
+        // 🛒 VENTAS (REDIRECCIÓN CONTROLADA)
         // ==============================
-        public async Task<IActionResult> Ventas(DateTime? fechaInicio, DateTime? fechaFin)
+        public IActionResult Ventas()
         {
             var rol = HttpContext.Session.GetString("Rol")?.Trim() ?? string.Empty;
 
             if (rol != "Administrador" && rol != "Vendedor" && rol != "Cartera")
                 return RedirectToAction("Login", "Auto");
 
-            var query = _context.Pedidos.AsQueryable();
-
-            if (fechaInicio.HasValue)
-                query = query.Where(p => p.Fecha >= fechaInicio.Value);
-
-            if (fechaFin.HasValue)
-                query = query.Where(p => p.Fecha <= fechaFin.Value);
-
-            var resultado = await query
-                .OrderByDescending(p => p.Fecha)
-                .ToListAsync();
-
-            return View(resultado ?? new List<Pedido>());
+            return RedirectToAction("Index", "HistorialVentas");
         }
 
         // ==============================
@@ -394,10 +375,10 @@ namespace InventarioWEB.Controllers
                 hoja.Cell(fila, 2).Value = item.TipoMovimiento;
                 hoja.Cell(fila, 3).Value = item.Referencia;
 
-                hoja.Cell(fila, 4).Value = item.Entrada;
-                hoja.Cell(fila, 5).Value = item.Salida;
+                hoja.Cell(fila, 4).Value = item.EntradaStock;
+                hoja.Cell(fila, 5).Value = item.SalidaStock;
 
-                hoja.Cell(fila, 6).Value = item.Saldo;
+                hoja.Cell(fila, 6).Value = item.StockActual;
                 hoja.Cell(fila, 7).Value = item.UsuarioNombre;
             }
 

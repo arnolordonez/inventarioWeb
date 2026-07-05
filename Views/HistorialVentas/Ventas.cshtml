@@ -1,0 +1,672 @@
+﻿@model InventarioWEB.ViewModels.HistorialVentasIndexVM
+
+@{
+    ViewData["Title"] = "Historial de Ventas";
+}
+
+<h2 class="mb-3">🛒 Historial de Ventas</h2>
+
+<!-- ==========================================
+     FILTROS DEL HISTORIAL
+========================================== -->
+<form asp-action="Index" method="get" id="frmFiltro" class="card mb-4">
+
+    <div class="card-header">
+        <strong>Filtros</strong>
+    </div>
+
+    <div class="card-body">
+
+        <!-- ======================================
+             PERÍODO
+        ====================================== -->
+        <div class="row">
+
+            <div class="col-md-3">
+
+                <label class="form-label">Período</label>
+
+                <select asp-for="Filtro.Periodo"
+                        id="Periodo"
+                        class="form-select"
+                        asp-items="Html.GetEnumSelectList<InventarioWEB.Enums.PeriodoHistorial>()">
+                </select>
+
+            </div>
+
+        </div>
+
+        <!-- ======================================
+             FILTRO POR MES
+        ====================================== -->
+        <div id="panelMes"
+             class="row mt-3"
+             style="display:none;">
+
+            <div class="col-md-3">
+
+                <label class="form-label">Mes</label>
+
+                <select asp-for="Filtro.Mes"
+                        id="Mes"
+                        class="form-select">
+
+                    @for (int i = 1; i <= 12; i++)
+                    {
+                        <option value="@i">
+                            @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)
+                        </option>
+                    }
+
+                </select>
+
+            </div>
+
+            <div class="col-md-2">
+
+                <label class="form-label">Año</label>
+
+                <select asp-for="Filtro.AnioMes"
+                        id="AnioMes"
+                        class="form-select">
+
+                    @for (int i = DateTime.Today.Year; i >= 2023; i--)
+                    {
+                        <option value="@i">@i</option>
+                    }
+
+                </select>
+
+            </div>
+
+        </div>
+
+        <!-- ======================================
+             FILTRO POR FECHA
+        ====================================== -->
+        <div id="panelFecha"
+             class="row mt-3"
+             style="display:none;">
+
+            <div class="col-md-3">
+
+                <label class="form-label">Desde</label>
+
+                <input asp-for="Filtro.FechaDesde"
+                       id="FechaDesde"
+                       type="date"
+                       class="form-control" />
+
+            </div>
+
+            <div class="col-md-3">
+
+                <label class="form-label">Hasta</label>
+
+                <input asp-for="Filtro.FechaHasta"
+                       id="FechaHasta"
+                       type="date"
+                       class="form-control" />
+
+            </div>
+
+        </div>
+
+        <!-- ======================================
+             FILTRO POR AÑO
+        ====================================== -->
+        <div id="panelAnio"
+             class="row mt-3"
+             style="display:none;">
+
+            <div class="col-md-3">
+
+                <label class="form-label">Año</label>
+
+                <select asp-for="Filtro.Anio"
+                        id="Anio"
+                        class="form-select">
+
+                    @for (int i = DateTime.Today.Year; i >= 2023; i--)
+                    {
+                        <option value="@i">@i</option>
+                    }
+
+                </select>
+
+            </div>
+
+        </div>
+
+        <hr />
+
+        <!-- ======================================
+             FILTROS GENERALES
+        ====================================== -->
+        <div class="row g-3">
+
+            <!-- Pago -->
+            <div class="col-md-2">
+
+                <label class="form-label">Pago</label>
+
+                <select asp-for="Filtro.EstadoPago"
+                        class="form-select">
+
+                    <option value="Todos">Todos</option>
+                    <option value="PAGADO">Pagado</option>
+                    <option value="ABONADO">Abonado</option>
+
+                </select>
+
+            </div>
+
+            <!-- Despacho -->
+            <div class="col-md-2">
+
+                <label class="form-label">Despacho</label>
+
+                <select asp-for="Filtro.EstadoDespacho"
+                        class="form-select">
+
+                    <option value="Todos">Todos</option>
+                    <option value="DESPACHADO">Despachado</option>
+                    <option value="NO DESPACHADO">No despachado</option>
+
+                </select>
+
+            </div>
+
+            <!-- Tipo Venta-->
+            <div class="col-md-2">
+
+                <label class="form-label">Tipo de Venta</label>
+
+                <select asp-for="Filtro.TipoVenta"
+                        class="form-select">
+
+                    <option value="Todas">Todas</option>
+                    <option value="CONTADO">Contado</option>
+                    <option value="CREDITO">Crédito</option>
+
+                </select>
+
+            </div>
+
+            <!-- Buscar -->
+            <div class="col-md-4">
+
+                <label class="form-label">Buscar</label>
+
+                <input asp-for="Filtro.Buscar"
+                       class="form-control"
+                       placeholder="Pedido, factura, cédula, nombre o apellido" />
+
+            </div>
+
+            <!-- Botón -->
+            <div class="col-md-2 d-grid">
+
+                <button type="submit"
+                        class="btn btn-primary">
+
+                    Buscar
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</form>
+@section Scripts {
+
+    <script>
+        let primeraCarga = true;
+        function actualizarPeriodo() {
+
+            const periodo = parseInt(document.getElementById("Periodo").value);
+
+            const panelMes = document.getElementById("panelMes");
+            const panelFecha = document.getElementById("panelFecha");
+            const panelAnio = document.getElementById("panelAnio");
+
+            // Ocultar todos
+            panelMes.style.display = "none";
+            panelFecha.style.display = "none";
+            panelAnio.style.display = "none";
+
+            switch (periodo) {
+
+                //-----------------------------------------
+                // Hoy
+                //-----------------------------------------
+                case 1:
+
+                //-----------------------------------------
+                // Semana
+                //-----------------------------------------
+                case 2:
+
+                //-----------------------------------------
+                // Mes
+                //-----------------------------------------
+                case 3:
+
+                //-----------------------------------------
+                // Mes anterior
+                //-----------------------------------------
+                case 4:
+
+                    if (primeraCarga) {
+
+                        primeraCarga = false;
+                        return;
+
+                    }
+
+                    document.getElementById("frmFiltro").submit();
+
+                    break;
+
+                //-----------------------------------------
+                // Por Mes
+                //-----------------------------------------
+                case 5:
+
+                    panelMes.style.display = "flex";
+
+                    break;
+
+                //-----------------------------------------
+                // Por Fecha
+                //-----------------------------------------
+                case 6:
+
+                    panelFecha.style.display = "flex";
+
+                    break;
+
+                //-----------------------------------------
+                // Por Año
+                //-----------------------------------------
+                case 7:
+
+                    panelAnio.style.display = "flex";
+
+                    break;
+
+            }
+
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+
+            actualizarPeriodo();
+
+            document
+                .getElementById("Periodo")
+                .addEventListener("change", actualizarPeriodo);
+
+            //---------------------------------------------------
+            // Por Mes
+            //---------------------------------------------------
+
+            document.getElementById("Mes")
+                .addEventListener("change", function () {
+
+                    if (document.getElementById("AnioMes").value != "")
+                        document.getElementById("frmFiltro").submit();
+
+                });
+
+            document.getElementById("AnioMes")
+                .addEventListener("change", function () {
+
+                    if (document.getElementById("Mes").value != "")
+                        document.getElementById("frmFiltro").submit();
+
+                });
+
+            //---------------------------------------------------
+            // Por Fecha
+            //---------------------------------------------------
+
+            function validarFechas() {
+
+                const desde = document.getElementById("FechaDesde").value;
+                const hasta = document.getElementById("FechaHasta").value;
+
+                if (desde != "" && hasta != "")
+                    document.getElementById("frmFiltro").submit();
+
+            }
+
+            document
+                .getElementById("FechaDesde")
+                .addEventListener("change", validarFechas);
+
+            document
+                .getElementById("FechaHasta")
+                .addEventListener("change", validarFechas);
+
+            //---------------------------------------------------
+            // Por Año
+            //---------------------------------------------------
+
+            document
+                .getElementById("Anio")
+                .addEventListener("change", function () {
+
+                    document.getElementById("frmFiltro").submit();
+
+                });
+
+        });
+
+    </script>
+
+        
+
+}
+
+
+<!-- =========================
+     RESUMEN ERP TARJETAS INDICADORAS 
+========================= -->
+<div class="row mb-3">
+
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div>Total Ventas</div>
+                <h4>@Model.TotalVentas</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div>Pagadas</div>
+                <h4>@Model.TotalPagadas</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div>Abonadas</div>
+                <h4>@Model.TotalAbonadas</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <div>Saldo Pendiente</div>
+                <h4>@Model.TotalSaldoPendiente.ToString("N0")</h4>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- =========================
+     TABLA ERP
+========================= -->
+<div class="table-responsive">
+
+    <table class="table table-sm table-hover table-bordered align-middle">
+
+        <thead class="table-dark">
+            <tr>
+                <th>Factura</th>
+                <th>Pedido</th>
+                <th>Fecha</th>
+                <th>Cliente</th>
+                <th>Pago</th>
+                <th>Despacho</th>
+                <th>Total</th>
+                <th>Saldo</th>
+                <th width="120">Acciones</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var item in Model.Ventas)
+            {
+                <tr>
+
+                    <!-- FACTURA -->
+                    <td class="fw-bold">
+
+                        @if (item.ID_Despacho > 0)
+                        {
+                            <span class="text-primary">
+                                FAC-@item.ID_Despacho
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">
+                                Sin factura
+                            </span>
+                        }
+
+                    </td>
+                    <!-- PEDIDO -->
+                    <td>
+                        @item.ID_Pedido
+                    </td>
+
+                    <!-- FECHA -->
+                    <td>
+                        @item.Fecha.ToString("yyyy-MM-dd")
+                    </td>
+
+                    <!-- CLIENTE -->
+                    <td>
+                        @item.Cliente
+                    </td>
+
+                    <!-- ESTADO PAGO -->
+                    <td>
+                        @switch ((item.EstadoPago ?? "").Trim().ToUpper())
+                        {
+                            case "PAGADO":
+                                <span class="badge bg-success">PAGADO</span>
+                                break;
+
+                            case "ABONADO":
+                                <span class="badge bg-warning text-dark">ABONADO</span>
+                                break;
+
+                            default:
+                                <span class="badge bg-secondary">SIN ESTADO</span>
+                                break;
+                        }
+                                                
+                    </td>
+
+                    <!-- ESTADO DESPACHO -->
+                    <td>
+                        @switch ((item.EstadoDespacho ?? "").Trim().ToUpper())
+                        {
+                            case "DESPACHADO":
+                                <span class="badge bg-success">DESPACHADO</span>
+                                break;
+
+                            case "ENPROCESO":
+                                <span class="badge bg-info">EN PROCESO</span>
+                                break;
+
+                            case "CANCELADO":
+                                <span class="badge bg-danger">CANCELADO</span>
+                                break;
+
+                            default:
+                                <span class="badge bg-secondary">NO DESPACHADO</span>
+                                break;
+                        }
+                    </td>
+
+                    <!-- TOTAL -->
+                    <td class="text-end">
+                        @item.TotalVenta.ToString("N0")
+                    </td>
+
+                    <!-- SALDO -->
+                    <td class="text-end">
+                        @item.Saldo.ToString("N0")
+                    </td>
+
+                    <!-- ACCIONES -->
+                    <td class="text-center">
+
+                        <div class="btn-group" role="group">
+
+                            <a asp-action="Detalle"
+                               asp-controller="HistorialVentas"
+                               asp-route-id="@item.ID_Pedido"
+                               class="btn btn-sm btn-primary"
+                               title="Detalle de la venta">
+                                🔍 Detalle
+                            </a>
+
+                            <a asp-action="Reporte"
+                               asp-controller="HistorialVentas"
+                               asp-route-id="@item.ID_Pedido"
+                               class="btn btn-sm btn-outline-secondary"
+                               title="Reporte comercial">
+                                📄 Reporte
+                            </a>
+
+                        </div>
+
+                    </td>                   
+
+                </tr>
+            }
+        </tbody>
+
+    </table>
+
+</div>
+
+<!-- ==========================================
+     PAGINACIÓN
+========================================== -->
+@if (Model.TotalPaginas > 1)
+{
+    <div class="d-flex justify-content-between align-items-center mt-3">
+
+        <div>
+
+            Mostrando
+            <strong>
+                @(((Model.PaginaActual - 1) * Model.RegistrosPorPagina) + 1)
+            </strong>
+
+            a
+
+            <strong>
+                @(Math.Min(Model.PaginaActual * Model.RegistrosPorPagina,
+                    Model.TotalRegistros))
+            </strong>
+
+            de
+
+            <strong>
+                @Model.TotalRegistros
+            </strong>
+
+            registros
+
+        </div>
+
+        <nav>
+
+            <ul class="pagination mb-0">
+
+                <!-- Anterior -->
+                <li class="page-item @(Model.PaginaActual == 1 ? "disabled" : "")">
+
+                    <a class="page-link"
+                       asp-action="Index"
+                       asp-route-Pagina="@(Model.PaginaActual - 1)"
+                       asp-route-RegistrosPorPagina="@Model.RegistrosPorPagina"
+                       asp-route-Periodo="@Model.Filtro.Periodo"
+                       asp-route-Mes="@Model.Filtro.Mes"
+                       asp-route-AnioMes="@Model.Filtro.AnioMes"
+                       asp-route-FechaDesde="@Model.Filtro.FechaDesde?.ToString("yyyy-MM-dd")"
+                       asp-route-FechaHasta="@Model.Filtro.FechaHasta?.ToString("yyyy-MM-dd")"
+                       asp-route-Anio="@Model.Filtro.Anio"
+                       asp-route-EstadoPago="@Model.Filtro.EstadoPago"
+                       asp-route-EstadoDespacho="@Model.Filtro.EstadoDespacho"
+                       asp-route-TipoVenta="@Model.Filtro.TipoVenta"
+                       asp-route-Buscar="@Model.Filtro.Buscar">
+
+                        «
+
+                    </a>
+                </li>
+
+                @for (int i = 1; i <= Model.TotalPaginas; i++)
+                {
+                    <li class="page-item @(i == Model.PaginaActual ? "active" : "")">
+
+                        <a class="page-link"
+                           asp-action="Index"
+                           asp-route-Pagina="@i"
+                           asp-route-RegistrosPorPagina="@Model.RegistrosPorPagina"
+                           asp-route-Periodo="@Model.Filtro.Periodo"
+                           asp-route-Mes="@Model.Filtro.Mes"
+                           asp-route-AnioMes="@Model.Filtro.AnioMes"
+                           asp-route-FechaDesde="@Model.Filtro.FechaDesde?.ToString("yyyy-MM-dd")"
+                           asp-route-FechaHasta="@Model.Filtro.FechaHasta?.ToString("yyyy-MM-dd")"
+                           asp-route-Anio="@Model.Filtro.Anio"
+                           asp-route-EstadoPago="@Model.Filtro.EstadoPago"
+                           asp-route-EstadoDespacho="@Model.Filtro.EstadoDespacho"
+                           asp-route-TipoVenta="@Model.Filtro.TipoVenta"
+                           asp-route-Buscar="@Model.Filtro.Buscar">
+
+                            @i
+
+                        </a>
+                    </li>
+                }
+
+                <!-- Siguiente -->
+                <li class="page-item @(Model.PaginaActual == Model.TotalPaginas ? "disabled" : "")">
+
+                    <a class="page-link"
+                       asp-action="Index"
+                       asp-route-Pagina="@(Model.PaginaActual + 1)"
+                       asp-route-RegistrosPorPagina="@Model.RegistrosPorPagina"
+                       asp-route-Periodo="@Model.Filtro.Periodo"
+                       asp-route-Mes="@Model.Filtro.Mes"
+                       asp-route-AnioMes="@Model.Filtro.AnioMes"
+                       asp-route-FechaDesde="@Model.Filtro.FechaDesde?.ToString("yyyy-MM-dd")"
+                       asp-route-FechaHasta="@Model.Filtro.FechaHasta?.ToString("yyyy-MM-dd")"
+                       asp-route-Anio="@Model.Filtro.Anio"
+                       asp-route-EstadoPago="@Model.Filtro.EstadoPago"
+                       asp-route-EstadoDespacho="@Model.Filtro.EstadoDespacho"
+                       asp-route-TipoVenta="@Model.Filtro.TipoVenta"
+                       asp-route-Buscar="@Model.Filtro.Buscar">
+
+                        »
+
+                    </a>
+                </li>
+
+            </ul>
+
+        </nav>
+
+    </div>
+}
