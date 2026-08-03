@@ -3,6 +3,7 @@ using InventarioWEB.Models;
 using InventarioWEB.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using InventarioWEB.Enums;
+using ClosedXML.Excel;
 
 namespace InventarioWEB.Services
 {
@@ -15,15 +16,24 @@ namespace InventarioWEB.Services
             _context = context;
         }
 
-        public async Task<HistorialVentasResultadoVM> ObtenerVentasAsync(VentaHistorialFiltroVM filtro)
+
+        // =========================================================
+        // 🔥 CONSTRUYE LA CONSULTA BASE DEL HISTORIAL
+        // Aplica todos los filtros sin paginación.
+        // =========================================================
+        private IQueryable<Pedido> ConstruirConsultaVentas(
+            VentaHistorialFiltroVM filtro)
         {
-            // =========================================================
-            // 🔥 BASE PEDIDOS
-            // =========================================================
             var query = _context.Pedidos
                 .AsNoTracking()
                 .AsQueryable();
 
+            // Aquí se mueve TODO el código de filtros:
+            // - Período
+            // - EstadoPago
+            // - TipoVenta
+            // - EstadoDespacho
+            // - Buscar
             // =========================================================
             // 🔥 FILTRO POR PERÍODO
             // =========================================================
@@ -227,6 +237,121 @@ namespace InventarioWEB.Services
                     select p;
             }
 
+            return query;
+        }
+
+        // =========================================================
+        // 🔥 CONVIERTE LOS PEDIDOS EN EL HISTORIAL DE VENTAS
+        // Reutilizable para pantalla, Excel, PDF e impresión.
+        // =========================================================
+        private async Task<List<VentaHistorialVM>> MapearVentasAsync(
+            List<Pedido> pedidos)
+        {
+            // =========================================================
+            // 🔥 IDS DE PEDIDOS
+            // =========================================================
+            var idsPedidos = pedidos
+                .Select(p => p.ID_Pedido)
+                .ToList();
+
+            // =========================================================
+            // 🔥 DESPACHOS
+            // =========================================================
+            var despachos = await _context.Despachos
+                .AsNoTracking()
+                .Where(d => idsPedidos.Contains(d.ID_Pedido))
+                .ToListAsync();
+
+            // =========================================================
+            // 🔥 DETALLES
+            // =========================================================
+            var detalles = await _context.DetallePedidos
+                .AsNoTracking()
+                .Where(d => idsPedidos.Contains(d.ID_Pedido))
+                .ToListAsync();
+
+            // =========================================================
+            // 🔥 CLIENTES
+            // =========================================================
+            var idsClientes = pedidos
+                .Select(p => p.ID_Cliente)
+                .Distinct()
+                .ToList();
+
+            var clientes = await _context.Clientes
+                .AsNoTracking()
+                .Where(c => idsClientes.Contains(c.ID_Cliente))
+                .ToDictionaryAsync(c => c.ID_Cliente);
+
+            // =========================================================
+            // 🔥 DESPACHOS POR PEDIDO
+            // =========================================================
+            var despachosPorPedido = despachos
+                .GroupBy(d => d.ID_Pedido)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderByDescending(x => x.FechaRegistro).First());
+
+            // =========================================================
+            // 🔥 DETALLES POR PEDIDO
+            // =========================================================
+            var detallesPorPedido = detalles
+                .ToLookup(d => d.ID_Pedido);
+
+            // =========================================================
+            // 🔥 MAPEO
+            // =========================================================
+            return pedidos.Select(p =>
+            {
+                despachosPorPedido.TryGetValue(p.ID_Pedido, out var despacho);
+
+                clientes.TryGetValue(p.ID_Cliente, out var cliente);
+
+                var detalle = detallesPorPedido[p.ID_Pedido].ToList();
+
+                return new VentaHistorialVM
+                {
+                    ID_Pedido = p.ID_Pedido,
+
+                    Cliente = cliente != null
+                        ? $"{cliente.Nombre} {cliente.Apellido}"
+                        : p.ID_Cliente.ToString(),
+
+                    
+
+                    Fecha = p.Fecha,
+
+
+                    TipoVenta = p.TipoVenta,
+
+                    EstadoPedido = (p.Estado ?? "").Trim().ToUpper(),
+                    EstadoPago = (p.EstadoPago ?? "").Trim().ToUpper(),
+                    EstadoDespacho = (p.Estado ?? "").Trim().ToUpper(),
+
+                    Subtotal = p.Total,
+                    TotalIVA = p.TotalIVA,
+                    TotalVenta = p.TotalVenta,
+                    Saldo = p.Saldo,
+                    TotalAbonado = p.TotalVenta - p.Saldo,
+
+                    ID_Despacho = despacho?.ID_Despacho,
+
+                    TotalProductos = detalle.Count,
+                    TotalUnidades = detalle.Sum(x => x.Cantidad)
+                };
+
+            }).ToList();
+        }
+
+
+        public async Task<HistorialVentasResultadoVM> ObtenerVentasAsync(VentaHistorialFiltroVM filtro)
+        {
+            // =========================================================
+            // 🔥 BASE PEDIDOS
+            // =========================================================
+            var query = ConstruirConsultaVentas(filtro);
+
+           
             // =========================================================
             // 🔥 INDICADORES (ANTES DE PAGINAR)
             // =========================================================
@@ -278,123 +403,8 @@ namespace InventarioWEB.Services
             // =========================================================
             // 🔥 IDS DE PEDIDOS
             // =========================================================
-
-            var idsPedidos = pedidos
-                .Select(p => p.ID_Pedido)
-                .ToList();
-            // =========================================================
-            // 🔥 DESPACHOS ÚNICAMENTE DE ESOS PEDIDOS
-            // =========================================================
-            var despachos = await _context.Despachos
-                .AsNoTracking()
-                .Where(d => idsPedidos.Contains(d.ID_Pedido))
-                .ToListAsync();
-
-            // =========================================================
-            // 🔥 DETALLES ÚNICAMENTE DE ESOS PEDIDOS
-            // =========================================================
-            var detalles = await _context.DetallePedidos
-                .AsNoTracking()
-                .Where(d => idsPedidos.Contains(d.ID_Pedido))
-                .ToListAsync();
-
-            // =========================================================
-            // 🔥 CLIENTES DE LOS PEDIDOS
-            // =========================================================
-            var idsClientes = pedidos
-                .Select(p => p.ID_Cliente)
-                .Distinct()
-                .ToList();
-
-            var clientes = await _context.Clientes
-                .AsNoTracking()
-                .Where(c => idsClientes.Contains(c.ID_Cliente))
-                .ToDictionaryAsync(c => c.ID_Cliente);
-
-            // =========================================================
-            // 🔥 ÚLTIMO DESPACHO POR PEDIDO
-            // =========================================================
-            var despachosPorPedido = despachos
-                .GroupBy(d => d.ID_Pedido)
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.OrderByDescending(x => x.FechaRegistro).First()
-                );
-
-            // =========================================================
-            // 🔥 DETALLES POR PEDIDO (LOOKUP O(1))
-            // =========================================================
-            var detallesPorPedido = detalles
-                .ToLookup(d => d.ID_Pedido);
-
-            // =========================================================
-            // 🔥 MAPEO EN MEMORIA (ERP CORRECTO - OPTIMIZADO Y LIMPIO)
-            // =========================================================
-            var resultado = pedidos.Select(p =>
-            {
-                // =========================
-                // DESPACHO (O(1))
-                // =========================
-                despachosPorPedido.TryGetValue(p.ID_Pedido, out var despacho);
-
-                // =========================
-                // DETALLES (SAFE LOOKUP)
-                // =========================
-                var detalle = detallesPorPedido[p.ID_Pedido].ToList();
-
-                // =========================
-                // CLIENTE
-                // =========================
-                clientes.TryGetValue(p.ID_Cliente, out var cliente);
-
-                return new VentaHistorialVM
-                {
-                    // =========================
-                    // IDENTIFICADOR
-                    // =========================
-                    ID_Pedido = p.ID_Pedido,
-
-                    // =========================
-                    // COMERCIAL
-                    // =========================
-                    Cliente = cliente != null
-                        ? $"{cliente.Nombre} {cliente.Apellido}"
-                        : p.ID_Cliente.ToString(),
-
-                    Fecha = p.Fecha,
-                    TipoVenta = p.TipoVenta,
-
-                    // =========================
-                    // ESTADOS
-                    // =========================
-                    EstadoPedido = (p.Estado ?? "").Trim().ToUpper(),
-
-                    EstadoPago = (p.EstadoPago ?? "").Trim().ToUpper(),
-
-                    EstadoDespacho = (p.Estado ?? "").Trim().ToUpper(),
-
-                    // =========================
-                    // FINANCIERO
-                    // =========================
-                    Subtotal = p.Total,
-                    TotalIVA = p.TotalIVA,
-                    TotalVenta = p.TotalVenta,
-                    Saldo = p.Saldo,
-                    TotalAbonado = p.TotalVenta - p.Saldo,
-
-                    // =========================
-                    // FACTURA
-                    // =========================
-                    ID_Despacho = despacho?.ID_Despacho,
-
-                    // =========================
-                    // PRODUCTOS
-                    // =========================
-                    TotalProductos = detalle.Count,
-                    TotalUnidades = detalle.Sum(x => x.Cantidad)
-                };
-            })
-            .ToList();
+            var resultado = await MapearVentasAsync(pedidos);
+                        
             // =========================================================
             // 🔥 RESULTADO DEL HISTORIAL
             // =========================================================
@@ -417,6 +427,43 @@ namespace InventarioWEB.Services
 
         }
 
+        /// <summary>
+        /// Obtiene el historial de ventas para procesos de exportación
+        /// (Excel, PDF e impresión), aplicando los mismos filtros del
+        /// historial pero sin paginación.
+        /// </summary>
+        /// <param name="filtro">
+        /// Filtros de consulta del historial de ventas.
+        /// </param>
+        /// <returns>
+        /// Lista completa de ventas que cumplen los filtros indicados.
+        /// </returns>
+        // =========================================================
+        // 🔥 OBTIENE TODAS LAS VENTAS FILTRADAS (SIN PAGINACIÓN)
+        // Utilizado para Exportar Excel, PDF e Imprimir.
+        // =========================================================
+        public async Task<List<VentaHistorialVM>> ObtenerVentasExportacionAsync(
+            VentaHistorialFiltroVM filtro)
+        {
+            // =========================================================
+            // 🔥 CONSULTA BASE
+            // =========================================================
+            var query = ConstruirConsultaVentas(filtro);
+
+            // =========================================================
+            // 🔥 PEDIDOS FILTRADOS
+            // =========================================================
+            var pedidos = await query
+                .OrderByDescending(p => p.Fecha)
+                .ThenByDescending(p => p.ID_Pedido)
+                .ToListAsync();
+
+            // =========================================================
+            // 🔥 MAPEO
+            // =========================================================
+            return await MapearVentasAsync(pedidos);
+        }
+
         // =========================================================
         // 🔥 DETALLE COMPLETO DE UNA VENTA (ERP PRODUCCIÓN)
         // =========================================================
@@ -428,6 +475,7 @@ namespace InventarioWEB.Services
             var pedido = await _context.Pedidos
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.ID_Pedido == idPedido);
+           
 
             if (pedido == null)
                 return null;
@@ -547,34 +595,68 @@ namespace InventarioWEB.Services
                 MetodoPago = a.MetodoPago.Nombre,   // Ajusta esta propiedad si en tu modelo tiene otro nombre
                 NumeroRecibo = a.NumeroRecibo ?? ""
             }).ToList();
-
             // =====================================================
             // 🔹 VM FINAL
             // =====================================================
             return new VentaDetalleVM
             {
+                // =====================================================
+                // DATOS GENERALES
+                // =====================================================
+
                 ID_Pedido = pedido.ID_Pedido,
+
                 Cliente = cliente != null
-                    ? $"{cliente.Nombre} {cliente.Apellido}"
-                    : pedido.ID_Cliente.ToString(),
+                ? $"{cliente.Nombre} {cliente.Apellido}"
+                : pedido.ID_Cliente.ToString(),
+
+                CorreoCliente = cliente?.Correo ?? string.Empty,
 
                 Fecha = pedido.Fecha,
 
-                TotalVenta = pedido.TotalVenta,
-                TotalAbonado = abonosVM.Any()
-                ? abonosVM.Sum(a => a.Monto)
-                : pedido.TotalVenta - pedido.Saldo,
-               
                 TipoVenta = pedido.TipoVenta,
 
+                // =====================================================
+                // INFORMACIÓN FINANCIERA
+                // =====================================================
+
+                // Base gravable (sin IVA)
+                Total = pedido.Total,
+
+                // IVA total registrado en el pedido
+                TotalIVA = pedido.TotalIVA,      // <-- Cambia por TotalIVA si así se llama en tu entidad
+
+                // Total de la venta (Base + IVA)
+                TotalVenta = pedido.TotalVenta,
+
+                // Total abonado por el cliente
+                TotalAbonado = abonosVM.Any()
+                    ? abonosVM.Sum(a => a.Monto)
+                    : pedido.TotalVenta - pedido.Saldo,
+
+                // =====================================================
+                // ESTADOS DEL PROCESO
+                // =====================================================
+
                 EstadoPedido = pedido.Estado,
+
                 EstadoPago = pedido.EstadoPago,
+
                 EstadoDespacho = despacho?.Estado.ToString() ?? "NO DESPACHADO",
+
+                TipoDespacho = despacho?.Tipo.ToString() ?? "SIN DESPACHO",
+
                 ID_Despacho = despacho?.ID_Despacho,
-                               
+
+                // =====================================================
+                // DETALLE DE LA VENTA
+                // =====================================================
+
                 Productos = productosVM,
+
                 Abonos = abonosVM
             };
+
         }
     }
 }

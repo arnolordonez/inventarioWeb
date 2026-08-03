@@ -1,4 +1,5 @@
-﻿namespace InventarioWEB.ViewModels
+﻿/*
+namespace InventarioWEB.ViewModels
 {
     public class KardexAnaliticoViewModel
     {
@@ -26,3 +27,4 @@
         public string? UltimoTipoMovimiento { get; set; }
     }
 }
+*/

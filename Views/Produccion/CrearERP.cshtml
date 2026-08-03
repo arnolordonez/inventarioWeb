@@ -8,6 +8,10 @@
 
     @Html.AntiForgeryToken()
 
+    <input asp-for="ID_Pedido" type="hidden" />
+
+    <input asp-for="FechaProduccion" type="hidden" />
+
     <div class="container-fluid">
 
         <!-- ========================================= -->
@@ -233,33 +237,52 @@
                             {
                                 <tr>
 
-                                    <!-- PRODUCTO -->
-                                    <td>
+                                        <!-- PRODUCTO -->
+                                        <td>
 
-                                        <div class="fw-bold">
+                                            <div class="fw-bold">
+                                                @Model.Detalles[i].NombreProducto
+                                            </div>
 
-                                            @Model.Detalles[i].NombreProducto
+                                            <small class="text-muted d-block">
+                                                Código: @Model.Detalles[i].ID_Producto
+                                            </small>
 
-                                        </div>
+                                            <!-- ========================================= -->
+                                            <!-- DATOS OCULTOS PARA EL POST -->
+                                            <!-- ========================================= -->
 
-                                        <small class="text-muted d-block">
-                                            Código: @Model.Detalles[i].ID_Producto
-                                        </small>
-                                                                                
-                                        <!-- HIDDEN -->
-                                        <input type="hidden"
-                                               asp-for="Detalles[@i].ID_Producto" />
+                                            <input type="hidden"
+                                                   asp-for="Detalles[@i].ID_Producto" />
 
-                                        <input type="hidden"
-                                               asp-for="Detalles[@i].ID_DetallePedido" />
+                                            <input type="hidden"
+                                                   asp-for="Detalles[@i].ID_DetallePedido" />
 
-                                        <input type="hidden"
-                                               asp-for="Detalles[@i].CantidadPedido" />
+                                            <input type="hidden"
+                                                   asp-for="Detalles[@i].CantidadPedido" />
 
-                                        <input type="hidden"
-                                               asp-for="Detalles[@i].CantidadPendiente" />
+                                            <input type="hidden"
+                                                   asp-for="Detalles[@i].CantidadPendiente" />
 
-                                    </td>
+                                            <input type="hidden"
+                                                   asp-for="Detalles[@i].CantidadProducidaActual" />
+
+                                            <input type="hidden"
+                                                   asp-for="Detalles[@i].StockActual" />
+
+                                            <input type="hidden"
+                                                   asp-for="Detalles[@i].CostoUnitario" />
+
+                                            <input type="hidden"
+                                                   asp-for="Detalles[@i].PrecioVentaUnitario" />
+
+                                            <input type="hidden"
+                                                   asp-for="Detalles[@i].IVA" />
+
+                                            <input type="hidden"
+                                                   asp-for="Detalles[@i].NombreProducto" />
+
+                                        </td>
 
                                     <!-- PEDIDO -->
                                     <td class="text-center fw-bold">

@@ -1,0 +1,252 @@
+﻿@model IEnumerable<InventarioWEB.Models.Despacho>
+
+@using InventarioWEB.Models
+
+@{
+    ViewData["Title"] = "Despachos";
+}
+
+<h2 class="mb-4">📦 Historial de Despachos</h2>
+
+
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        <div class="table-responsive">
+
+            <table class="table table-striped table-hover table-bordered align-middle mb-0">
+
+                <thead class="table-dark text-center">
+                    <tr>
+                        <th>ID</th>
+                        <th>Pedido / Cliente</th>
+                        <th>Estado del Pedido</th>
+                        <th>Estado de Pago</th>
+                        <th>Tipo de Venta</th>
+                        <th>Fecha</th>
+                        <th>Tipo de Despacho</th>
+                        <th>Correo</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    @if (Model == null || !Model.Any())
+                    {
+                        <tr>
+                            <td colspan="10" class="text-center text-muted">
+                                No hay despachos
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr>
+
+                                <td class="text-center fw-bold">
+                                    #@item.ID_Despacho
+                                </td>
+
+                                <td>
+                                    <strong>Pedido #@item.ID_Pedido</strong>
+
+                                    <br />
+
+                                    <small class="text-muted">
+                                        @if (item.Pedido?.Cliente != null)
+                                        {
+                                            @($"{item.Pedido.Cliente.Nombre} {item.Pedido.Cliente.Apellido}")
+                                        }
+                                        else
+                                        {
+                                            @:Sin cliente
+                                        }
+                                    </small>
+                                </td>
+
+                                <!-- 🔥 ESTADO DEL PEDIDO -->
+                                <td class="text-center">
+                                    @if (item.Pedido != null)
+                                    {
+                                        if (item.Pedido.Estado == "NO DESPACHADO")
+                                        {
+                                            <span class="badge bg-warning text-dark">
+                                                NO DESPACHADO
+                                            </span>
+                                        }
+                                        else if (item.Pedido.Estado == "DESPACHADO")
+                                        {
+                                            <span class="badge bg-primary">
+                                                DESPACHADO
+                                            </span>
+                                        }
+                                    }
+                                </td>
+
+                                <!-- 🔥 ESTADO DE PAGO -->
+                                <td class="text-center">
+                                    @if (item.Pedido != null)
+                                    {
+                                        if (item.Pedido.EstadoPago == "PAGADO")
+                                        {
+                                            <span class="badge bg-success">
+                                                PAGADO
+                                            </span>
+                                        }
+                                        else if (item.Pedido.EstadoPago == "ABONADO")
+                                        {
+                                            <span class="badge bg-info text-dark">
+                                                ABONADO
+                                            </span>
+                                        }
+                                    }
+                                </td>
+
+                                <!-- 🔥 TIPO DE VENTA -->
+                                <td class="text-center">
+                                    @if (item.Pedido?.TipoVenta == "CONTADO")
+                                    {
+                                        <span class="badge bg-success">
+                                            CONTADO
+                                        </span>
+                                    }
+                                    else if (item.Pedido?.TipoVenta == "CREDITO")
+                                    {
+                                        <span class="badge bg-danger">
+                                            CRÉDITO
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- 🔥 FECHA DEL DESPACHO -->
+                                <td class="text-center">
+                                    @item.Fecha.ToString("yyyy-MM-dd HH:mm")
+                                </td>
+
+                                <!-- 🔥 TIPO DE DESPACHO -->
+                                <td class="text-center">
+                                    @if (item.Tipo == TipoDespacho.Completo)
+                                    {
+                                        <span class="badge bg-success">
+                                            COMPLETO
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">
+                                            PARCIAL
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- 📧 ESTADO DEL CORREO -->
+                                <td>
+
+                                    @if (item.Pedido?.Cliente != null &&
+                                   !string.IsNullOrWhiteSpace(item.Pedido.Cliente.Correo))
+                                    {
+                                        <div class="small fw-semibold">
+                                            @item.Pedido.Cliente.Correo
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-muted small">
+                                            Sin correo registrado
+                                        </div>
+                                    }
+
+                                    <div class="mt-1">
+                                        @if (item.CorreoEnviado)
+                                        {
+                                            <span class="badge bg-success"
+                                                  title="@item.FechaEnvioCorreo?.ToString("dd/MM/yyyy HH:mm")">
+                                                ✔ Enviado
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">
+                                                No enviado
+                                            </span>
+                                        }
+                                    </div>
+
+                                </td>
+
+                                <td class="text-center">                             
+                                    <!-- Ver detalle -->
+                                    <a asp-action="Detalle"
+                                       asp-route-id="@item.ID_Despacho"
+                                       class="btn btn-sm btn-outline-primary"
+                                       title="Ver detalle">
+                                        🔍
+                                    </a>
+
+                                    <!-- Ver factura -->
+                                    <a href="@Url.Action("Factura", "HistorialDespacho", new { id = item.ID_Despacho })"
+                                       target="_blank"
+                                       class="btn btn-sm btn-success"
+                                       title="Ver factura">
+                                        🧾
+                                    </a>
+
+                                    <!-- Enviar factura -->
+                                    <form asp-action="EnviarFacturaCorreo"
+                                          asp-route-id="@item.ID_Despacho"
+                                          method="post"
+                                          class="d-inline enviarFacturaForm">
+
+                                        @Html.AntiForgeryToken()
+
+                                        <button type="submit"
+                                                class="btn btn-sm btn-primary btnEnviarFactura"
+                                                title="Enviar factura por correo"
+                                                onclick="return confirmarEnvioFactura(this);">
+
+                                            📧
+
+                                        </button>
+
+                                    </form>
+
+                                </td>
+                            </tr>
+                        }
+                    }
+
+
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+    function confirmarEnvioFactura(boton)
+    {
+        if (!confirm('¿Desea enviar la factura al correo del cliente?'))
+            return false;
+
+        boton.disabled = true;
+
+        boton.innerHTML = "⏳";
+
+        boton.classList.remove("btn-primary");
+        boton.classList.add("btn-secondary");
+
+        boton.closest("form").submit();
+
+        return false;
+    }
+
+</script>                       

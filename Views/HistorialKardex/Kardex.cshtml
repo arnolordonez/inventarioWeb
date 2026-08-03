@@ -1,0 +1,2038 @@
+﻿@model List<InventarioWEB.ViewModels.KardexViewModel>
+@using System.Text.Json
+@using InventarioWEB.ViewModels
+
+@{
+    ViewData["Title"] = "Kardex de Inventario";
+
+    var modelData = Model ?? new List<KardexViewModel>();
+    var hayDatos = modelData.Any();
+
+    var totalEntradas = modelData.Sum(m => m.EntradaStock);
+    var totalSalidas = modelData.Sum(m => m.SalidaStock);
+    var resumenMensual = ViewBag.ResumenMensual
+    as List<KardexResumenMensualViewModel>
+    ?? new List<KardexResumenMensualViewModel>();
+
+   
+    var graficaJson = JsonSerializer.Serialize(
+        ViewBag.Grafica ?? new List<KardexGraficaViewModel>(),
+        new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                }
+    );
+
+    var filtros = ViewBag.Filtros;
+}
+
+
+
+
+<!-- ========================================================= -->
+<!-- ENCABEZADO -->
+<!-- ========================================================= -->
+
+<div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
+
+    <div>
+        <h2 class="mb-1 fw-bold text-primary">
+            <i class="fas fa-chart-line me-2"></i>
+            Kardex de Inventario
+        </h2>
+
+        <small class="text-muted">
+            Consulte los movimientos de inventario y analice el comportamiento del stock mediante indicadores y tendencias.
+        </small>
+    </div>
+
+</div>
+
+<!-- ========================================================= -->
+<!-- INDICADORES KPI -->
+<!-- ========================================================= -->
+
+<div class="row mb-4 g-3">
+
+
+    <!-- ENTRADAS -->
+    <div class="col-md-3">
+
+        <div class="card border-0 shadow-sm h-100">
+
+            <div class="card-body">
+
+                <h6 class="text-success fw-bold mb-2">
+
+                    <i class="fas fa-arrow-circle-down me-1"></i>
+
+                    Entradas
+
+                </h6>
+
+
+                <h3 class="fw-bold mb-0">
+
+                    @totalEntradas.ToString("N0")
+
+                </h3>
+
+
+                <small class="text-muted">
+
+                    Total unidades ingresadas
+
+                </small>
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- SALIDAS -->
+    <div class="col-md-3">
+
+        <div class="card border-0 shadow-sm h-100">
+
+            <div class="card-body">
+
+
+                <h6 class="text-danger fw-bold mb-2">
+
+                    <i class="fas fa-arrow-circle-up me-1"></i>
+
+                    Salidas
+
+                </h6>
+
+
+                <h3 class="fw-bold mb-0">
+
+                    @totalSalidas.ToString("N0")
+
+                </h3>
+
+
+                <small class="text-muted">
+
+                    Total unidades despachadas
+
+                </small>
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- STOCK FINAL -->
+    <div class="col-md-3">
+
+        <div class="card border-0 shadow-sm h-100">
+
+            <div class="card-body">
+
+
+                <h6 class="text-primary fw-bold mb-2">
+
+                    <i class="fas fa-boxes me-1"></i>
+
+                    Stock Final
+
+                </h6>
+
+
+                <h3 class="fw-bold mb-0">
+
+                    @ViewBag.StockFinal.ToString("N0")
+
+                </h3>
+
+
+                <small class="text-muted">
+
+                    Existencia al cierre
+
+                </small>
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- REGISTROS -->
+    <div class="col-md-3">
+
+        <div class="card border-0 shadow-sm h-100">
+
+            <div class="card-body">
+
+
+                <h6 class="text-secondary fw-bold mb-2">
+
+                    <i class="fas fa-list me-1"></i>
+
+                    Registros
+
+                </h6>
+
+
+                <h3 class="fw-bold mb-0">
+
+                    @modelData.Count.ToString("N0")
+
+                </h3>
+
+
+                <small class="text-muted">
+
+                    Movimientos encontrados
+
+                </small>
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+</div>
+
+<!-- ========================================================= -->
+<!-- GRÁFICA -->
+<!-- ========================================================= -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-white">
+
+        <h5 class="mb-0 fw-bold">
+            <i class="fas fa-chart-area text-primary me-2"></i>
+            Tendencia Mensual del Inventario
+        </h5>
+
+    </div>
+
+    <div class="card-body">
+
+        <div style="height:420px;">
+
+            <canvas id="graficaMovimientos"></canvas>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script id="grafica-data" type="application/json">
+    @Html.Raw(graficaJson)
+</script>
+
+<!-- ========================================================= -->
+<!-- FILTROS -->
+<!-- ========================================================= -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-white">
+
+        <h5 class="mb-0 fw-bold">
+
+            <i class="fas fa-filter text-secondary me-2"></i>
+
+            Filtros de búsqueda
+
+        </h5>
+
+    </div>
+
+    <div class="card-body">
+
+        <form method="get">
+
+            <div class="row g-3">
+
+                <!-- CÓDIGO -->
+                <div class="col-lg-2 col-md-4">
+
+                    <label class="form-label fw-semibold">
+                        Código
+                    </label>
+
+                    <input type="number"
+                           name="idProducto"
+                           class="form-control"
+                           placeholder="Código"
+                           value="@(filtros?.idProducto ?? "")" />
+
+                </div>
+                <!-- GÉNERO -->
+                <div class="col-lg-2 col-md-4">
+
+                    <label class="form-label fw-semibold">
+                        Género
+                    </label>
+
+                    <select id="idGenero"
+                            name="idGenero"
+                            class="form-select">
+
+                        <option value="">
+                            Todos
+                        </option>
+
+                        @foreach (var genero in ViewBag.Generos)
+                        {
+                            <option value="@genero.ID_Genero"
+                                    selected="@(filtros?.idGenero == genero.ID_Genero)">
+
+                                @genero.DescripGenero
+
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+
+
+                <!-- REFERENCIA -->
+                <div class="col-lg-2 col-md-4">
+
+                    <label class="form-label fw-semibold">
+                        Referencia
+                    </label>
+
+                    <select id="idReferencia"
+                            name="idReferencia"
+                            class="form-select">
+
+                        <option value="">
+                            Todas
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- TALLA -->
+                <div class="col-lg-2 col-md-4">
+
+                    <label class="form-label fw-semibold">
+                        Talla
+                    </label>
+
+                    <select id="idTalla"
+                            name="idTalla"
+                            class="form-select">
+
+                        <option value="">
+                            Todas
+                        </option>
+
+                    </select>
+                </div>
+
+                <!-- TELA -->
+                <div class="col-lg-2 col-md-4">
+
+                    <label class="form-label fw-semibold">
+                        Tela
+                    </label>
+
+                    <select name="idTela" class="form-select">
+
+                        <option value="">Todas</option>
+
+                        @foreach (var tela in ViewBag.Telas)
+                        {
+                            <option value="@tela.ID_Telas"
+                                    selected="@(filtros?.idTela == tela.ID_Telas)">
+
+                                @tela.DescripTela
+
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+
+                <!-- COLOR -->
+                <div class="col-lg-2 col-md-4">
+
+                    <label class="form-label fw-semibold">
+                        Color
+                    </label>
+
+                    <select name="idColor" class="form-select">
+
+                        <option value="">Todos</option>
+
+                        @foreach (var color in ViewBag.Colores)
+                        {
+                            <option value="@color.ID_Color"
+                                    selected="@(filtros?.idColor == color.ID_Color)">
+
+                                @color.Nombre
+
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+
+            </div>
+
+            <hr class="my-4" />
+
+            <div class="row g-3">
+
+                <!-- ========================================================= -->
+                <!-- PERÍODO -->
+                <!-- ========================================================= -->
+                <div class="col-lg-3 col-md-4">
+
+                    <label class="form-label fw-semibold">
+                        Período
+                    </label>
+
+                    <select id="tipoPeriodo"
+                            name="tipoPeriodo"
+                            class="form-select">
+
+                        <option value=""
+                                selected="@(string.IsNullOrEmpty(filtros?.tipoPeriodo))">
+                            Todo
+                        </option>
+
+                        <option value="MES"
+                                selected="@(filtros?.tipoPeriodo == "MES")">
+                            Por Mes
+                        </option>
+
+                        <option value="ANIO"
+                                selected="@(filtros?.tipoPeriodo == "ANIO")">
+                            Por Año
+                        </option>
+
+                        <option value="PERSONALIZADO"
+                                selected="@(filtros?.tipoPeriodo == "PERSONALIZADO")">
+                            Personalizado
+                        </option>
+
+                    </select>
+
+                </div>
+                <!-- ========================================================= -->
+                <!-- FIN PERÍODO -->
+                <!-- ========================================================= -->
+                <!-- ========================================================= -->
+                <!-- MES -->
+                <!-- ========================================================= -->
+                <div class="col-lg-2 col-md-4">
+
+                    <label class="form-label fw-semibold">
+                        Mes
+                    </label>
+
+                    @{
+                        var cultura = System.Globalization.CultureInfo.GetCultureInfo("es-CO");
+                    }
+
+                    <select id="mes"
+                            name="mes"
+                            class="form-select">
+
+                        <option value="">
+                            Todos
+                        </option>
+
+
+                        @for (int i = 1; i <= 12; i++)
+                        {
+                            <option value="@i"
+                                    selected="@(filtros?.mes == i)">
+
+                                @cultura.DateTimeFormat.GetMonthName(i)
+
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+                <!-- ========================================================= -->
+                <!-- FIN MES -->
+                <!-- ========================================================= -->
+                <!-- ========================================================= -->
+                <!-- AÑO -->
+                <!-- ========================================================= -->
+                <div class="col-lg-2 col-md-4">
+
+                    <label class="form-label fw-semibold">
+                        Año
+                    </label>
+
+                    <!-- ========================================================= -->
+                    <!-- AÑO CON CONTROL INCREMENTAL -->
+                    <!-- ========================================================= -->
+
+                    <div class="input-group">
+
+
+                        <!-- Botón año anterior -->
+                        <button type="button"
+                                class="btn btn-outline-secondary"
+                                id="btnAnioAnterior">
+
+                            <i class="bi bi-chevron-left"></i>
+
+                        </button>
+
+
+
+                        <!-- Año actual -->
+                        <input type="number"
+                               id="anio"
+                               name="anio"
+                               class="form-control text-center"
+                               readonly
+                               value="@(filtros?.anio ?? DateTime.Now.Year)" />
+
+
+
+                        <!-- Botón año siguiente -->
+                        <button type="button"
+                                class="btn btn-outline-secondary"
+                                id="btnAnioSiguiente">
+
+                            <i class="bi bi-chevron-right"></i>
+
+                        </button>
+
+
+                    </div>
+
+                    <!-- ========================================================= -->
+                    <!-- FIN AÑO CON CONTROL INCREMENTAL -->
+                    <!-- ========================================================= -->
+                   
+
+                </div>
+                <!-- ========================================================= -->
+                <!-- FIN AÑO -->
+                <!-- ========================================================= -->
+                <!-- ========================================================= -->
+                <!-- DESDE -->
+                <!-- ========================================================= -->
+                <div class="col-lg-2 col-md-4">
+
+                    <label class="form-label fw-semibold">
+                        Desde
+                    </label>
+
+
+                    <input type="date"
+                           id="desde"
+                           name="fechaInicio"
+                           class="form-control"
+                           value="@(filtros?.fechaInicio?.ToString("yyyy-MM-dd"))" />
+
+                </div>
+                <!-- ========================================================= -->
+                <!-- FIN DESDE -->
+                <!-- ========================================================= -->
+                <!-- ========================================================= -->
+                <!-- HASTA -->
+                <!-- ========================================================= -->
+                <div class="col-lg-2 col-md-4">
+
+                    <label class="form-label fw-semibold">
+                        Hasta
+                    </label>
+
+
+                    <input type="date"
+                           id="hasta"
+                           name="fechaFin"
+                           class="form-control"
+                           value="@(filtros?.fechaFin?.ToString("yyyy-MM-dd"))" />
+
+                </div>
+                
+                <!-- ========================================================= -->
+                <!-- FIN HASTA -->
+                <!-- ========================================================= -->
+
+            </div> <!-- FIN row g-3 -->
+            
+            <!-- ============================================= -->
+            <!-- BOTONES -->
+            <!-- ============================================= -->
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center mt-4 gap-2">
+
+                <div class="d-flex flex-wrap gap-2">
+
+                    <button type="submit" class="btn btn-primary">
+
+                        <i class="fas fa-search me-1"></i>
+
+                        Buscar
+
+                    </button>
+
+                    <a asp-action="Kardex"
+                       class="btn btn-outline-secondary">
+
+                        <i class="fas fa-eraser me-1"></i>
+
+                        Limpiar filtros
+
+                    </a>
+
+                </div>
+
+                <div>
+
+                    @if (hayDatos)
+                    {
+                        <a asp-action="ExportarExcel"
+                           asp-route-idProducto="@(filtros?.idProducto)"
+                           asp-route-idGenero="@(filtros?.idGenero)"
+                           asp-route-idReferencia="@(filtros?.idReferencia)"
+                           asp-route-idTalla="@(filtros?.idTalla)"
+                           asp-route-idTela="@(filtros?.idTela)"
+                           asp-route-idColor="@(filtros?.idColor)"
+                           asp-route-tipoPeriodo="@(filtros?.tipoPeriodo)"
+                           asp-route-mes="@(filtros?.mes)"
+                           asp-route-anio="@(filtros?.anio)"
+                           asp-route-fechaInicio="@(filtros?.fechaInicio)"
+                           asp-route-fechaFin="@(filtros?.fechaFin)"
+                           class="btn btn-success">
+
+                            <i class="fas fa-file-excel me-1"></i>
+
+                            Exportar a Excel
+
+                        </a>
+                    }
+                    else
+                    {
+                        <button class="btn btn-success" disabled>
+
+                            <i class="fas fa-file-excel me-1"></i>
+
+                            Exportar a Excel
+
+                        </button>
+                    }
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+<!-- ========================================================= -->
+<!-- ========================================================= -->
+<!-- INTERPRETACIÓN MENSUAL -->
+<!-- ========================================================= -->
+@if (resumenMensual.Any())
+{
+
+    var resumenOrdenado = resumenMensual
+        .OrderBy(x => x.FechaPeriodo)
+        .ToList();
+
+
+    <div class="row mb-4 g-3">
+
+
+        <!-- ENTRADAS MENSUALES -->
+        <div class="col-md-4">
+
+            <div class="card border-success shadow-sm h-100">
+
+                <div class="card-body">
+
+
+                    <h6 class="text-success fw-bold mb-3">
+
+                        <i class="fas fa-arrow-circle-down me-1"></i>
+
+                        Comportamiento de Entradas
+
+                    </h6>
+
+
+                    @foreach (var item in resumenOrdenado)
+                    {
+
+                        <div class="d-flex justify-content-between">
+
+                            <span>
+                                @item.Periodo
+                            </span>
+
+                            <strong class="text-success">
+
+                                @item.Entradas.ToString("N0")
+
+                            </strong>
+
+                        </div>
+
+                    }
+
+
+                    <hr />
+
+
+                    <div class="d-flex justify-content-between">
+
+                        <span class="fw-bold">
+                            Total período
+                        </span>
+
+
+                        <strong class="text-success">
+
+                            @(resumenOrdenado.Sum(x => x.Entradas).ToString("N0"))
+
+                        </strong>
+
+                    </div>
+
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- SALIDAS MENSUALES -->
+        <div class="col-md-4">
+
+            <div class="card border-danger shadow-sm h-100">
+
+                <div class="card-body">
+
+
+                    <h6 class="text-danger fw-bold mb-3">
+
+                        <i class="fas fa-arrow-circle-up me-1"></i>
+
+                        Comportamiento de Salidas
+
+                    </h6>
+
+
+                    @foreach (var item in resumenOrdenado)
+                    {
+
+                        <div class="d-flex justify-content-between">
+
+                            <span>
+                                @item.Periodo
+                            </span>
+
+                            <strong class="text-danger">
+
+                                @item.Salidas.ToString("N0")
+
+                            </strong>
+
+                        </div>
+
+                    }
+
+
+                    <hr />
+
+
+                    <div class="d-flex justify-content-between">
+
+                        <span class="fw-bold">
+                            Total período
+                        </span>
+
+
+                        <strong class="text-danger">
+
+                            @(resumenOrdenado.Sum(x => x.Salidas).ToString("N0"))
+
+                        </strong>
+
+                    </div>
+
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- STOCK MENSUAL -->
+        <div class="col-md-4">
+
+            <div class="card border-primary shadow-sm h-100">
+
+                <div class="card-body">
+
+
+                    <h6 class="text-primary fw-bold mb-3">
+
+                        <i class="fas fa-boxes me-1"></i>
+
+                        Evolución del Stock
+
+                    </h6>
+
+
+                    @foreach (var item in resumenOrdenado)
+                    {
+
+                        <div class="d-flex justify-content-between">
+
+                            <span>
+                                @item.Periodo
+                            </span>
+
+
+                            <strong class="text-primary">
+
+                                @item.StockFinal.ToString("N0")
+
+                            </strong>
+
+                        </div>
+
+                    }
+
+
+                    <hr />
+
+
+                    @{
+                        var primerStock = resumenOrdenado
+                        .First()
+                        .StockFinal;
+
+                        var ultimoStock = resumenOrdenado
+                        .Last()
+                        .StockFinal;
+
+                        var variacion = ultimoStock - primerStock;
+
+
+                        decimal porcentajeVariacion = primerStock > 0
+                        ? ((decimal)variacion / primerStock) * 100
+                        : 0;
+                    }
+
+
+                    <div class="d-flex justify-content-between">
+
+                        <span class="fw-bold">
+                            Variación
+                        </span>
+
+
+                        <strong class="@(variacion >= 0 ? "text-success" : "text-danger")">
+
+
+                            @(variacion >= 0 ? "+" : "")
+
+                            @variacion.ToString("N0")
+
+                            (@porcentajeVariacion.ToString("N2")%)
+
+                        </strong>
+
+                    </div>
+
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+}
+else
+{
+
+    <div class="alert alert-warning shadow-sm">
+
+        <i class="fas fa-exclamation-triangle me-2"></i>
+
+        No existe información mensual para analizar.
+
+    </div>
+
+}
+<!-- ========================================================= -->
+<!-- TABLA KARDEX -->
+<!-- ========================================================= -->
+@if (hayDatos)
+{
+    <div class="card shadow-sm border-0">
+
+        <div class="card-header bg-white">
+
+            <h5 class="mb-0 fw-bold">
+
+                <i class="fas fa-clipboard-list text-primary me-2"></i>
+
+                Detalle de Movimientos del Kardex
+
+            </h5>
+
+        </div>
+
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table table-hover table-bordered align-middle mb-0">
+
+                    <thead class="table-dark text-center">
+
+                        <tr>
+
+                            <th style="width:130px;">
+                                Fecha
+                            </th>
+
+                            <th style="width:130px;">
+                                Movimiento / Documento
+                            </th>
+
+                            <th style="width:45%;">
+                                Producto
+                            </th>
+
+                            <th style="width:70px;">
+                                Entradas
+                            </th>
+
+                            <th style="width:70px;">
+                                Salidas
+                            </th>
+
+                            <th style="width:80px;">
+                                Stock
+                            </th>
+
+                            <th style="width:140px;">
+                                Usuario
+                            </th>
+
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var item in modelData)
+                        {
+                            <tr>
+
+                                <!-- Fecha -->
+                                <td class="text-center">
+                                    @item.Fecha.ToString("dd/MM/yyyy HH:mm")
+                                </td>
+
+
+                                <!-- Movimiento + Documento -->
+                                <td class="text-center">
+
+                                    @if (item.TipoMovimiento == "PRODUCCION")
+                                    {
+                                        <span class="badge bg-success mb-1">
+
+                                            <i class="fas fa-industry me-1"></i>
+
+                                            Producción
+
+                                        </span>
+                                    }
+                                    else if (item.TipoMovimiento == "VENTA_DESPACHO")
+                                    {
+                                        <span class="badge bg-danger mb-1">
+
+                                            <i class="fas fa-truck me-1"></i>
+
+                                            Despacho
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary mb-1">
+
+                                            @item.TipoMovimiento
+
+                                        </span>
+                                    }
+
+
+                                    <div class="font-monospace fw-bold small">
+
+                                        @item.DocumentoReferencia
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- Producto -->
+                                <td>
+
+                                    <strong class="text-dark">
+
+                                        @item.NombreProducto
+
+                                    </strong>
+
+                                </td>
+
+
+                                <!-- Entrada -->
+                                <td class="text-end text-success fw-semibold">
+
+                                    @(item.EntradaStock > 0
+                                        ? item.EntradaStock.ToString("N0")
+                                        : "-")
+
+                                </td>
+
+
+                                <!-- Salida -->
+                                <td class="text-end text-danger fw-semibold">
+
+                                    @(item.SalidaStock > 0
+                                        ? item.SalidaStock.ToString("N0")
+                                        : "-")
+
+                                </td>
+
+
+                                <!-- Stock Actual -->
+                                <td class="text-center">
+
+                                    <span class="badge bg-primary px-2 py-1">
+
+                                        @item.StockActual.ToString("N0")
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Usuario -->
+                                <td>
+
+                                    <i class="fas fa-user text-secondary me-1"></i>
+
+                                    @item.UsuarioNombre
+
+                                </td>
+
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+    // =========================================================
+    // DATOS
+    // =========================================================
+
+    const raw = JSON.parse(
+        document.getElementById('grafica-data').textContent
+    ) || [];
+
+    const formatoNumero = valor =>
+        new Intl.NumberFormat('es-CO').format(valor);
+
+    // =========================================================
+    // ORDEN CRONOLÓGICO
+    // =========================================================
+
+    const data = raw
+        .filter(x =>
+            x.entradaStock > 0 ||
+            x.salidaStock > 0 ||
+            x.stockActual > 0)
+        .sort(
+            (a, b) => new Date(a.fecha) - new Date(b.fecha)
+        );
+
+    // =========================================================
+    // ETIQUETAS
+    // =========================================================
+
+    const labels = data.map(x =>
+        new Date(x.fecha).toLocaleDateString(
+            'es-CO',
+            {
+                month: 'long',
+                year: 'numeric'
+            }
+        )
+    );
+
+    // =========================================================
+    // SERIES
+    // =========================================================
+
+    const entradas = data.map(x => x.entradaStock ?? 0);
+
+    const salidas = data.map(x => x.salidaStock ?? 0);
+
+    const stockActual = data.map(x => x.stockActual ?? 0);
+
+    // =========================================================
+    // RANGO DEL STOCK
+    // =========================================================
+
+    const minStock = Math.min(...stockActual);
+
+    const maxStock = Math.max(...stockActual);
+
+    const margen = Math.max(
+        10,
+        (maxStock - minStock) * 0.10
+    );
+
+    // =========================================================
+    // GRÁFICA
+    // =========================================================
+
+    new Chart(
+        document.getElementById("graficaMovimientos"),
+        {
+            type: "line",
+
+            data:
+            {
+                labels,
+
+                datasets:
+                [
+                    {
+                        label: "Entradas",
+
+                        data: entradas,
+
+                        yAxisID: "yMovimientos",
+
+                        borderColor: "#28a745",
+
+                        backgroundColor: "#28a745",
+
+                        borderWidth: 3,
+
+                        pointRadius: 5,
+
+                        pointHoverRadius: 8,
+
+                        pointHitRadius: 15,
+
+                        tension: .35,
+
+                        fill: false
+                    },
+
+                    {
+                        label: "Salidas",
+
+                        data: salidas,
+
+                        yAxisID: "yMovimientos",
+
+                        borderColor: "#dc3545",
+
+                        backgroundColor: "#dc3545",
+
+                        borderWidth: 3,
+
+                        pointRadius: 5,
+
+                        pointHoverRadius: 8,
+
+                        pointHitRadius: 15,
+
+                        tension: .35,
+
+                        fill: false
+                    },
+
+                    {
+                        label: "Stock Actual",
+
+                        data: stockActual,
+
+                        yAxisID: "yStock",
+
+                        borderColor: "#0d6efd",
+
+                        backgroundColor: "#0d6efd",
+
+                        borderWidth: 5,
+
+                        pointRadius: 7,
+
+                        pointHoverRadius: 10,
+
+                        pointHitRadius: 15,
+
+                        pointBorderWidth: 2,
+
+                        tension: .35,
+
+                        fill: false
+                    }
+                ]
+            },
+
+            options:
+            {
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                animation:
+                {
+                    duration: 1200,
+
+                    easing: "easeOutQuart"
+                },
+
+                interaction:
+                {
+                    mode: "index",
+
+                    intersect: false
+                },
+
+                onHover(event, elements)
+                {
+                    event.native.target.style.cursor =
+                        elements.length
+                            ? "pointer"
+                            : "default";
+                },
+
+                plugins:
+                {
+                    legend:
+                    {
+                        position: "top",
+
+                        labels:
+                        {
+                            usePointStyle: true,
+
+                            pointStyle: "circle",
+
+                            padding: 20,
+
+                            font:
+                            {
+                                size: 13,
+
+                                weight: "bold"
+                            }
+                        }
+                    },
+
+                    tooltip:
+                    {
+                        mode: "index",
+
+                        intersect: false,
+
+                        backgroundColor: "#ffffff",
+
+                        titleColor: "#212529",
+
+                        bodyColor: "#212529",
+
+                        borderColor: "#dee2e6",
+
+                        borderWidth: 1,
+
+                        padding: 14,
+
+                        displayColors: true,
+
+                        callbacks:
+                        {
+                            title(context)
+                            {
+                                return context[0].label;
+                            },
+
+                            label(context)
+                            {
+                                const valor =
+                                    formatoNumero(
+                                        context.parsed.y
+                                    );
+
+                                switch (context.dataset.label)
+                                {
+                                    case "Entradas":
+
+                                        return "Entradas : " +
+                                            valor +
+                                            " unidades";
+
+                                    case "Salidas":
+
+                                        return "Salidas : " +
+                                            valor +
+                                            " unidades";
+
+                                    case "Stock Actual":
+
+                                        return "Stock Final : " +
+                                            valor +
+                                            " unidades";
+
+                                    default:
+
+                                        return valor;
+                                }
+                            }
+                        }
+                    }
+                },
+
+                scales:
+                {
+                    yMovimientos:
+                    {
+                        type: "linear",
+
+                        position: "left",
+
+                        beginAtZero: true,
+
+                        grid:
+                        {
+                            color: "rgba(0,0,0,.06)"
+                        },
+
+                        ticks:
+                        {
+                            callback(value)
+                            {
+                                return formatoNumero(value);
+                            }
+                        },
+
+                        title:
+                        {
+                            display: true,
+
+                            text: "Movimientos"
+                        }
+                    },
+
+                    yStock:
+                    {
+                        type: "linear",
+
+                        position: "right",
+
+                        beginAtZero: false,
+
+                        min: minStock - margen,
+
+                        max: maxStock + margen,
+
+                        grid:
+                        {
+                            drawOnChartArea: false
+                        },
+
+                        ticks:
+                        {
+                            callback(value)
+                            {
+                                return formatoNumero(value);
+                            }
+                        },
+
+                        title:
+                        {
+                            display: true,
+
+                            text: "Stock Disponible"
+                        }
+                    },
+
+                    x:
+                    {
+                        grid:
+                        {
+                            display: false
+                        },
+
+                        title:
+                        {
+                            display: true,
+
+                            text: "Período"
+                        }
+                    }
+                }
+            }
+        });
+
+</script>
+
+@section Scripts
+{
+    <script>
+
+        // =========================================================
+        // CARGAR REFERENCIAS Y TALLAS SEGÚN GÉNERO
+        // =========================================================
+        function cargarReferenciasYTallas(idGenero) {
+
+            let referencia = $("#idReferencia");
+            let talla = $("#idTalla");
+
+            // =====================================================
+            // GUARDAR LA SELECCIÓN ACTUAL
+            // (Permite conservar el filtro después del GET)
+            // =====================================================
+
+            let referenciaSeleccionada = referencia.val();
+            let tallaSeleccionada = talla.val();
+
+            // =====================================================
+            // LIMPIAR COMBOS
+            // =====================================================
+
+            referencia.empty();
+            talla.empty();
+
+            referencia.append(
+                '<option value="">Todas</option>'
+            );
+
+            talla.append(
+                '<option value="">Todas</option>'
+            );
+
+            // =====================================================
+            // SI NO HAY GÉNERO SE DETIENE EL PROCESO
+            // =====================================================
+
+            if (!idGenero) {
+                return;
+            }
+
+            // =====================================================
+            // CARGAR REFERENCIAS
+            // =====================================================
+
+            $.get(
+                "/Historial/ReferenciasPorGenero",
+                {
+                    id: idGenero
+                },
+                function (data) {
+
+                    console.log(
+                        "REFERENCIAS RECIBIDAS:",
+                        data
+                    );
+
+                    $.each(data, function (i, item) {
+
+                        let option = $("<option>", {
+                            value: item.id,
+                            text: item.nombre
+                        });
+
+                        // =========================================
+                        // RESTAURAR REFERENCIA SELECCIONADA
+                        // =========================================
+
+                        if (item.id == referenciaSeleccionada) {
+
+                            option.prop("selected", true);
+
+                        }
+
+                        referencia.append(option);
+
+                    });
+
+                }
+            );
+
+            // =====================================================
+            // CARGAR TALLAS
+            // =====================================================
+
+            $.get(
+                "/Historial/TallasPorGenero",
+                {
+                    id: idGenero
+                },
+                function (data) {
+
+                    console.log(
+                        "TALLAS RECIBIDAS:",
+                        data
+                    );
+
+                    $.each(data, function (i, item) {
+
+                        let option = $("<option>", {
+                            value: item.id,
+                            text: item.nombre
+                        });
+
+                        // =========================================
+                        // RESTAURAR TALLA SELECCIONADA
+                        // =========================================
+
+                        if (item.id == tallaSeleccionada) {
+
+                            option.prop("selected", true);
+
+                        }
+
+                        talla.append(option);
+
+                    });
+
+                }
+            );
+
+        }
+
+        // =========================================================
+        // INICIALIZACIÓN DE EVENTOS
+        // =========================================================
+
+        $(document).ready(function () {
+
+            // =====================================================
+            // CAMBIO MANUAL DE GÉNERO
+            // =====================================================
+
+            $("#idGenero").change(function () {
+
+                let idGenero = $(this).val();
+
+                cargarReferenciasYTallas(idGenero);
+
+            });
+
+            // =====================================================
+            // RECARGAR REFERENCIAS Y TALLAS
+            // DESPUÉS DE UNA CONSULTA GET
+            // =====================================================
+
+            let generoActual = $("#idGenero").val();
+
+            if (generoActual) {
+
+                cargarReferenciasYTallas(generoActual);
+
+            }
+
+        });
+
+        // =========================================================
+        // RESTAURAR LOS VALORES SELECCIONADOS
+        // DESPUÉS DE LA CARGA AJAX
+        // =========================================================
+
+        setTimeout(function () {
+
+            $("#idReferencia").val("@(filtros?.idReferencia ?? "")");
+
+            $("#idTalla").val("@(filtros?.idTalla ?? "")");
+
+        }, 500);
+
+        // =========================================================
+        // CONTROL DE FILTRO POR PERÍODO
+        // Habilita únicamente los controles necesarios
+        // =========================================================
+        function ActualizarControlesPeriodo() {
+
+            let tipoPeriodo = $("#tipoPeriodo").val();
+
+            // =====================================================
+            // DESHABILITAR TODOS LOS CONTROLES
+            // =====================================================
+
+            $("#mes").prop("disabled", true);
+            $("#anio").prop("disabled", true);
+            $("#desde").prop("disabled", true);
+            $("#hasta").prop("disabled", true);
+
+            // =====================================================
+            // TODO
+            // =====================================================
+
+            if (tipoPeriodo === "") {
+
+                return;
+
+            }
+
+                    // =========================================================
+        // POR MES
+        // Habilita Mes y Año
+        // Si Año está vacío coloca el año actual automáticamente
+        // =========================================================
+
+        if (tipoPeriodo === "MES") {
+
+            $("#mes").prop("disabled", false);
+
+            $("#anio").prop("disabled", false);
+
+
+            // =====================================================
+            // UX:
+            // Evita enviar MES sin AÑO
+            // =====================================================
+
+            if ($("#anio").val() === "") {
+
+                $("#anio").val(new Date().getFullYear());
+
+            }
+
+
+            return;
+
+        }
+
+                    // =====================================================
+            // POR AÑO
+            // Habilita únicamente el campo Año
+            // =====================================================
+            if (tipoPeriodo === "ANIO") {
+
+                $("#anio").prop("disabled", false);
+
+                return;
+
+            }
+
+            // =====================================================
+            // PERSONALIZADO
+            // Habilita únicamente el rango de fechas
+            // =====================================================
+            if (tipoPeriodo === "PERSONALIZADO") {
+
+                $("#desde").prop("disabled", false);
+                $("#hasta").prop("disabled", false);
+
+                return;
+
+            }
+
+        }
+
+        // =========================================================
+        // FIN CONTROL DE FILTRO POR PERÍODO
+        // =========================================================
+
+
+
+        // =========================================================
+        // INICIALIZAR ESTADO DEL FILTRO
+        // =========================================================
+
+        ActualizarControlesPeriodo();
+
+
+
+        // =========================================================
+        // CAMBIO DEL TIPO DE PERÍODO
+        // =========================================================
+
+        $("#tipoPeriodo").change(function () {
+
+            ActualizarControlesPeriodo();
+
+        });
+
+
+
+        // =========================================================
+        // VALIDACIÓN DEL RANGO DE AÑOS
+        //
+        // Reglas:
+        //
+        // ✔ Año mínimo : 2000
+        // ✔ Año máximo : Año actual + 1
+        //
+        // Se ejecuta tanto al escribir como al utilizar
+        // los botones de incremento.
+        // =========================================================
+
+        function ValidarRangoAnio() {
+
+            let tipoPeriodo = $("#tipoPeriodo").val();
+
+            // =====================================================
+            // Solo aplica para filtros por Mes o Año
+            // =====================================================
+
+            if (tipoPeriodo !== "MES" &&
+                tipoPeriodo !== "ANIO") {
+
+                return;
+
+            }
+
+
+            let inputAnio = $("#anio");
+
+            let anio = parseInt(inputAnio.val());
+
+            let anioActual = new Date().getFullYear();
+
+            let anioMinimo = 2000;
+
+            let anioMaximo = anioActual + 1;
+
+
+            // =====================================================
+            // Si está vacío asigna el año actual
+            // =====================================================
+
+            if (isNaN(anio)) {
+
+                inputAnio.val(anioActual);
+
+                return;
+
+            }
+
+
+            // =====================================================
+            // Año menor al permitido
+            // =====================================================
+
+            if (anio < anioMinimo) {
+
+                inputAnio.val(anioMinimo);
+
+                Swal.fire({
+                    icon: "warning",
+                    title: "Año no válido",
+                    text: `El año mínimo permitido es ${anioMinimo}.`
+                });
+
+                return;
+
+            }
+
+
+            // =====================================================
+            // Año mayor al permitido
+            // =====================================================
+
+            if (anio > anioMaximo) {
+
+                inputAnio.val(anioMaximo);
+
+                Swal.fire({
+                    icon: "warning",
+                    title: "Año no válido",
+                    text: `El año máximo permitido es ${anioMaximo}.`
+                });
+
+            }
+
+        }
+
+
+
+        // =========================================================
+        // CAMBIAR AÑO
+        //
+        // incremento = -1  → Año anterior
+        // incremento = +1  → Año siguiente
+        // =========================================================
+
+        function CambiarAnio(incremento) {
+
+            let anio = parseInt($("#anio").val());
+
+            if (isNaN(anio)) {
+
+                anio = new Date().getFullYear();
+
+            }
+
+            $("#anio").val(anio + incremento);
+
+            ValidarRangoAnio();
+
+        }
+
+
+
+        // =========================================================
+        // BOTÓN AÑO ANTERIOR
+        // =========================================================
+
+        $("#btnAnioAnterior").click(function () {
+
+            CambiarAnio(-1);
+
+        });
+
+
+
+        // =========================================================
+        // BOTÓN AÑO SIGUIENTE
+        // =========================================================
+
+        $("#btnAnioSiguiente").click(function () {
+
+            CambiarAnio(1);
+
+        });
+
+
+
+        // =========================================================
+        // VALIDACIÓN AL CAMBIAR EL AÑO
+        // =========================================================
+
+        $("#anio").change(function () {
+
+            ValidarRangoAnio();
+
+        });
+
+
+            // =========================================================
+        // VALIDACIÓN DEL RANGO PERSONALIZADO
+        //
+        // Reglas:
+        //
+        // ✔ La fecha inicial no puede ser mayor que la fecha final.
+        // ✔ Solo aplica cuando el período es PERSONALIZADO.
+        // =========================================================
+
+        function ValidarRangoFechas() {
+
+        let tipoPeriodo = $("#tipoPeriodo").val();
+
+        // =====================================================
+        // Solo aplica para período personalizado
+        // =====================================================
+
+        if (tipoPeriodo !== "PERSONALIZADO") {
+
+            return true;
+
+        }
+
+
+        let fechaInicio = $("#desde").val();
+
+        let fechaFin = $("#hasta").val();
+
+
+        // =====================================================
+        // Si alguna fecha está vacía no validar aquí
+        // (la obligatoriedad puede validarse aparte)
+        // =====================================================
+
+        if (fechaInicio === "" || fechaFin === "") {
+
+            return true;
+
+        }
+
+
+        // =====================================================
+        // Validar rango
+        // =====================================================
+
+        if (new Date(fechaInicio) > new Date(fechaFin)) {
+
+            Swal.fire({
+                icon: "warning",
+                title: "Rango de fechas no válido",
+                text: "La fecha inicial no puede ser mayor que la fecha final."
+            });
+
+            $("#desde").focus();
+
+            return false;
+
+        }
+
+        return true;
+
+    }
+
+            // =========================================================
+        // VALIDACIÓN RANGO PERSONALIZADO
+        // Control UX del filtro Kardex
+        //
+        // Reglas:
+        // ✔ Solo aplica para período PERSONALIZADO.
+        // ✔ La fecha inicial no puede ser mayor que la final.
+        // =========================================================
+        function ValidarRangoFechas() {
+
+            let tipoPeriodo = $("#tipoPeriodo").val();
+
+            // =====================================================
+            // Solo aplica para período personalizado
+            // =====================================================
+            if (tipoPeriodo !== "PERSONALIZADO") {
+
+                return true;
+
+            }
+
+            let desde = $("#desde").val();
+
+            let hasta = $("#hasta").val();
+
+            // =====================================================
+            // Si alguna fecha está vacía no validar
+            // =====================================================
+            if (desde === "" || hasta === "") {
+
+                return true;
+
+            }
+
+            let fechaDesde = new Date(desde);
+
+            let fechaHasta = new Date(hasta);
+
+            // =====================================================
+            // Fecha inicial mayor que fecha final
+            // =====================================================
+            if (fechaDesde > fechaHasta) {
+
+                Swal.fire({
+                    icon: "warning",
+                    title: "Rango de fechas inválido",
+                    text: "La fecha inicial no puede ser mayor que la fecha final."
+                });
+
+                $("#desde").focus();
+
+                return false;
+
+            }
+
+            return true;
+
+        }
+
+        // =========================================================
+        // VALIDACIÓN ANTES DE ENVIAR FILTROS
+        // Garantiza que los campos del período viajen al Controller
+        // =========================================================
+        $("form").submit(function () {
+
+            // =====================================================
+            // Validaciones
+            // =====================================================
+
+            ValidarRangoAnio();
+
+            if (!ValidarRangoFechas()) {
+
+                return false;
+
+            }
+
+            let tipoPeriodo = $("#tipoPeriodo").val();
+
+            // =====================================================
+            // Habilitar controles según el período
+            // =====================================================
+
+            if (tipoPeriodo === "MES") {
+
+                $("#mes").prop("disabled", false);
+                $("#anio").prop("disabled", false);
+
+            }
+            else if (tipoPeriodo === "ANIO") {
+
+                $("#anio").prop("disabled", false);
+
+            }
+            else if (tipoPeriodo === "PERSONALIZADO") {
+
+                $("#desde").prop("disabled", false);
+                $("#hasta").prop("disabled", false);
+
+            }
+
+        });
+
+    </script>
+}
+

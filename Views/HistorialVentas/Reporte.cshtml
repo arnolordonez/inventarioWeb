@@ -1,107 +1,589 @@
 ﻿@model InventarioWEB.ViewModels.VentaDetalleVM
 
 @{
-    Layout = null; // IMPORTANTE para PDF
+    Layout = null; // Utilizado para impresión y PDF
 }
 
 <!DOCTYPE html>
-<html>
+
+<html lang="es">
+
 <head>
+
     <meta charset="utf-8" />
-    <title>Reporte Venta</title>
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0" />
+    <title>@Model.TituloReporte</title>
 
     <style>
-        body { font-family: Arial; font-size: 12px; }
 
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
+        /* ======================================================
+               CONFIGURACIÓN DE IMPRESIÓN
+            ====================================================== */
+
+        @@media print {
+
+            @@page {
+                size: Letter;
+                margin: 12mm;
+            }
+
+            body {
+                margin: 0;
+                padding: 0;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            table {
+                page-break-inside: auto;
+            }
+
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+
+            thead {
+                display: table-header-group;
+            }
+
+            tbody {
+                display: table-row-group;
+            }
+
+            tfoot {
+                display: table-footer-group;
+            }
+
+            .seccion {
+                page-break-inside: avoid;
+            }
         }
 
-        .box {
-            border: 1px solid #000;
-            padding: 10px;
-            margin-bottom: 10px;
+        /* ======================================================
+               ESTILOS GENERALES DEL DOCUMENTO
+            ====================================================== */
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 13px;
+            color: #222;
+            margin: 35px;
+        }
+
+        h1, h2, h3, h4 {
+            margin: 0;
+        }
+
+        .titulo {
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #999;
+            padding-bottom: 12px;
+        }
+
+            .titulo h1 {
+                font-size: 24px;
+            }
+
+            .titulo h2 {
+                font-size: 18px;
+                margin-top: 5px;
+            }
+
+            .titulo p {
+                margin-top: 8px;
+                color: #666;
+            }
+
+        .seccion {
+            border: 1px solid #777;
+            margin-bottom: 18px;
+        }
+
+        .seccionTitulo {
+            background: #E9ECEF;
+            padding: 8px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .contenido {
+            padding: 12px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        th, td {
-            border: 1px solid #000;
-            padding: 6px;
         }
 
         th {
-            background: #eee;
+            background: #F2F2F2;
         }
 
-        .right {
+        th,
+        td {
+            border: 1px solid #AAA;
+            padding: 7px;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
             text-align: right;
         }
+
+        .firma {
+            margin-top: 70px;
+        }
+
+            .firma td {
+                border: none;
+                text-align: center;
+                padding-top: 45px;
+            }
+
+        .linea {
+            border-top: 1px solid #000;
+            width: 220px;
+            margin: auto;
+            padding-top: 6px;
+        }
+
+        .footer {
+            margin-top: 35px;
+            font-size: 11px;
+            text-align: center;
+            color: #666;
+        }
+
     </style>
+
 </head>
 
 <body>
 
-    <div class="header">
-        <h2>REPORTE DE VENTA</h2>
-        <h4>Pedido #@Model.ID_Pedido</h4>
+    <!-- ======================================================
+         BOTÓN DE IMPRESIÓN (NO SE IMPRIME)
+    ======================================================= -->
+
+    <div class="no-print"
+         style="text-align:right; margin-bottom:20px;">
+
+        <button onclick="window.print()">
+            🖨 Imprimir nuevamente
+        </button>
+
     </div>
 
-    <!-- INFO GENERAL -->
-    <div class="box">
-        <strong>Cliente:</strong> @Model.Cliente <br />
-        <strong>Fecha:</strong> @Model.Fecha.ToString("dd/MM/yyyy") <br />
-        <strong>Tipo Venta:</strong> @Model.TipoVenta <br />
-        <strong>Estado:</strong> @Model.Estado
+    <!-- ======================================================
+         ENCABEZADO
+    ======================================================= -->
+
+    <div class="titulo">
+
+        <h1>ERP INVENTARIOWEB</h1>
+
+        <h2>@Model.TituloReporte</h2>
+
+        <p>
+            Documento generado automáticamente
+        </p>
+
     </div>
 
-    <!-- FINANCIERO -->
-    <div class="box">
-        <strong>Total Venta:</strong> @Model.TotalVenta.ToString("N0") <br />
-        <strong>Total Abonado:</strong> @Model.TotalAbonado.ToString("N0") <br />
-        <strong>Saldo:</strong> @Model.Saldo.ToString("N0")
-    </div>
+    <!-- ======================================================
+         INFORMACIÓN GENERAL
+    ======================================================= -->
 
-    <!-- PRODUCTOS -->
-    <table>
-        <thead>
-            <tr>
-                <th>Producto</th>
-                <th>Talla</th>
-                <th>Color</th>
-                <th>Cantidad</th>
-                <th class="right">Precio</th>
-                <th class="right">Subtotal</th>
-            </tr>
-        </thead>
+    <div class="seccion">
 
-        <tbody>
-            @foreach (var p in Model.Productos)
-            {
+        <div class="seccionTitulo">
+            INFORMACIÓN GENERAL
+        </div>
+
+        <div class="contenido">
+
+            <table>
+
                 <tr>
-                    <td>@p.Producto</td>
-                    <td>@p.Talla</td>
-                    <td>@p.Color</td>
-                    <td>@p.Cantidad</td>
-                    <td class="right">@p.PrecioVenta.ToString("N0")</td>
-                    <td class="right">@p.Subtotal.ToString("N0")</td>
+
+                    <td><strong>Factura</strong></td>
+                    <td>@Model.NumeroFactura</td>
+
+                    <td><strong>Pedido</strong></td>
+                    <td>@Model.ID_Pedido</td>
+
                 </tr>
+
+                <tr>
+
+                    <td><strong>Cliente</strong></td>
+                    <td>@Model.Cliente</td>
+
+                    <td><strong>Fecha Venta</strong></td>
+                    <td>@Model.Fecha.ToString("dd/MM/yyyy")</td>
+
+                </tr>
+
+                <tr>
+
+                    <td><strong>Fecha Reporte</strong></td>
+                    <td>@Model.FechaReporte.ToString("dd/MM/yyyy HH:mm")</td>
+
+                    <td><strong>Tipo Venta</strong></td>
+                    <td>@Model.TipoVenta</td>
+
+                </tr>
+
+            </table>
+
+        </div>
+
+    </div>
+    <!-- ====================================================== -->
+    <!-- ESTADO -->
+    <!-- ====================================================== -->
+
+    <div class="seccion">
+
+        <div class="seccionTitulo">
+            ESTADO DE LA VENTA
+        </div>
+
+        <div class="contenido">
+
+            <table>
+
+                <tr>
+
+                    <td><strong>Pedido</strong></td>
+                    <td>@Model.EstadoPedido</td>
+
+                    <td><strong>Pago</strong></td>
+                    <td>@Model.EstadoPago</td>
+
+                    <td><strong>Despacho</strong></td>
+                    <td>@Model.EstadoDespacho</td>
+
+                </tr>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- RESUMEN -->
+    <!-- ====================================================== -->
+
+    <div class="seccion">
+
+        <div class="seccionTitulo">
+            RESUMEN FINANCIERO
+        </div>
+
+        <div class="contenido">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>Total Venta</th>
+                        <th>Total Abonado</th>
+                        <th>Saldo</th>
+                        <th>Productos</th>
+                        <th>Unidades</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    <tr>
+
+                        <td class="text-right">$ @Model.TotalVenta.ToString("N0")</td>
+
+                        <td class="text-right">$ @Model.TotalAbonado.ToString("N0")</td>
+
+                        <td class="text-right">$ @Model.Saldo.ToString("N0")</td>
+
+                        <td class="text-center">@Model.TotalProductos</td>
+
+                        <td class="text-center">@Model.TotalUnidades</td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- INFORMACIÓN TRIBUTARIA -->
+    <!-- ====================================================== -->
+
+    <div class="seccion">
+
+        <div class="seccionTitulo">
+            INFORMACIÓN TRIBUTARIA
+        </div>
+
+        <div class="contenido">
+
+            <table>
+
+                <tr>
+
+                    <td><strong>Base Gravable</strong></td>
+                    <td class="text-right">
+                        $ @Model.Total.ToString("N0")
+                    </td>
+
+                    <td><strong>IVA</strong></td>
+                    <td class="text-right">
+                        $ @Model.TotalIVA.ToString("N0")
+                    </td>
+
+                    <td><strong>Total Facturado</strong></td>
+                    <td class="text-right">
+                        $ @Model.TotalVenta.ToString("N0")
+                    </td>
+
+                </tr>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- PRODUCTOS -->
+    <!-- ====================================================== -->
+
+    <div class="seccion">
+
+        <div class="seccionTitulo">
+            PRODUCTOS VENDIDOS
+        </div>
+
+        <div class="contenido">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>Producto</th>
+                        <th>Talla</th>
+                        <th>Color</th>
+                        <th>Cantidad</th>
+                        <th>Precio</th>
+                        <th>Subtotal</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @foreach (var item in Model.Productos)
+                    {
+
+                        <tr>
+
+                            <td>@item.Producto</td>
+
+                            <td class="text-center">@item.Talla</td>
+
+                            <td class="text-center">@item.Color</td>
+
+                            <td class="text-center">@item.Cantidad</td>
+
+                            <td class="text-right">$ @item.PrecioVenta.ToString("N0")</td>
+
+                            <td class="text-right">$ @item.Subtotal.ToString("N0")</td>
+
+                        </tr>
+
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- HISTORIAL DE PAGOS -->
+    <!-- ====================================================== -->
+
+    <div class="seccion">
+
+        <div class="seccionTitulo">
+            HISTORIAL DE PAGOS
+        </div>
+
+        <div class="contenido">
+
+            @if (Model.TieneAbonos)
+            {
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Fecha</th>
+                            <th>Método</th>
+                            <th>Recibo</th>
+                            <th>Monto</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var abono in Model.Abonos)
+                        {
+
+                            <tr>
+
+                                <td class="text-center">
+                                    @abono.Fecha_Abono.ToString("dd/MM/yyyy")
+                                </td>
+
+                                <td>
+                                    @abono.MetodoPago
+                                </td>
+
+                                <td class="text-center">
+                                    @abono.NumeroRecibo
+                                </td>
+
+                                <td class="text-right">
+                                    $ @abono.Monto.ToString("N0")
+                                </td>
+
+                            </tr>
+
+                        }
+
+                    </tbody>
+
+                </table>
+
             }
-        </tbody>
+            else
+            {
+                <p>No registra pagos.</p>
+            }
+
+        </div>
+
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- OBSERVACIONES -->
+    <!-- ====================================================== -->
+
+    <div class="seccion">
+
+        <div class="seccionTitulo">
+
+            OBSERVACIONES
+
+        </div>
+
+        <div class="contenido">
+
+            Este documento corresponde al estado comercial de la venta registrada en el ERP INVENTARIOWEB.
+
+            La información presentada refleja los valores y estados registrados en el sistema al momento de generar este reporte.
+
+        </div>
+
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- FIRMAS -->
+    <!-- ====================================================== -->
+
+    <table class="firma">
+
+        <tr>
+
+            <td>
+
+                <div class="linea"></div>
+
+                Responsable
+
+            </td>
+
+            <td>
+
+                <div class="linea"></div>
+
+                Cliente
+
+            </td>
+
+        </tr>
+
     </table>
 
-    <br />
+    <div class="footer">
 
-    <div class="box">
-        <strong>Estado del pedido:</strong> @Model.EstadoPedido <br />
-        <strong>Estado del pago:</strong> @Model.EstadoPago <br />
-        <strong>Estado del despacho:</strong> @Model.EstadoDespacho
+        ERP INVENTARIOWEB<br />
+
+        Documento generado el @Model.FechaReporte.ToString("dd/MM/yyyy HH:mm")
+
     </div>
 
+   <script>
+
+        window.addEventListener("load", function () {
+
+            setTimeout(function () {
+
+                window.print();
+
+            }, 300);
+
+        });
+
+        window.onafterprint = function () {
+
+            // Solo intenta cerrar la ventana si fue abierta desde otra pestaña.
+            if (window.opener) {
+                window.close();
+            }
+
+        };
+
+   </script>
 </body>
+
 </html>

@@ -2,25 +2,42 @@
 {
     public class KardexFilterDto
     {
-        // ============================
-        // FILTRO PRINCIPAL
-        // ============================
+        // =====================================
+        // PRODUCTO
+        // =====================================
         public int? IdProducto { get; set; }
 
-        // ============================
-        // FILTROS DE PRODUCTO
-        // ============================
-        public string? Referencia { get; set; }
 
-        public string? Color { get; set; }
+        // =====================================
+        // CATÁLOGOS
+        // =====================================
 
-        public string? Tela { get; set; }
+        public int? IdGenero { get; set; }
 
-        public string? Talla { get; set; }
+        public int? IdReferencia { get; set; }
 
-        // ============================
-        // RANGO DE FECHAS
-        // ============================
+        public int? IdTalla { get; set; }
+
+        public int? IdTela { get; set; }
+
+        public int? IdColor { get; set; }
+
+
+        // =====================================
+        // PERÍODO
+        // =====================================
+
+        public string? TipoPeriodo { get; set; }
+
+        public int? Mes { get; set; }
+
+        public int? Anio { get; set; }
+
+
+        // =====================================
+        // RANGO PERSONALIZADO
+        // =====================================
+
         public DateTime? Desde { get; set; }
 
         public DateTime? Hasta { get; set; }

@@ -42,31 +42,6 @@ namespace InventarioWEB.Controllers
         }
 
 
-        /*
-        public class AutoController : Controller
-        {
-        private readonly MovimientoVentasDbContext _context;
-
-        public AutoController(MovimientoVentasDbContext context)
-        {
-            _context = context;
-        }
-
-
-        private readonly UsuariosDbContext _context;
-
-            /// <summary>
-            /// Inicializa una nueva instancia del controlador de autenticación.
-            /// </summary>
-            /// <param name="context">
-            /// Contexto de base de datos utilizado para acceder a la tabla Usuarios.
-            /// </param>
-            public AutoController(UsuariosDbContext context)
-            {
-                _context = context;
-            }
-              */
-
 
         // ==========================================================
         // LOGIN (GET)

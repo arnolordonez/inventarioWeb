@@ -201,6 +201,7 @@ namespace InventarioWEB.Controllers
             return View("CrearERP", model);
         }
 
+        
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CrearERP(ProduccionCrearViewModel model)
@@ -357,6 +358,7 @@ namespace InventarioWEB.Controllers
                 return View("CrearERP", model);
             }
         }
+        
 
         /*
         // ==========================================================
@@ -550,6 +552,7 @@ namespace InventarioWEB.Controllers
                 return View("CrearERP", model);
             }
         }
+        
         */
 
         // ==========================================================

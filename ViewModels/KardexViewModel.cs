@@ -13,7 +13,10 @@
 
         public string DocumentoReferencia { get; set; } = string.Empty;
         public string UsuarioNombre { get; set; } = string.Empty;
+        public string NombreProducto { get; set; } = string.Empty;
 
+        public string Cliente { get; set; } = string.Empty;
+        public string Observaciones { get; set; } = string.Empty;
 
         // ================================
         // 🔄 MOVIMIENTO (DELTA)

@@ -191,13 +191,8 @@
                 <a asp-controller="Despacho" asp-action="SeleccionarPedido">
                     <i class="bi bi-truck me-2"></i>Seleccionar Pedido Despacho
                 </a>
-
-                <!-- DESPACHOS (GESTIÓN / HISTORIAL OPERATIVO) -->
-                <a asp-controller="Despacho" asp-action="Index">
-                    <i class="bi bi-box-seam me-2"></i>Despachos
-                </a>
-
-
+                                               
+                
                 <!-- SOLO ADMINISTRADOR -->
                 @if (rol == "administrador")
                 {
@@ -233,11 +228,7 @@
                 <a asp-controller="Abonos" asp-action="Index">
                     <i class="bi bi-cash-coin me-2"></i>Abonos
                 </a>
-
-                <a asp-controller="Reportes" asp-action="Index">
-                    <i class="bi bi-bar-chart-line me-2"></i>Reportes
-                </a>
-
+                               
                 <hr />
             }
 
@@ -256,23 +247,20 @@
                     </a>
                 }
 
-                <!-- HISTORIAL DE DESPACHOS -->
+                <!-- HISTORIAL DE DESPACHADOS -->
                 @if (rol == "administrador" || rol == "producción")
                 {
-                    <a asp-controller="Historial" asp-action="Despachos">
-                        <i class="bi bi-truck-flatbed me-2"></i>Historial de Despachos
+                    <a asp-controller="HistorialDespacho" asp-action="Index">
+                        <i class="bi bi-truck-flatbed me-2"></i>Historial de Despachados
                     </a>
                 }
+                
+                
 
-                <!-- MOVIMIENTOS DE STOCK -->
+                <!-- KARDEX DE INVENTARIO -->
                 @if (rol == "administrador" || rol == "producción")
                 {
-                    <a asp-controller="Historial" asp-action="AlertasStock">
-                        <i class="bi bi-exclamation-triangle me-2"></i>
-                        Alertas de Stock
-                    </a>
-
-                    <a asp-controller="Historial" asp-action="Kardex">
+                    <a asp-controller="HistorialKardex" asp-action="Kardex">
                         <i class="bi bi-clipboard-data me-2"></i>
                         Kardex de Inventario
                     </a>

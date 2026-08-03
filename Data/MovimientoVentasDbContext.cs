@@ -32,6 +32,7 @@ namespace InventarioWEB.Data
         public DbSet<MovimientoInventario> MovimientoInventarios { get; set; } = null!;
         public DbSet<EnvioWhatsApp> EnvioWhatsApp { get; set; }
         public DbSet<HistorialInventario> HistorialInventario { get; set; } = null!;
+        public DbSet<CorreoEnviado> CorreosEnviados { get; set; }
 
         // PRODUCCIÓN
         public DbSet<Produccion> Producciones { get; set; } = null!;

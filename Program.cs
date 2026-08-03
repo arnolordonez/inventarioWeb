@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using InventarioWEB.Data;
 using InventarioWEB.Services;
+using InventarioWEB.Configurations;
 using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -50,6 +51,20 @@ builder.Services.AddScoped<AbonoService>();
 builder.Services.AddScoped<ReciboCajaService>();
 
 // ==========================================================
+// SERVICIO PDF FACTURA
+// ==========================================================
+builder.Services.AddScoped<FacturaPdfService>();
+// ==========================================================
+// SERVICIO DE CORREO ELECTRÓNICO
+// ==========================================================
+builder.Services.Configure<EmailSettings>(
+builder.Configuration.GetSection("Email"));
+
+builder.Services.AddScoped<IEmailService, EmailService>();
+
+builder.Services.AddScoped<CorreoEnviadoService>();
+
+// ==========================================================
 // SERVICIOS PRODUCCIÓN
 // ==========================================================
 builder.Services.AddScoped<ProduccionService>();
@@ -85,6 +100,8 @@ builder.Services.AddSession(options =>
 
 // NECESARIO PARA USAR HttpContext EN EL LAYOUT
 builder.Services.AddHttpContextAccessor();
+
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
 var app = builder.Build();
 

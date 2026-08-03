@@ -1,0 +1,319 @@
+﻿@model List<InventarioWEB.ViewModels.VentaHistorialVM>
+
+@{
+    Layout = null;
+    ViewData["Title"] = "Imprimir Historial de Ventas";
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+
+    <meta charset="utf-8" />
+
+    <title>Historial de Ventas</title>
+
+    <style>
+
+        body {
+            font-family: Arial;
+            font-size: 12px;
+            margin: 20px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #000;
+            padding: 6px;
+        }
+
+        th {
+            background: #EAEAEA;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        thead {
+            background: #D9D9D9;
+            font-weight: bold;
+        }
+
+        tfoot {
+            font-weight: bold;
+        }
+
+        table tr:nth-child(even) {
+            background: #F7F7F7;
+        }
+
+        button {
+            padding: 6px 12px;
+        }
+    </style>
+   
+</head>
+
+<body>
+
+    <div class="no-print" style="margin-bottom:20px;">
+
+        <button onclick="window.print();">
+
+            🖨 Imprimir
+
+        </button>
+
+        <button onclick="history.back();">
+
+            ← Regresar
+
+        </button>
+
+    </div>
+
+    <table style="border:none; margin-bottom:20px;">
+
+        <tr style="border:none;">
+            
+            <td style="border:none; vertical-align:top;">
+
+                <strong style="font-size:16px;">
+                    ERP INVENTARIOWEB
+                </strong>
+
+                <br />
+
+                <span>
+                    Módulo de Ventas
+                </span>
+
+                <br />
+
+                <span style="font-size:11px;">
+                   Reporte Historial General de Ventas
+                </span>
+
+            </td>
+            <td style="border:none; text-align:right;">
+
+                <strong>Fecha:</strong>
+                @DateTime.Now.ToString("dd/MM/yyyy HH:mm")<br />
+
+                <strong>Total registros:</strong>
+                @Model.Count
+
+            </td>
+
+        </tr>
+
+    </table>
+       
+    <h2>HISTORIAL DE VENTAS</h2>
+    <p style="text-align:center;margin-top:-10px;">
+
+        Listado generado según los filtros seleccionados por el usuario.
+
+    </p>
+
+    @{
+        var totalRegistros = Model.Count;
+
+        var ventasPagadas =
+        Model.Count(x => x.EstadoPago == "PAGADO");
+
+        var ventasAbonadas =
+        Model.Count(x => x.EstadoPago == "ABONADO");
+
+        var valorVendido =
+        Model.Sum(x => x.TotalVenta);
+
+        var valorAbonado =
+        Model.Sum(x => x.TotalAbonado);
+
+        var saldoPendiente =
+        Model.Sum(x => x.Saldo);
+    }
+    <table>
+
+        <thead>
+
+            <tr>
+
+                <th>Factura</th>
+                <th>Pedido</th>
+                <th>Fecha</th>
+                <th>Cliente</th>
+                <th>Tipo Venta</th>
+                <th>Pago</th>
+                <th>Despacho</th>
+                
+                <th>Total</th>
+                <th>Abonado</th>
+                <th>Saldo</th>
+                <th>Productos</th>
+                <th>Unidades</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            @foreach (var item in Model)
+            {
+                <tr>
+
+                    <td class="text-center">
+
+                        @(item.ID_Despacho.HasValue
+                            ? $"FAC-{item.ID_Despacho}"
+                            : "SIN FACTURA")
+                    </td>
+
+                    <td class="text-center">
+                        @item.ID_Pedido
+                    </td>
+
+                    <td class="text-center">
+                        @item.Fecha.ToString("dd/MM/yyyy")
+                    </td>
+
+                    <td>
+                        @item.Cliente
+                    </td>
+
+                    <td class="text-center">
+                        @item.TipoVenta
+                    </td>
+
+                    <td class="text-center">
+                        @item.EstadoPago
+                    </td>
+
+                    <td class="text-center">
+                        @item.EstadoDespacho
+                    </td>
+
+                    <td class="text-right">
+                        @item.TotalVenta.ToString("N0")
+                    </td>
+                    <td class="text-right">
+                        @item.TotalAbonado.ToString("N0")
+                    </td>
+
+                    <td class="text-right">
+                        @item.Saldo.ToString("N0")
+                    </td>
+
+                    <td class="text-center">
+                        @item.TotalProductos
+                    </td>
+
+                    <td class="text-center">
+                        @item.TotalUnidades
+                    </td>
+                    
+                </tr>
+            }
+
+        </tbody>
+
+        <tfoot>
+
+            <tr>
+
+                <th colspan="9" class="text-right">
+
+                    Total saldo pendiente
+
+                </th>
+
+                <th class="text-right">
+
+                    @Model.Sum(x => x.Saldo).ToString("N0")
+
+                </th>
+
+                <th></th>
+
+                <th></th>
+
+            </tr>
+
+        </tfoot>
+
+    </table>
+    <br />
+
+    <h3>RESUMEN EJECUTIVO</h3>
+
+    <table style="width:350px;">
+
+        <tr>
+            <td><strong>Total registros</strong></td>
+            <td class="text-right">@totalRegistros</td>
+        </tr>
+
+        <tr>
+            <td><strong>Ventas pagadas</strong></td>
+            <td class="text-right">@ventasPagadas</td>
+        </tr>
+
+        <tr>
+            <td><strong>Ventas abonadas</strong></td>
+            <td class="text-right">@ventasAbonadas</td>
+        </tr>
+
+        <tr>
+            <td><strong>Valor vendido</strong></td>
+            <td class="text-right">@valorVendido.ToString("N0")</td>
+        </tr>
+
+        <tr>
+            <td><strong>Valor abonado</strong></td>
+            <td class="text-right">@valorAbonado.ToString("N0")</td>
+        </tr>
+
+        <tr>
+            <td><strong>Saldo pendiente</strong></td>
+            <td class="text-right">@saldoPendiente.ToString("N0")</td>
+        </tr>
+
+    </table>
+
+    <br />
+
+    <hr />
+
+    <div style="text-align:center;font-size:11px;">
+
+        Reporte generado automáticamente por
+        <strong>ERP InventarioWEB</strong>
+
+        <br />
+
+        Fecha de generación:
+        @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+
+    </div>
+
+</body>
+
+</html>

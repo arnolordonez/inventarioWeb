@@ -204,17 +204,81 @@
 
             </div>
 
-            <!-- Botón -->
-            <div class="col-md-2 d-grid">
+            
+                <!-- ======================================
+                     ACCIONES DEL HISTORIAL
+                ====================================== -->
+                <div class="col-md-4">
 
-                <button type="submit"
-                        class="btn btn-primary">
+                    <label class="form-label">&nbsp;</label>
 
-                    Buscar
+                    <div class="d-flex gap-2">
 
-                </button>
+                        <!-- Buscar -->
+                        <button type="submit"
+                                class="btn btn-primary">
 
-            </div>
+                            🔍 Buscar
+
+                        </button>
+
+                    <!-- Excel -->
+                    <a asp-action="ExportarExcel"
+                       class="btn btn-success"
+                       asp-route-Periodo="@Model.Filtro.Periodo"
+                       asp-route-Mes="@Model.Filtro.Mes"
+                       asp-route-AnioMes="@Model.Filtro.AnioMes"
+                       asp-route-FechaDesde="@Model.Filtro.FechaDesde?.ToString("yyyy-MM-dd")"
+                       asp-route-FechaHasta="@Model.Filtro.FechaHasta?.ToString("yyyy-MM-dd")"
+                       asp-route-Anio="@Model.Filtro.Anio"
+                       asp-route-EstadoPago="@Model.Filtro.EstadoPago"
+                       asp-route-EstadoDespacho="@Model.Filtro.EstadoDespacho"
+                       asp-route-TipoVenta="@Model.Filtro.TipoVenta"
+                       asp-route-Buscar="@Model.Filtro.Buscar">
+
+                        📊 Excel
+
+                    </a>
+
+                    <!-- Imprimir -->
+                    <a asp-action="Imprimir"
+                       class="btn btn-secondary"
+                       asp-route-Periodo="@Model.Filtro.Periodo"
+                       asp-route-Mes="@Model.Filtro.Mes"
+                       asp-route-AnioMes="@Model.Filtro.AnioMes"
+                       asp-route-FechaDesde="@Model.Filtro.FechaDesde?.ToString("yyyy-MM-dd")"
+                       asp-route-FechaHasta="@Model.Filtro.FechaHasta?.ToString("yyyy-MM-dd")"
+                       asp-route-Anio="@Model.Filtro.Anio"
+                       asp-route-EstadoPago="@Model.Filtro.EstadoPago"
+                       asp-route-EstadoDespacho="@Model.Filtro.EstadoDespacho"
+                       asp-route-TipoVenta="@Model.Filtro.TipoVenta"
+                       asp-route-Buscar="@Model.Filtro.Buscar">
+
+                        🖨 Imprimir
+
+                    </a>
+
+                    <!-- PDF -->
+                    <a asp-action="ExportarPdf"
+                       class="btn btn-danger"
+                       asp-route-Periodo="@Model.Filtro.Periodo"
+                       asp-route-Mes="@Model.Filtro.Mes"
+                       asp-route-AnioMes="@Model.Filtro.AnioMes"
+                       asp-route-FechaDesde="@Model.Filtro.FechaDesde?.ToString("yyyy-MM-dd")"
+                       asp-route-FechaHasta="@Model.Filtro.FechaHasta?.ToString("yyyy-MM-dd")"
+                       asp-route-Anio="@Model.Filtro.Anio"
+                       asp-route-EstadoPago="@Model.Filtro.EstadoPago"
+                       asp-route-EstadoDespacho="@Model.Filtro.EstadoDespacho"
+                       asp-route-TipoVenta="@Model.Filtro.TipoVenta"
+                       asp-route-Buscar="@Model.Filtro.Buscar">
+
+                        📄 PDF
+
+                    </a>
+
+                    </div>
+
+                </div>          
 
         </div>
 
@@ -528,27 +592,15 @@
                     <!-- ACCIONES -->
                     <td class="text-center">
 
-                        <div class="btn-group" role="group">
+                        <a asp-action="Detalle"
+                           asp-controller="HistorialVentas"
+                           asp-route-id="@item.ID_Pedido"
+                           class="btn btn-sm btn-primary"
+                           title="Consultar detalle de la venta">
+                            🔍 Detalle
+                        </a>
 
-                            <a asp-action="Detalle"
-                               asp-controller="HistorialVentas"
-                               asp-route-id="@item.ID_Pedido"
-                               class="btn btn-sm btn-primary"
-                               title="Detalle de la venta">
-                                🔍 Detalle
-                            </a>
-
-                            <a asp-action="Reporte"
-                               asp-controller="HistorialVentas"
-                               asp-route-id="@item.ID_Pedido"
-                               class="btn btn-sm btn-outline-secondary"
-                               title="Reporte comercial">
-                                📄 Reporte
-                            </a>
-
-                        </div>
-
-                    </td>                   
+                    </td>
 
                 </tr>
             }

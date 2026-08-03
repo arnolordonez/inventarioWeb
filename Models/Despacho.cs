@@ -89,6 +89,7 @@ namespace InventarioWEB.Models
         public DateTime FechaRegistro { get; set; }
             = DateTime.Now;
 
+        /*
         // =====================================================
         // CONTROL LOGÍSTICO
         // =====================================================
@@ -100,6 +101,22 @@ namespace InventarioWEB.Models
 
         [StringLength(100)]
         public string? UsuarioConfirmacion { get; set; }
+        */
+
+        // =====================================================
+        // TRAZABILIDAD DEL ENVÍO DE CORREO
+        // =====================================================
+
+        public bool CorreoEnviado { get; set; }
+            = false;
+
+        public DateTime? FechaEnvioCorreo { get; set; }
+
+        [StringLength(100)]
+        public string? UsuarioEnvioCorreo { get; set; }
+
+        [StringLength(150)]
+        public string? CorreoDestino { get; set; }
 
         // =====================================================
         // NAVEGACIÓN

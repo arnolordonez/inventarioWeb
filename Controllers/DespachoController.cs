@@ -23,17 +23,29 @@ namespace InventarioWEB.Controllers
     [ValidarSesion]
     public class DespachoController : Controller
     {
-        
+        // ==========================================================
+        // DEPENDENCIAS
+        // ==========================================================
+
         private readonly IWebHostEnvironment _env;
         private readonly MovimientoVentasDbContext _context;
         private readonly HistorialInventarioService _historialService;
+        private readonly FacturaPdfService _facturaPdfService;
 
-        public DespachoController(MovimientoVentasDbContext context,IWebHostEnvironment env,
-            HistorialInventarioService historialService)
+        // ==========================================================
+        // CONSTRUCTOR
+        // ==========================================================
+
+        public DespachoController(
+            MovimientoVentasDbContext context,
+            IWebHostEnvironment env,
+            HistorialInventarioService historialService,
+            FacturaPdfService facturaPdfService)
         {
             _context = context;
             _env = env;
             _historialService = historialService;
+            _facturaPdfService = facturaPdfService;
         }
         private bool TieneAcceso()
         {
@@ -91,45 +103,7 @@ namespace InventarioWEB.Controllers
 
             return View(pedidos);
         }
-        /*
-        public async Task<IActionResult> SeleccionarPedido()
-        {
-            // 🔥 SOLO PEDIDOS PENDIENTES
-            var pedidos = await _context.Pedidos
-                .Include(p => p.Cliente)
-                .Where(p => p.Estado != "DESPACHADO")
-                .OrderBy(p => p.ID_Pedido)
-                .AsNoTracking()
-                .ToListAsync();
-
-            return View(pedidos);
-        }
-        */
-        // ==========================================================
-        // DETALLE
-        // ==========================================================
-        public async Task<IActionResult> Detalle(int id)
-        {
-            if (!TieneAcceso())
-                return RedirectToAction("AccesoDenegado", "Auto");
-
-            var despacho = await _context.Despachos
-                .Include(d => d.Pedido)
-                .Include(d => d.Detalles)
-                    .ThenInclude(dd => dd.Producto)
-                        .ThenInclude(p => p.Talla)
-                .Include(d => d.Detalles)
-                    .ThenInclude(dd => dd.Producto)
-                        .ThenInclude(p => p.Referencia)
-                .AsNoTracking() // 🔥 SOLO VISUAL
-                .FirstOrDefaultAsync(d => d.ID_Despacho == id);
-
-            if (despacho == null)
-                return NotFound();
-
-            return View(despacho);
-        }
-
+        
         // ==========================================================
         // CREAR (GET)
         // ==========================================================
@@ -732,329 +706,17 @@ namespace InventarioWEB.Controllers
         }
 
         // ==========================================================
-        // 🔥 GENERAR FACTURA PDF
+        // 🧾 GENERAR FACTURA PDF
         // ==========================================================
         public async Task<IActionResult> Factura(int id)
         {
-            if (!TieneAcceso())
-                return RedirectToAction("AccesoDenegado", "Auto");
-
-            var despacho = await _context.Despachos
-                .Include(d => d.Pedido)
-                    .ThenInclude(p => p.Cliente)
-                .Include(d => d.Detalles)
-                    .ThenInclude(dd => dd.Producto)
-                        .ThenInclude(p => p.Talla)
-                .Include(d => d.Detalles)
-                    .ThenInclude(dd => dd.Producto)
-                        .ThenInclude(p => p.Referencia)
-                .Include(d => d.Detalles)
-                    .ThenInclude(dd => dd.Producto)
-                        .ThenInclude(p => p.ColorNav)
-                .FirstOrDefaultAsync(d => d.ID_Despacho == id);
-
-            if (despacho == null)
-                return NotFound();
-
-            using var stream = new MemoryStream();
-
-            var writer = new PdfWriter(stream);
-            var pdf = new PdfDocument(writer);
-            var document = new Document(pdf);
-
-            // ======================================================
-            // 🔥 FUENTES
-            // ======================================================
-            var boldFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
-            var normalFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA);
-
-            // ======================================================
-            // 🔥 LOGO
-            // ======================================================
-            var logoPath = Path.Combine(_env.WebRootPath, "img", "Logo.jpg");
-
-            Image? logo = null;
-
-            if (System.IO.File.Exists(logoPath))
-            {
-                var imageData = ImageDataFactory.Create(logoPath);
-
-                // 🔥 LOGO MÁS GRANDE
-                logo = new Image(imageData).ScaleToFit(160, 100);
-            }
-
-            // ======================================================
-            // 🔥 ENCABEZADO
-            // ======================================================
-            var headerTable = new Table(new float[] { 1, 3 })
-                .UseAllAvailableWidth();
-
-            var cellLogo = new Cell()
-                .SetBorder(Border.NO_BORDER)
-                .SetVerticalAlignment(VerticalAlignment.MIDDLE);
-
-            if (logo != null)
-            {
-                cellLogo.Add(logo);
-            }
-
-            headerTable.AddCell(cellLogo);
-
-            headerTable.AddCell(new Cell()
-                .Add(new Paragraph("INDOMABLE S.A.S").SetFont(boldFont).SetFontSize(12))
-                .Add(new Paragraph("NIT: 900.123.456-7").SetFont(normalFont))
-                .Add(new Paragraph("Bogotá D.C").SetFont(normalFont))
-                .Add(new Paragraph("Tel: 300 123 4567").SetFont(normalFont))
-                .SetBorder(Border.NO_BORDER)
-                .SetVerticalAlignment(VerticalAlignment.MIDDLE)
-            );
-
-            document.Add(headerTable);
-
-            document.Add(new Paragraph("\n"));
-
-            // ======================================================
-            // 🔥 DATOS FACTURA / TRAZABILIDAD
-            // ======================================================
-            document.Add(new Paragraph($"Factura N°: {despacho.ID_Despacho}").SetFont(boldFont));
-            document.Add(new Paragraph($"Pedido N°: {despacho.ID_Pedido}").SetFont(boldFont));
-            document.Add(new Paragraph($"Fecha: {despacho.Fecha:dd/MM/yyyy HH:mm}"));
-            document.Add(new Paragraph($"Estado: {despacho.Estado}"));
-            document.Add(new Paragraph($"Tipo: {despacho.Tipo}"));
-
-            document.Add(new Paragraph("\n"));
-
-            // ======================================================
-            // 🔥 CLIENTE
-            // ======================================================
-            var cliente = despacho.Pedido.Cliente;
-
-            document.Add(new Paragraph(
-                $"Cliente: {cliente.Nombre} {cliente.Apellido}    " +
-                $"Doc: {cliente.ID_Cliente}    Tel: {cliente.Telefono}"
-            ));
-
-            document.Add(new Paragraph(
-                $"Dirección: {cliente.Direccion}    Ciudad: {cliente.CiudadMunicipio}"
-            ));
-
-            document.Add(new Paragraph("\n"));
-
-            // ======================================================
-            // 🔥 TABLA PRODUCTOS
-            // ======================================================
-            var table = new Table(new float[] { 2, 4, 2, 2, 2, 2 });
-            table.UseAllAvailableWidth();
-
-            table.AddHeaderCell(new Cell().Add(new Paragraph("Cod").SetFont(boldFont)));
-            table.AddHeaderCell(new Cell().Add(new Paragraph("Producto").SetFont(boldFont)));
-            table.AddHeaderCell(new Cell().Add(new Paragraph("Talla").SetFont(boldFont)));
-            table.AddHeaderCell(new Cell().Add(new Paragraph("Color").SetFont(boldFont)));
-            table.AddHeaderCell(new Cell().Add(new Paragraph("Cant").SetFont(boldFont)));
-            table.AddHeaderCell(new Cell().Add(new Paragraph("Subtotal").SetFont(boldFont)));
-
-            decimal total = 0;
-
-            var detallesIds = despacho.Detalles.Select(x => x.ID_Detalle).ToList();
-
-            var precios = await _context.DetallePedidos
-                .Where(x => detallesIds.Contains(x.ID_Detalle))
-                .ToDictionaryAsync(x => x.ID_Detalle, x => x.PrecioVenta);
-
-            foreach (var d in despacho.Detalles)
-            {
-                var p = d.Producto;
-
-                var color = p.ColorNav?.Nombre ?? p.ColorSnapshot ?? "";
-
-                decimal precio = precios.ContainsKey(d.ID_Detalle)
-                    ? precios[d.ID_Detalle]
-                    : 0;
-
-                decimal subtotal = precio * d.Cantidad_Despachada;
-
-                total += subtotal;
-
-                table.AddCell(new Paragraph(p.ID_Producto.ToString()));
-                table.AddCell(new Paragraph(p.Nombre));
-                table.AddCell(new Paragraph(p.Talla?.DescripTalla ?? ""));
-                table.AddCell(new Paragraph(color));
-                table.AddCell(new Paragraph(d.Cantidad_Despachada.ToString()));
-                table.AddCell(new Paragraph($"${subtotal:N0}"));
-            }
-
-            document.Add(table);
-
-            document.Add(new Paragraph("\n"));
-
-
-            // ======================================================
-            // 🔥 CONTEXTO DE FACTURA (CLARO Y PROFESIONAL)
-            // ======================================================
-
-            // ======================================================
-            // 🔥 CONTEXTO DE FACTURA
-            // ======================================================
-
-            var boldFontSmall = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
-
-            var pedido = despacho.Pedido;
-
-            document.Add(new Paragraph("\n"));
-            
-            // ======================================================
-            // 🔥 TOTALES DEL DESPACHO
-            // ======================================================
-
-            // IVA proporcional
-            decimal porcentajeIVA = pedido.Total > 0
-                ? (pedido.TotalIVA / pedido.Total)
-                : 0;
-
-            var iva = total * porcentajeIVA;
-            var totalFinal = total + iva;
-
-            // 🔹 RESUMEN DESPACHO
-            document.Add(new Paragraph("RESUMEN DEL DESPACHO")
-                .SetFont(boldFontSmall)
-                .SetFontSize(10)
-                .SetTextAlignment(TextAlignment.RIGHT));
-
-            document.Add(new Paragraph($"Subtotal: ${total:N0}")
-                .SetTextAlignment(TextAlignment.RIGHT));
-
-            document.Add(new Paragraph($"IVA ({porcentajeIVA:P0}): ${iva:N0}")
-                .SetTextAlignment(TextAlignment.RIGHT));
-
-            document.Add(new Paragraph($"Total del despacho: ${totalFinal:N0}")
-                .SetFont(boldFontSmall)
-                .SetFontSize(11)
-                .SetTextAlignment(TextAlignment.RIGHT));
-
-            // 🔹 NOTA DE PAGO
-            if (pedido.TipoVenta == "CONTADO" && pedido.Saldo == 0)
-            {
-                document.Add(
-                    new Paragraph("Pedido pagado anticipadamente")
-                        .SetFontSize(9)
-                        .SetTextAlignment(TextAlignment.RIGHT)
-                );
-            }
-
-            document.Add(new Paragraph("\n"));
-
-
-            // ======================================================
-            // 🔥 HISTÓRICO DE DESPACHOS
-            // ======================================================
-
-            var totalDespachadoPrevio = await _context.DetalleDespachos
-                .Join(_context.Despachos,
-                    dd => dd.ID_Despacho,
-                    d => d.ID_Despacho,
-                    (dd, d) => new { dd, d })
-                .Where(x => x.d.ID_Pedido == pedido.ID_Pedido
-                         && x.d.ID_Despacho != despacho.ID_Despacho)
-                .Join(_context.DetallePedidos,
-                    x => x.dd.ID_Detalle,
-                    dp => dp.ID_Detalle,
-                    (x, dp) => new
-                    {
-                        Cantidad = x.dd.Cantidad_Despachada,
-                        Precio = dp.PrecioVenta
-                    })
-                .SumAsync(x => x.Cantidad * x.Precio);
-
-            // convertir a total con IVA
-            var totalPrevioConIVA = totalDespachadoPrevio * (1 + porcentajeIVA);
-            var totalAcumulado = totalPrevioConIVA + totalFinal;
-
-            // 🔹 CALCULAR PENDIENTE
-            var pendiente = pedido.TotalVenta - totalAcumulado;
-
-
-            // ======================================================
-            // 🔥 ESTADO DEL PEDIDO (CLAVE)
-            // ======================================================
-
-            document.Add(new Paragraph("ESTADO DEL PEDIDO")
-                .SetFont(boldFontSmall)
-                .SetFontSize(10)
-                .SetTextAlignment(TextAlignment.RIGHT));
-
-            document.Add(new Paragraph($"Total del pedido: ${pedido.TotalVenta:N0}")
-                .SetTextAlignment(TextAlignment.RIGHT));
-
-            if (totalDespachadoPrevio == 0)
-            {
-                // 🟢 PRIMER DESPACHO (SIN REDUNDANCIA)
-                document.Add(new Paragraph("Inicio de despacho del pedido")
-                    .SetTextAlignment(TextAlignment.RIGHT));
-
-                document.Add(new Paragraph($"Total despachado: ${totalAcumulado:N0}")
-                    .SetTextAlignment(TextAlignment.RIGHT));
-            }
-            else
-            {
-                // 🟡 DESPACHOS POSTERIORES
-                document.Add(new Paragraph($"Despachado previamente: ${totalPrevioConIVA:N0}")
-                    .SetTextAlignment(TextAlignment.RIGHT));
-
-                document.Add(new Paragraph($"Despachado en este documento: ${totalFinal:N0}")
-                    .SetTextAlignment(TextAlignment.RIGHT));
-
-                document.Add(new Paragraph($"Total despachado: ${totalAcumulado:N0}")
-                    .SetTextAlignment(TextAlignment.RIGHT));
-            }
-
-
-            if (pendiente > 0)
-            {
-                document.Add(new Paragraph($"Pendiente por despachar: ${pendiente:N0}")
-                    .SetTextAlignment(TextAlignment.RIGHT));
-            }
-
-            // 🔹 ESTADO LOGÍSTICO
-            string estadoLogistico = pendiente == 0 ? "COMPLETO" : "PARCIAL";
-
-            document.Add(new Paragraph($"Estado del pedido: {estadoLogistico}")
-                .SetFont(boldFontSmall)
-                .SetTextAlignment(TextAlignment.RIGHT));
-
-            document.Add(new Paragraph("\n"));
-
-
-            // ======================================================
-            // 🔥 ESTADO DE PAGO (SEPARADO)
-            // ======================================================
-
-            document.Add(new Paragraph("ESTADO DE PAGO")
-                .SetFont(boldFontSmall)
-                .SetFontSize(10)
-                .SetTextAlignment(TextAlignment.RIGHT));
-            string estadoPago = pedido.Saldo == 0 ? "PAGADO" : "ABONADO";
-
-            document.Add(new Paragraph($"Tipo de venta: {pedido.TipoVenta}")
-                .SetTextAlignment(TextAlignment.RIGHT));
-
-            document.Add(new Paragraph($"Estado de pago: {estadoPago}")
-                .SetTextAlignment(TextAlignment.RIGHT));
-
-            document.Add(new Paragraph($"Saldo financiero: ${pedido.Saldo:N0}")
-                .SetTextAlignment(TextAlignment.RIGHT));
-
-
-            // ======================================================
-            // 🔥 FIRMA
-            // ======================================================
-
-            document.Add(new Paragraph("\n"));
-            document.Add(new Paragraph("____________________________"));
-            document.Add(new Paragraph("Firma Responsable"));
-
-            document.Close();
-
-            return File(stream.ToArray(), "application/pdf", $"Factura_{id}.pdf");
+            var pdf = await _facturaPdfService.GenerarFacturaPdfAsync(id);
+
+            return File(
+                pdf,
+                "application/pdf",
+                $"Factura_{id}.pdf");
         }
+
     }
 }
