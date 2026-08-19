@@ -27,8 +27,15 @@
         <div class="card p-5 shadow-lg" style="width: 100%; max-width: 520px; background-color:white; color:#000; border-radius: 15px;">
             <h1 class="text-center text-primary mb-4 fw-bold">Iniciar sesión</h1>
 
-            <form asp-action="Login" method="post">
+            <form asp-action="Login"
+                  asp-route-empresa="@ViewBag.IdEmpresa"
+                  method="post">
+
                 @Html.AntiForgeryToken()
+
+                <!-- Validación general -->
+                <div asp-validation-summary="ModelOnly"
+                     class="text-danger mb-3"></div>
 
                 <!-- Validación general -->
                 <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>

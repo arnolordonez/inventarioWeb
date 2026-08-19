@@ -2,125 +2,97 @@
 using InventarioWEB.Data;
 using InventarioWEB.Models;
 using InventarioWEB.Models.DTO;
-using Microsoft.AspNetCore.Http;
-using System.Linq;
+//using Microsoft.AspNetCore.Http;
+//using System.Linq;
 using System.ComponentModel.DataAnnotations;
+
 using Microsoft.EntityFrameworkCore;
 using InventarioWEB.ViewModels;
 
 namespace InventarioWEB.Controllers
 {
     /// <summary>
-    /// Controlador responsable de la autenticación, registro y gestión de sesión
-    /// de los usuarios del sistema.
+    /// Controlador encargado de la autenticación y gestión de sesión
+    /// de los usuarios del sistema (tabla Usuarios).
     /// </summary>
-    /// <remarks>
-    /// Interactúa directamente con la entidad Usuario a través de UsuariosDbContext.
-    /// Gestiona procesos de inicio de sesión, cierre de sesión,
-    /// registro de usuarios y recuperación de contraseña.
-    /// Aunque no pertenece al módulo Productos, actúa de forma indirecta
-    /// asegurando el acceso controlado a dicho módulo.
-    /// </remarks>
-
     public class AutoController : Controller
     {
-        // ==========================
-        // CONTEXTOS
-        // ==========================
-        private readonly UsuariosDbContext _usuariosContext;
-        private readonly MovimientoVentasDbContext _ventasContext;
+        private readonly UsuariosDbContext _context;
+        private readonly MovimientoVentasDbContext _movimientoVentasContext;
+        private readonly TenantContext _tenantContext;
 
-        // ==========================
-        // CONSTRUCTOR
-        // ==========================
-        public AutoController(
-            UsuariosDbContext usuariosContext,
-            MovimientoVentasDbContext ventasContext)
+        public AutoController(UsuariosDbContext context,
+             MovimientoVentasDbContext movimientoVentasContext,
+             TenantContext tenantContext)
         {
-            _usuariosContext = usuariosContext;
-            _ventasContext = ventasContext;
+            _context = context;
+            _movimientoVentasContext = movimientoVentasContext;
+            _tenantContext = tenantContext;
         }
-
-
-
         // ==========================================================
-        // LOGIN (GET)
+        // LOGIN (GET) - ahora con últimos 5 correos
         // ==========================================================
-
-        /// <summary>
-        /// Muestra la vista de inicio de sesión del sistema.
-        /// </summary>
-        /// <returns>
-        /// Retorna la vista Login junto con los últimos cinco correos activos registrados.
-        /// </returns>
-        /// <remarks>
-        /// Se cargan los cinco correos más recientes con el fin de facilitar el acceso al usuario.
-        /// </remarks>
         [HttpGet]
         public IActionResult Login()
         {
-            ViewBag.Correos = _usuariosContext.Usuarios
-                .Where(u => u.Activo)
-                .OrderByDescending(u => u.FechaCreacion)
-                .Select(u => u.Correo)
-                .Take(5)
-                .ToList();
+            // Obtener los últimos 5 correos activos (más recientes)
+            ViewBag.Correos = _context.Usuarios
+                                      .Where(u => u.Activo)
+                                      .OrderByDescending(u => u.FechaCreacion)
+                                      .Select(u => u.Correo)
+                                      .Take(5)
+                                      .ToList();
 
             return View(new LoginRequest());
         }
 
 
-
         // ==========================================================
         // LOGIN (POST)
         // ==========================================================
-
-        /// <summary>
-        /// Procesa las credenciales enviadas por el usuario para iniciar sesión.
-        /// </summary>
-        /// <param name="request">
-        /// Modelo que contiene el correo y la contraseña ingresados.
-        /// </param>
-        /// <returns>
-        /// Redirecciona al Dashboard si las credenciales son válidas;
-        /// en caso contrario retorna la vista Login con mensajes de error.
-        /// </returns>
-        /// <remarks>
-        /// La contraseña es validada utilizando el algoritmo BCrypt.
-        /// En caso exitoso, se almacenan identificadores básicos en la sesión HTTP.
-        /// </remarks>
-
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult Login(LoginRequest request)
         {
             if (!ModelState.IsValid)
                 return View(request);
 
-            // ==========================================
-            // VALIDAR USUARIO INACTIVO
-            // ==========================================
-           
+            // ======================================================
+            // VALIDAR TENANT RESUELTO
+            // ======================================================
 
-            // ==========================================
-            // BUSCAR USUARIO ACTIVO CON SU ROL
-            // ==========================================
-            var usuario = _usuariosContext.Usuarios
+            if (!_tenantContext.EstaResuelto ||
+                !_tenantContext.IdEmpresa.HasValue)
+            {
+                ModelState.AddModelError(
+                    "",
+                    "No existe un Tenant seleccionado para esta sesión.");
+
+                return View(request);
+            }
+
+            var idEmpresa =
+                _tenantContext.IdEmpresa.Value;
+
+            // ======================================================
+            // AUTENTICAR USUARIO
+            // ======================================================
+
+            var usuario = _context.Usuarios
                 .Include(u => u.Rol)
                 .FirstOrDefault(u =>
                     u.Correo == request.Correo &&
                     u.Activo);
 
-            // ==========================================
-            // VALIDAR CONTRASEÑA
-            // ==========================================
             if (usuario != null &&
                 BCrypt.Net.BCrypt.Verify(
                     request.Contrasena,
                     usuario.HashContrasena))
             {
-                // ==========================================
-                // SESIÓN ERP
-                // ==========================================
+                // ==================================================
+                // DATOS DE SESIÓN DEL USUARIO
+                // ==================================================
+
                 HttpContext.Session.SetString(
                     "UsuarioID",
                     usuario.IdUsuario.ToString());
@@ -137,8 +109,25 @@ namespace InventarioWEB.Controllers
                     "IdRol",
                     usuario.IdRol.ToString());
 
-                return RedirectToAction("Dashboard");
+                // ==================================================
+                // TENANT DE LA SESIÓN
+                // ==================================================
+
+                HttpContext.Session.SetString(
+                    "IdEmpresa",
+                    idEmpresa.ToString());
+
+                return RedirectToAction(
+                    "Dashboard",
+                    new
+                    {
+                        empresa = idEmpresa
+                    });
             }
+
+            // ======================================================
+            // CREDENCIALES INCORRECTAS
+            // ======================================================
 
             ModelState.AddModelError(
                 "",
@@ -146,94 +135,77 @@ namespace InventarioWEB.Controllers
 
             return View(request);
         }
+
         // ==========================================================
         // DASHBOARD
         // ==========================================================
-
-        /// <summary>
-        /// Muestra el panel principal del sistema.
-        /// </summary>
-        /// <returns>
-        /// Retorna la vista Dashboard si existe sesión activa;
-        /// de lo contrario redirecciona al Login.
-        /// </returns>
-        /// <remarks>
-        /// Requiere que la variable de sesión "UsuarioID" esté definida.
-        /// </remarks>
         public async Task<IActionResult> Dashboard()
         {
-            var usuarioId = HttpContext.Session.GetString("UsuarioID");
-
-            if (string.IsNullOrEmpty(usuarioId))
-                return RedirectToAction("Login");
-
-            var hoy = DateTime.Today;
-
-            /*
-            var usuarioId = HttpContext.Session.GetString("UsuarioID");
-
-            Console.WriteLine($"UsuarioID sesión: {usuarioId}");
-
-            if (string.IsNullOrEmpty(usuarioId))
+            if (string.IsNullOrEmpty(
+                HttpContext.Session.GetString("UsuarioID")))
             {
-                Console.WriteLine("⚠️ Sesión expirada. Redireccionando a Login.");
                 return RedirectToAction("Login");
             }
 
-            var hoy = DateTime.Today;
-            */
-            // ==========================
-            // 💰 VENTAS HOY
-            // ==========================
+            // ======================================================
+            // FECHA ACTUAL
+            // ======================================================
 
-            // Rango del día (correcto para EF + MySQL)
             var inicioDia = DateTime.Today;
             var finDia = inicioDia.AddDays(1);
 
-            // Obtener IDs de pedidos despachados hoy
-            var pedidosIds = await _ventasContext.Despachos
-                .Where(d => d.Estado == EstadoDespacho.Despachado
-                    && d.Fecha >= inicioDia
-                    && d.Fecha < finDia)
+            // ======================================================
+            // DESPACHOS REALIZADOS HOY
+            // ======================================================
+
+            var pedidosIds = await _movimientoVentasContext.Despachos
+                .Where(d =>
+                    d.Estado == EstadoDespacho.Despachado &&
+                    d.Fecha >= inicioDia &&
+                    d.Fecha < finDia)
                 .Select(d => d.ID_Pedido)
                 .ToListAsync();
 
-            // Total de despachos
             var totalDespachos = pedidosIds.Count;
 
-            // Suma de ventas
-            var ventasHoy = await _ventasContext.Pedidos
+            // ======================================================
+            // VENTAS HOY
+            // ======================================================
+
+            var ventasHoy = await _movimientoVentasContext.Pedidos
                 .Where(p => pedidosIds.Contains(p.ID_Pedido))
-                .SumAsync(p => (decimal?)p.TotalVenta) ?? 0;
+                .SumAsync(p => (decimal?)p.TotalVenta) ?? 0m;
 
+            // ======================================================
+            // STOCK TOTAL
+            // ======================================================
 
-            // ==========================
-            // 📦 STOCK TOTAL
-            // ==========================
-            var stockTotal = await _ventasContext.Productos
+            var stockTotal = await _movimientoVentasContext.Productos
                 .Where(p => p.Activo)
                 .SumAsync(p => (int?)p.Stock) ?? 0;
 
+            // ======================================================
+            // STOCK BAJO
+            // ======================================================
 
-            // ==========================
-            // ⚠ STOCK BAJO
-            // ==========================
-            var stockBajo = await _ventasContext.Productos
-                .Where(p => p.Activo && p.Stock <= 10)
+            var stockBajo = await _movimientoVentasContext.Productos
+                .Where(p =>
+                    p.Activo &&
+                    p.Stock <= 10)
                 .CountAsync();
 
+            // ======================================================
+            // PRODUCCIÓN ACTIVA
+            // ======================================================
 
-            // ==========================
-            // 🧵 PRODUCCIÓN ACTIVA
-            // ==========================
-            var produccionActiva = await _ventasContext.Producciones
+            var produccionActiva = await _movimientoVentasContext.Producciones
                 .Where(p => p.Activo)
                 .CountAsync();
 
+            // ======================================================
+            // MODELO
+            // ======================================================
 
-            // ==========================
-            // 📊 VIEWMODEL
-            // ==========================
             var model = new DashboardViewModel
             {
                 VentasHoy = ventasHoy,
@@ -243,45 +215,51 @@ namespace InventarioWEB.Controllers
                 ProduccionActiva = produccionActiva
             };
 
-            ViewBag.NombreUsuario = HttpContext.Session.GetString("UsuarioNombre");
+            ViewBag.NombreUsuario =
+                HttpContext.Session.GetString("UsuarioNombre");
 
             return View(model);
         }
 
-
         // ==========================================================
-        // REGISTRO DE USUARIO (DESHABILITADO)
+        // REGISTRO DE NUEVO USUARIO
         // ==========================================================
-
         [HttpGet]
-        public IActionResult Register()
-        {
-            TempData["error"] =
-                "El registro de usuarios se encuentra deshabilitado.";
-
-            return RedirectToAction("Login");
-        }
+        public IActionResult Register() => View();
 
         [HttpPost]
         public IActionResult Register(RegisterRequest request)
         {
-            // ==========================================================
-            // REGISTRO PÚBLICO DESHABILITADO
-            // ERP: Los usuarios deben ser creados únicamente
-            // por un Administrador del sistema.
-            // ==========================================================
+            if (!ModelState.IsValid) return View(request);
 
-            TempData["error"] =
-                "El registro de usuarios se encuentra deshabilitado. Solicite la creación de su cuenta al Administrador del sistema.";
+            if (_context.Usuarios.Any(u => u.Correo == request.Correo))
+            {
+                ModelState.AddModelError("Correo", "El correo ya está registrado.");
+                return View(request);
+            }
+
+            var nuevoUsuario = new Usuario
+            {
+                Nombres = request.Nombres.Trim(),
+                Apellidos = request.Apellidos.Trim(),
+                Correo = request.Correo.Trim(),
+                Salt = Guid.NewGuid().ToString(),
+                HashContrasena = BCrypt.Net.BCrypt.HashPassword(request.Contrasena.Trim()),
+                IdRol = 1,
+                Activo = true,
+                FechaCreacion = DateTime.Now,
+                FechaUltimaActualizacion = DateTime.Now
+            };
+
+            _context.Usuarios.Add(nuevoUsuario);
+            _context.SaveChanges();
 
             return RedirectToAction("Login");
         }
 
-
         // ==========================================================
         // LOGOUT
         // ==========================================================
-
         public IActionResult Logout()
         {
             HttpContext.Session.Clear();
@@ -289,61 +267,41 @@ namespace InventarioWEB.Controllers
         }
 
         // ==========================================================
-        // ACCESO DENEGADO
-        // ==========================================================
-
-        public IActionResult AccesoDenegado()
-        {
-            return View();
-        }
-
-        /*
-        // ==========================================================
         // FORGOT PASSWORD (GET)
         // ==========================================================
-
         [HttpGet]
         public IActionResult ForgotPassword()
         {
             return View(new ForgotPasswordRequest());
         }
-         
 
         // ==========================================================
         // FORGOT PASSWORD (POST)
         // ==========================================================
-
         [HttpPost]
         public IActionResult ForgotPassword(ForgotPasswordRequest request)
         {
-            if (!ModelState.IsValid)
-                return View(request);
+            if (!ModelState.IsValid) return View(request);
 
-            var usuario = _usuariosContext.Usuarios
-                .FirstOrDefault(u => u.Correo == request.Correo);
-
+            var usuario = _context.Usuarios.FirstOrDefault(u => u.Correo == request.Correo);
             if (usuario == null)
             {
                 ModelState.AddModelError("", "Correo no registrado.");
                 return View(request);
             }
 
+            // Generar token (ejemplo simple)
             var token = Guid.NewGuid().ToString();
-
             HttpContext.Session.SetString("ResetToken", token);
             HttpContext.Session.SetString("ResetUserId", usuario.IdUsuario.ToString());
 
-            ViewBag.Mensaje =
-                $"Token generado: {token} (en producción se enviaría por correo).";
-
+            ViewBag.Mensaje = $"Token generado: {token} (en producción se enviaría por correo).";
             return View(request);
         }
-        
 
         // ==========================================================
         // RESET PASSWORD (GET)
         // ==========================================================
-
         [HttpGet]
         public IActionResult ResetPassword(string token)
         {
@@ -351,20 +309,16 @@ namespace InventarioWEB.Controllers
             {
                 Token = token ?? string.Empty
             };
-
             return View(model);
         }
 
-        
         // ==========================================================
         // RESET PASSWORD (POST)
         // ==========================================================
-
         [HttpPost]
         public IActionResult ResetPassword(ResetPasswordRequest request)
         {
-            if (!ModelState.IsValid)
-                return View(request);
+            if (!ModelState.IsValid) return View(request);
 
             var sessionToken = HttpContext.Session.GetString("ResetToken");
             var userIdStr = HttpContext.Session.GetString("ResetUserId");
@@ -376,40 +330,32 @@ namespace InventarioWEB.Controllers
             }
 
             int userId = int.Parse(userIdStr);
-
-            var usuario = _usuariosContext.Usuarios
-                .FirstOrDefault(u => u.IdUsuario == userId);
-
+            var usuario = _context.Usuarios.FirstOrDefault(u => u.IdUsuario == userId);
             if (usuario == null)
             {
                 ModelState.AddModelError("", "Usuario no encontrado.");
                 return View(request);
             }
 
-            usuario.HashContrasena =
-                BCrypt.Net.BCrypt.HashPassword(request.NuevaContrasena.Trim());
-
+            // Actualizar contraseña
+            usuario.HashContrasena = BCrypt.Net.BCrypt.HashPassword(request.NuevaContrasena.Trim());
             usuario.FechaUltimaActualizacion = DateTime.Now;
+            _context.SaveChanges();
 
-            _usuariosContext.SaveChanges();
-
+            // Limpiar token de sesión
             HttpContext.Session.Remove("ResetToken");
             HttpContext.Session.Remove("ResetUserId");
 
+            ViewBag.Mensaje = "Contraseña actualizada con éxito. Puede iniciar sesión.";
             return RedirectToAction("Login");
         }
-        
+    }
 
-        // ==========================================================
-        // MODELO FORGOT PASSWORD
-        // ==========================================================
-
-        public class ForgotPasswordRequest
-        {
-            [Required(ErrorMessage = "El correo es obligatorio.")]
-            [EmailAddress(ErrorMessage = "Formato de correo inválido.")]
-            public string Correo { get; set; } = string.Empty;
-        }
-        */
+    // DTO adicional para recuperación de contraseña
+    public class ForgotPasswordRequest
+    {
+        [Required(ErrorMessage = "El correo es obligatorio.")]
+        [EmailAddress(ErrorMessage = "Formato de correo inválido.")]
+        public string Correo { get; set; } = string.Empty;
     }
 }

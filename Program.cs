@@ -3,6 +3,9 @@ using InventarioWEB.Data;
 using InventarioWEB.Services;
 using InventarioWEB.Configurations;
 using System.Globalization;
+using InventarioWEB.Services.Interfaces;
+using InventarioWEB.Services.Implementations;
+using InventarioWEB.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -70,7 +73,19 @@ builder.Services.AddScoped<CorreoEnviadoService>();
 builder.Services.AddScoped<ProduccionService>();
 
 // ==========================================================
-// SERVICIOS MVC + API
+// MULTI-TENANT
+// ==========================================================
+
+builder.Services.AddScoped<ITenantResolver, TenantResolver>();
+
+builder.Services.AddScoped<TenantContext>();
+
+builder.Services.AddScoped<
+    ITenantDbContextFactory,
+    TenantDbContextRuntimeFactory>();
+
+// ==========================================================
+// SERVICIOS MVC
 // ==========================================================
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(options =>
@@ -82,8 +97,8 @@ builder.Services.AddControllersWithViews()
 // SWAGGER PARA DOCUMENTACIÓN DE API
 // ==========================================================
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+//builder.Services.AddEndpointsApiExplorer();
+//builder.Services.AddSwaggerGen();
 
 // ==========================================================
 // SESIONES
@@ -109,23 +124,19 @@ var app = builder.Build();
 // PIPELINE DE LA APLICACIÓN
 // ==========================================================
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-else
+if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
-
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-// Activar sesiones (REQUERIDO PARA LOGIN)
+
 app.UseSession();
+
+app.UseMiddleware<TenantResolverMiddleware>();
 
 app.UseAuthorization();
 
@@ -133,7 +144,7 @@ app.UseAuthorization();
 // MAPEO DE CONTROLADORES API
 // ==========================================================
 
-app.MapControllers();
+//app.MapControllers();
 
 // ==========================================================
 // RUTA PRINCIPAL MVC (LOGIN)

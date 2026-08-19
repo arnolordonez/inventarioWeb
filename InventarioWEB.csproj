@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>43ac695c-3b79-46e1-8787-fafae4a3c143</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,19 +21,20 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="MongoDB.Driver" Version="3.7.1" />
-    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
+     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
     <PackageReference Include="QuestPDF" Version="2026.7.0" />
    
     <PackageReference Include="Selenium.webDriver" Version="4.44.0" />
     <PackageReference Include="Selenium.WebDriver.MSEdgeDriver" Version="148.0.3967.54" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.0.1" />
-    <PackageReference Include="X.PagedList" Version="8.0.6" />
-    <PackageReference Include="X.PagedList.Mvc.Core" Version="8.0.6" />
+    
+	<PackageReference Include="X.PagedList" Version="10.5.9" />
+    <PackageReference Include="X.PagedList.Mvc.Core" Version="10.5.9" />  
+	
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="wwwroot\ReciboCaja\" />
   </ItemGroup>
 
+ 
 </Project>

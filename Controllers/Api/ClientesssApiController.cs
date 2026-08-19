@@ -9,11 +9,11 @@ namespace InventarioWEB.Controllers.Api
 {
     [Route("api/clientes")]
     [ApiController]
-    public class ClientesApiController : ControllerBase
+    public class ClientesssApiController : ControllerBase
     {
         private readonly MovimientoVentasDbContext _context;
 
-        public ClientesApiController(MovimientoVentasDbContext context)
+        public ClientesssApiController(MovimientoVentasDbContext context)
         {
             _context = context;
         }

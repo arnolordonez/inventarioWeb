@@ -5,6 +5,8 @@ using InventarioWEB.Data;
 using InventarioWEB.Models;
 using X.PagedList;
 using InventarioWEB.Filters;
+using X.PagedList.Extensions;
+//using X.PagedList.EF;
 
 
 namespace InventarioWEB.Controllers
@@ -72,9 +74,10 @@ namespace InventarioWEB.Controllers
                     query = query.Where(c => c.Nombre.Contains(search) || c.Apellido.Contains(search));
             }
 
-            var clientes = await query
-                .OrderBy(c => c.Nombre)
-                .ToPagedListAsync(pageNumber, pageSize);
+            var clientes = query
+            .OrderBy(c => c.Nombre)
+            .ToPagedList(pageNumber, pageSize);
+            
 
             ViewBag.SoloEliminados = soloEliminados;
             ViewBag.Search = search;

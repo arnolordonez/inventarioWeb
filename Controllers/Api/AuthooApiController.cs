@@ -13,7 +13,7 @@ namespace InventarioWEB.Controllers.Api
     /// </summary>
     [ApiController]
     [Route("api/auth")]
-    public class AuthApiController : ControllerBase
+    public class AuthooApiController : ControllerBase
     {
         private readonly UsuariosDbContext _context;
 
@@ -21,7 +21,7 @@ namespace InventarioWEB.Controllers.Api
         /// Constructor que recibe el contexto de base de datos
         /// mediante inyección de dependencias.
         /// </summary>
-        public AuthApiController(UsuariosDbContext context)
+        public AuthooApiController(UsuariosDbContext context)
         {
             _context = context;
         }
