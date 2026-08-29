@@ -84,6 +84,67 @@ builder.Services.AddScoped<
     ITenantDbContextFactory,
     TenantDbContextRuntimeFactory>();
 
+
+
+// ==========================================================
+// AUTORIZACIÓN COMERCIAL DESDE LA PLATAFORMA
+// ==========================================================
+
+builder.Services.AddHttpClient<
+    IPlatformAccessService,
+    PlatformAccessService>(
+    (serviceProvider, client) =>
+    {
+        var configuration =
+            serviceProvider.GetRequiredService<IConfiguration>();
+
+        var baseUrl =
+            configuration["Platform:BaseUrl"];
+
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            throw new InvalidOperationException(
+                "No está configurada Platform:BaseUrl.");
+        }
+
+        client.BaseAddress =
+            new Uri(
+                baseUrl.TrimEnd('/') + "/");
+
+        client.Timeout =
+            TimeSpan.FromSeconds(10);
+    });
+
+// ==========================================================
+// RESOLUCIÓN DE EMPRESA / TENANT DESDE LA PLATAFORMA
+// ==========================================================
+
+builder.Services.AddHttpClient<
+    IPlatformTenantService,
+    PlatformTenantService>(
+    (serviceProvider, client) =>
+    {
+        var configuration =
+            serviceProvider.GetRequiredService<IConfiguration>();
+
+        var baseUrl =
+            configuration["Platform:BaseUrl"];
+
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            throw new InvalidOperationException(
+                "No está configurada Platform:BaseUrl.");
+        }
+
+        client.BaseAddress =
+            new Uri(
+                baseUrl.TrimEnd('/') + "/");
+
+        client.Timeout =
+            TimeSpan.FromSeconds(10);
+    });
+
+
 // ==========================================================
 // SERVICIOS MVC
 // ==========================================================
@@ -146,9 +207,30 @@ app.UseAuthorization();
 
 //app.MapControllers();
 
+
 // ==========================================================
-// RUTA PRINCIPAL MVC (LOGIN)
+// RUTA EMPRESARIAL MVC
 // ==========================================================
+//
+// Identifica automáticamente la empresa mediante
+// su SlugEmpresa.
+//
+// Ejemplo:
+// /e/confecciones-jordano-sas/Auto/Login
+//
+
+app.MapControllerRoute(
+    name: "empresa",
+    pattern: "e/{slugEmpresa}/{controller=Auto}/{action=Login}/{id?}"
+);
+
+// ==========================================================
+// RUTA PRINCIPAL MVC (COMPATIBILIDAD)
+// ==========================================================
+//
+// Se conserva temporalmente para las rutas actuales
+// y para las pruebas mediante ?empresa=GUID.
+//
 
 app.MapControllerRoute(
     name: "default",

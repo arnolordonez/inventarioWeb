@@ -2,12 +2,11 @@
 using InventarioWEB.Data;
 using InventarioWEB.Models;
 using InventarioWEB.Models.DTO;
-//using Microsoft.AspNetCore.Http;
-//using System.Linq;
 using System.ComponentModel.DataAnnotations;
 
 using Microsoft.EntityFrameworkCore;
 using InventarioWEB.ViewModels;
+using InventarioWEB.Services.Interfaces;
 
 namespace InventarioWEB.Controllers
 {
@@ -20,15 +19,23 @@ namespace InventarioWEB.Controllers
         private readonly UsuariosDbContext _context;
         private readonly MovimientoVentasDbContext _movimientoVentasContext;
         private readonly TenantContext _tenantContext;
+        private readonly IPlatformAccessService _platformAccessService;
+        private readonly ITenantDbContextFactory _tenantDbContextFactory;
 
-        public AutoController(UsuariosDbContext context,
-             MovimientoVentasDbContext movimientoVentasContext,
-             TenantContext tenantContext)
+        public AutoController(
+            UsuariosDbContext context,
+            MovimientoVentasDbContext movimientoVentasContext,
+            TenantContext tenantContext,
+            IPlatformAccessService platformAccessService,
+            ITenantDbContextFactory tenantDbContextFactory)
         {
             _context = context;
             _movimientoVentasContext = movimientoVentasContext;
             _tenantContext = tenantContext;
+            _platformAccessService = platformAccessService;
+            _tenantDbContextFactory = tenantDbContextFactory;
         }
+
         // ==========================================================
         // LOGIN (GET) - ahora con últimos 5 correos
         // ==========================================================
@@ -50,12 +57,17 @@ namespace InventarioWEB.Controllers
         // ==========================================================
         // LOGIN (POST)
         // ==========================================================
+
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Login(LoginRequest request)
+        public async Task<IActionResult> Login(
+            LoginRequest request,
+            string? slugEmpresa)
         {
             if (!ModelState.IsValid)
+            {
                 return View(request);
+            }
 
             // ======================================================
             // VALIDAR TENANT RESUELTO
@@ -77,149 +89,321 @@ namespace InventarioWEB.Controllers
             // ======================================================
             // AUTENTICAR USUARIO
             // ======================================================
+            await using var tenantContext =
+                _tenantDbContextFactory.CreateDbContext();
 
-            var usuario = _context.Usuarios
-                .Include(u => u.Rol)
-                .FirstOrDefault(u =>
-                    u.Correo == request.Correo &&
-                    u.Activo);
+            var usuario =
+                await tenantContext.Usuarios
+                    .Include(u => u.Rol)
+                    .FirstOrDefaultAsync(u =>
+                        u.Correo == request.Correo &&
+                        u.Activo);
 
-            if (usuario != null &&
-                BCrypt.Net.BCrypt.Verify(
+
+            if (usuario == null ||
+                !BCrypt.Net.BCrypt.Verify(
                     request.Contrasena,
                     usuario.HashContrasena))
             {
-                // ==================================================
-                // DATOS DE SESIÓN DEL USUARIO
-                // ==================================================
+                ModelState.AddModelError(
+                    "",
+                    "Correo o contraseña incorrectos.");
 
-                HttpContext.Session.SetString(
-                    "UsuarioID",
-                    usuario.IdUsuario.ToString());
+                return View(request);
+            }
 
-                HttpContext.Session.SetString(
-                    "UsuarioNombre",
-                    $"{usuario.Nombres} {usuario.Apellidos}");
+            // ======================================================
+            // VALIDAR AUTORIZACIÓN COMERCIAL
+            // ======================================================
 
-                HttpContext.Session.SetString(
-                    "Rol",
-                    usuario.Rol?.NombreRol ?? string.Empty);
+            var acceso =
+                await _platformAccessService
+                    .ValidarAccesoAsync(idEmpresa);
 
-                HttpContext.Session.SetString(
-                    "IdRol",
-                    usuario.IdRol.ToString());
+            if (!acceso.RespuestaValida)
+            {
+                ModelState.AddModelError(
+                    "",
+                    acceso.Motivo);
 
-                // ==================================================
-                // TENANT DE LA SESIÓN
-                // ==================================================
+                return View(request);
+            }
 
-                HttpContext.Session.SetString(
-                    "IdEmpresa",
-                    idEmpresa.ToString());
-
+            if (!acceso.Permitido)
+            {
                 return RedirectToAction(
-                    "Dashboard",
+                    nameof(AccesoDenegado),
                     new
                     {
-                        empresa = idEmpresa
+                        motivo = acceso.Motivo
                     });
             }
 
             // ======================================================
-            // CREDENCIALES INCORRECTAS
+            // DATOS DE SESIÓN DEL USUARIO
             // ======================================================
 
-            ModelState.AddModelError(
-                "",
-                "Correo o contraseña incorrectos.");
+            HttpContext.Session.SetString(
+                "UsuarioID",
+                usuario.IdUsuario.ToString());
 
-            return View(request);
+            HttpContext.Session.SetString(
+                "UsuarioNombre",
+                $"{usuario.Nombres} {usuario.Apellidos}");
+
+            HttpContext.Session.SetString(
+                "Rol",
+                usuario.Rol?.NombreRol ?? string.Empty);
+
+            HttpContext.Session.SetString(
+                "IdRol",
+                usuario.IdRol.ToString());
+
+            
+            // ======================================================
+            // TENANT DE LA SESIÓN
+            // ======================================================
+
+            HttpContext.Session.SetString(
+                "IdEmpresa",
+                idEmpresa.ToString());
+
+            if (!string.IsNullOrWhiteSpace(
+                slugEmpresa))
+            {
+                HttpContext.Session.SetString(
+                    "SlugEmpresa",
+                    slugEmpresa);
+            }
+
+            // ======================================================
+            // ACCESO AL ERP
+            // ======================================================
+            if (string.IsNullOrWhiteSpace(slugEmpresa))
+            {
+                ModelState.AddModelError(
+                    "",
+                    "No se pudo determinar la empresa de esta sesión.");
+
+                return View(request);
+            }
+
+            return RedirectToRoute(
+                "empresa",
+                new
+                {
+                    slugEmpresa,
+                    controller = "Auto",
+                    action = "Dashboard"
+                });
+
         }
+
+        // ==========================================================
+        // ACCESO DENEGADO
+        // ==========================================================
+
+        [HttpGet]
+        public IActionResult AccesoDenegado(
+            string? motivo)
+        {
+            ViewBag.Motivo =
+                string.IsNullOrWhiteSpace(motivo)
+                    ? "La empresa no está autorizada para utilizar el ERP."
+                    : motivo;
+
+            return View();
+        }
+
 
         // ==========================================================
         // DASHBOARD
         // ==========================================================
-        public async Task<IActionResult> Dashboard()
+
+        [HttpGet]
+        public async Task<IActionResult> Dashboard(
+            string? slugEmpresa)
         {
-            if (string.IsNullOrEmpty(
-                HttpContext.Session.GetString("UsuarioID")))
-            {
-                return RedirectToAction("Login");
-            }
+                    // ======================================================
+                    // VALIDAR SESIÓN DEL USUARIO
+                    // ======================================================
 
-            // ======================================================
-            // FECHA ACTUAL
-            // ======================================================
+                    if (string.IsNullOrWhiteSpace(
+                        HttpContext.Session.GetString("UsuarioID")))
+                    {
+                        if (string.IsNullOrWhiteSpace(slugEmpresa))
+                        {
+                            slugEmpresa =
+                                HttpContext.Session.GetString(
+                                    "SlugEmpresa");
+                        }
 
-            var inicioDia = DateTime.Today;
-            var finDia = inicioDia.AddDays(1);
+                        if (!string.IsNullOrWhiteSpace(slugEmpresa))
+                        {
+                            return RedirectToRoute(
+                                "empresa",
+                                new
+                                {
+                                    slugEmpresa,
+                                    controller = "Auto",
+                                    action = "Login"
+                                });
+                        }
 
-            // ======================================================
-            // DESPACHOS REALIZADOS HOY
-            // ======================================================
+                        return RedirectToAction(
+                            nameof(Login));
+                    }
 
-            var pedidosIds = await _movimientoVentasContext.Despachos
-                .Where(d =>
-                    d.Estado == EstadoDespacho.Despachado &&
-                    d.Fecha >= inicioDia &&
-                    d.Fecha < finDia)
-                .Select(d => d.ID_Pedido)
-                .ToListAsync();
+                    // ======================================================
+                    // RECUPERAR SLUG DE LA EMPRESA
+                    // ======================================================
 
-            var totalDespachos = pedidosIds.Count;
+                    if (string.IsNullOrWhiteSpace(slugEmpresa))
+                    {
+                        slugEmpresa =
+                            HttpContext.Session.GetString(
+                                "SlugEmpresa");
+                    }
 
-            // ======================================================
-            // VENTAS HOY
-            // ======================================================
+                    if (string.IsNullOrWhiteSpace(slugEmpresa))
+                    {
+                        return RedirectToAction(
+                            nameof(Login));
+                    }
 
-            var ventasHoy = await _movimientoVentasContext.Pedidos
-                .Where(p => pedidosIds.Contains(p.ID_Pedido))
-                .SumAsync(p => (decimal?)p.TotalVenta) ?? 0m;
+                    // ======================================================
+                    // VALIDAR TENANT RESUELTO
+                    // ======================================================
 
-            // ======================================================
-            // STOCK TOTAL
-            // ======================================================
+                    if (!_tenantContext.EstaResuelto ||
+                        !_tenantContext.IdEmpresa.HasValue)
+                    {
+                        return RedirectToRoute(
+                            "empresa",
+                            new
+                            {
+                                slugEmpresa,
+                                controller = "Auto",
+                                action = "Login"
+                            });
+                    }
 
-            var stockTotal = await _movimientoVentasContext.Productos
-                .Where(p => p.Activo)
-                .SumAsync(p => (int?)p.Stock) ?? 0;
+                    // ======================================================
+                    // CREAR CONTEXTO DEL TENANT ACTUAL
+                    // ======================================================
 
-            // ======================================================
-            // STOCK BAJO
-            // ======================================================
+                    await using var tenantContext =
+                        _tenantDbContextFactory.CreateDbContext();
 
-            var stockBajo = await _movimientoVentasContext.Productos
-                .Where(p =>
-                    p.Activo &&
-                    p.Stock <= 10)
-                .CountAsync();
+                    // ======================================================
+                    // FECHA ACTUAL
+                    // ======================================================
 
-            // ======================================================
-            // PRODUCCIÓN ACTIVA
-            // ======================================================
+                    var inicioDia =
+                        DateTime.Today;
 
-            var produccionActiva = await _movimientoVentasContext.Producciones
-                .Where(p => p.Activo)
-                .CountAsync();
+                    var finDia =
+                        inicioDia.AddDays(1);
 
-            // ======================================================
-            // MODELO
-            // ======================================================
+                    // ======================================================
+                    // DESPACHOS REALIZADOS HOY
+                    // ======================================================
 
-            var model = new DashboardViewModel
-            {
-                VentasHoy = ventasHoy,
-                TotalDespachos = totalDespachos,
-                StockTotal = stockTotal,
-                StockBajo = stockBajo,
-                ProduccionActiva = produccionActiva
-            };
+                    var pedidosIds =
+                        await tenantContext.Despachos
+                            .Where(d =>
+                                d.Estado ==
+                                    EstadoDespacho.Despachado &&
+                                d.Fecha >= inicioDia &&
+                                d.Fecha < finDia)
+                            .Select(d => d.ID_Pedido)
+                            .ToListAsync();
 
-            ViewBag.NombreUsuario =
-                HttpContext.Session.GetString("UsuarioNombre");
+                    var totalDespachos =
+                        pedidosIds.Count;
 
-            return View(model);
+                    // ======================================================
+                    // VENTAS HOY
+                    // ======================================================
+
+                    var ventasHoy =
+                        await tenantContext.Pedidos
+                            .Where(p =>
+                                pedidosIds.Contains(
+                                    p.ID_Pedido))
+                            .SumAsync(
+                                p => (decimal?)p.TotalVenta) ?? 0m;
+
+                    // ======================================================
+                    // STOCK TOTAL
+                    // ======================================================
+
+                    var stockTotal =
+                        await tenantContext.Productos
+                            .Where(p => p.Activo)
+                            .SumAsync(
+                                p => (int?)p.Stock) ?? 0;
+
+                    // ======================================================
+                    // STOCK BAJO
+                    // ======================================================
+
+                    var stockBajo =
+                        await tenantContext.Productos
+                            .Where(p =>
+                                p.Activo &&
+                                p.Stock <= 10)
+                            .CountAsync();
+
+                    // ======================================================
+                    // PRODUCCIÓN ACTIVA
+                    // ======================================================
+
+                    var produccionActiva =
+                        await tenantContext.Producciones
+                            .Where(p => p.Activo)
+                            .CountAsync();
+
+                    // ======================================================
+                    // MODELO
+                    // ======================================================
+
+                    var model =
+                        new DashboardViewModel
+                        {
+                            VentasHoy =
+                                ventasHoy,
+
+                            TotalDespachos =
+                                totalDespachos,
+
+                            StockTotal =
+                                stockTotal,
+
+                            StockBajo =
+                                stockBajo,
+
+                            ProduccionActiva =
+                                produccionActiva
+                        };
+
+                    // ======================================================
+                    // INFORMACIÓN PARA LA VISTA
+                    // ======================================================
+
+                    ViewBag.NombreUsuario =
+                        HttpContext.Session.GetString(
+                            "UsuarioNombre");
+
+                    ViewBag.SlugEmpresa =
+                        slugEmpresa;
+
+                    ViewBag.IdEmpresa =
+                        _tenantContext.IdEmpresa;
+
+                    return View(model);
         }
+
 
         // ==========================================================
         // REGISTRO DE NUEVO USUARIO

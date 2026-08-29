@@ -1,5 +1,4 @@
-﻿
-using InventarioWEB.Data;
+﻿using InventarioWEB.Data;
 using InventarioWEB.DTOs;
 using InventarioWEB.Filters;
 using InventarioWEB.Models;

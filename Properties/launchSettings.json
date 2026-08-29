@@ -8,6 +8,7 @@
       "sslPort": 44352
     }
   },
+  
   "profiles": {
     "http": {
       "commandName": "Project",
@@ -19,23 +20,27 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
+
     "https": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      "launchUrl": "Auto/Login",
+      "launchUrl": "e/confecciones-jordano-sas/Auto/Login",
       "applicationUrl": "https://localhost:7084;http://localhost:5189",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
-    },
-    "IIS Express": {
-      "commandName": "IISExpress",
-      "launchBrowser": true,
-      "launchUrl": "Auto/Login",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+    }
+  },
+  
+
+  "IIS Express": {
+    "commandName": "IISExpress",
+    "launchBrowser": true,
+    "launchUrl": "Auto/Login",
+    "environmentVariables": {
+      "ASPNETCORE_ENVIRONMENT": "Development"
     }
   }
 }
+
